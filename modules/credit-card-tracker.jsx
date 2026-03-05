@@ -889,13 +889,41 @@ function WhatIfTab({cards,avalanche,snowball,darkMode,apiKey}){
 }
 
 // ─── Strategy Tab ─────────────────────────────────────────────────────────────
-function StrategyTab({cards,avalanche,snowball,darkMode,apiKey}){
+function StrategyTab({cards,avalanche,snowball,darkMode,apiKey,profileId,onApplyStrategy,initiallyShowQuestionnaire}){
   const t=useTheme(darkMode);
+  const answersKey=`cc_strategy_answers_${profileId}`;
+  const resultKey=`cc_ai_results_${profileId}`;
   const [answers,setAnswers]=useState({goal:"",stress:"",income:"",extra:"",timeline:""});
   const [analysis,setAnalysis]=useState("");
+  const [strategyData,setStrategyData]=useState(null);
   const [loading,setLoading]=useState(false);
   const [done,setDone]=useState(false);
+  const [savedAt,setSavedAt]=useState(null);
+  const [showQ,setShowQ]=useState(true);
+  const [copied,setCopied]=useState(false);
   const scrollRef=useRef(null);
+
+  // Load saved answers + result on mount
+  useEffect(()=>{
+    async function load(){
+      const [savedAnswers,savedResult]=await Promise.all([
+        storeGet(answersKey,true),
+        storeGet(resultKey,true),
+      ]);
+      if(savedAnswers) setAnswers(savedAnswers);
+      if(savedResult&&savedResult.analysis){
+        setAnalysis(savedResult.analysis);
+        if(savedResult.strategyData) setStrategyData(savedResult.strategyData);
+        setSavedAt(savedResult.savedAt);
+        setDone(true);
+        setShowQ(initiallyShowQuestionnaire||false);
+      } else {
+        setShowQ(true);
+      }
+    }
+    load();
+  },[profileId]);
+
   const Qs=[
     {key:"goal",label:"What's your #1 financial goal?",opts:["Pay off all debt ASAP","Reduce monthly stress","Free up cash flow","Improve credit score","Save for something specific"]},
     {key:"stress",label:"How do you handle financial stress?",opts:["I need quick wins to stay motivated","I can play the long game for max savings","I want a balanced approach","I tend to give up without visible progress"]},
@@ -903,48 +931,148 @@ function StrategyTab({cards,avalanche,snowball,darkMode,apiKey}){
     {key:"extra",label:"Can you find extra monthly money?",opts:["Yes, $50-100","Yes, $100-300","Yes, $300+","Not right now","Maybe occasionally (windfalls only)"]},
     {key:"timeline",label:"When do you want to be debt-free?",opts:["As fast as possible","Within 2 years","Within 3-5 years","No specific timeline"]},
   ];
+
   async function generate(){
     if(Object.values(answers).some(v=>!v)) return;
-    setLoading(true); setAnalysis(""); setDone(false);
+    setLoading(true); setAnalysis(""); setStrategyData(null); setDone(false);
+    await storeSet(answersKey,answers,true);
     const cs=cards.map(c=>{ const b=parseFloat(c.balance)||0,a=parseFloat(c.apr)||0,m=c.minPaymentMode==="auto"?calcMinPmt(b,a):(parseFloat(c.minPaymentFixed)||0); return `• ${c.name}: $${b.toFixed(2)}, ${a}% APR, $${(parseFloat(c.monthlyPayment)||m).toFixed(2)}/mo`; }).join("\n");
-    const prompt=`Personalized financial advisor. Cards:\n${cs}\nAvalanche: ${avalanche.totalMonths}mo $${avalanche.totalInterest.toFixed(2)} interest. Snowball: ${snowball.totalMonths}mo $${snowball.totalInterest.toFixed(2)} interest.\nUser: goal=${answers.goal}, stress=${answers.stress}, income=${answers.income}, extra=${answers.extra}, timeline=${answers.timeline}.\nCreate personalized plan: 1) Recommended method+why, 2) Custom payoff order, 3) Monthly budget, 4) Extra money strategy, 5) 3-month action plan, 6) Risk mitigation, 7) Projected outcome. Use **bold**, ~500 words.`;
+    const prompt=`You are a personalized financial advisor. The user has these credit cards:\n${cs}\nAvalanche method: ${avalanche.totalMonths} months, $${avalanche.totalInterest.toFixed(2)} total interest. Order: ${avalanche.cardPayoffs.map((p,i)=>`${i+1}. ${p.name}`).join(", ")}\nSnowball method: ${snowball.totalMonths} months, $${snowball.totalInterest.toFixed(2)} total interest. Order: ${snowball.cardPayoffs.map((p,i)=>`${i+1}. ${p.name}`).join(", ")}\nUser profile: goal="${answers.goal}", stress handling="${answers.stress}", income="${answers.income}", extra money="${answers.extra}", timeline="${answers.timeline}".\n\nProvide a thorough personalized plan covering: 1) Recommended method and why it fits this person specifically, 2) Custom payoff order with reasoning, 3) Monthly budget breakdown, 4) How to find and deploy extra money (remind them to enter extra amounts in the Extra Budget field on the Schedule tab!), 5) A 3-month action plan with specific steps, 6) Risk mitigation for their income situation, 7) Motivational close with their projected debt-free date. Use **bold** for key terms. Be specific with dollar amounts. ~500 words.\n\nAfter your analysis, output this exact block (no markdown around it):\n<strategy_data>\n{"method":"avalanche","extraBudget":0,"cardFocus":"","reasoning":""}\n</strategy_data>\n\nFill in: method = "avalanche" or "snowball" based on your recommendation. extraBudget = specific dollar amount you recommend adding monthly (0 if none). cardFocus = name of the card to attack first. reasoning = one sentence summary of your recommendation.`;
     try{
-      const res=await callClaude(apiKey,{model:MODEL,max_tokens:1000,messages:[{role:"user",content:prompt}]});
+      const res=await callClaude(apiKey,{model:MODEL,max_tokens:1500,messages:[{role:"user",content:prompt}]});
       const data=await res.json();
-      setAnalysis(data.content?.[0]?.text||"Could not generate a response.");
+      const raw=data.content?.[0]?.text||"Could not generate a response.";
+      // Extract strategy_data JSON silently
+      const jsonMatch=raw.match(/<strategy_data>\s*([\s\S]*?)\s*<\/strategy_data>/);
+      let parsed=null;
+      if(jsonMatch){
+        try{ parsed=JSON.parse(jsonMatch[1]); }catch(e){ parsed=null; }
+      }
+      // Clean analysis — remove the strategy_data block from display
+      const cleanAnalysis=raw.replace(/<strategy_data>[\s\S]*?<\/strategy_data>/,"").trim();
+      setAnalysis(cleanAnalysis);
+      setStrategyData(parsed);
+      const now=new Date().toISOString();
+      setSavedAt(now);
       setDone(true);
-    }catch(e){ setAnalysis(`Could not connect. ${!apiKey?"(No API key set — tap 🔑 in the top bar.)":""}`); setDone(true); }
-    finally{ setLoading(false); }
+      setShowQ(false);
+      // Auto-save silently
+      await storeSet(resultKey,{analysis:cleanAnalysis,strategyData:parsed,savedAt:now,answers},true);
+    }catch(e){
+      setAnalysis(`Could not connect. ${!apiKey?"(No API key set — tap 🔑 in the top bar.)":""}`);
+      setDone(true);
+    }finally{ setLoading(false); }
   }
+
+  function handleApply(){
+    if(!strategyData||!onApplyStrategy) return;
+    onApplyStrategy(strategyData);
+  }
+
+  async function copyToClipboard(){
+    if(!analysis) return;
+    const text=`CardTracker AI Strategy — ${savedAt?new Date(savedAt).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}):"Today"}\n\nYour Portfolio:\n${cards.map(c=>`• ${c.name}: ${fmt$(parseFloat(c.balance)||0)} @ ${c.apr}% APR`).join("\n")}\n\n${analysis}`;
+    try{ await navigator.clipboard.writeText(text); setCopied(true); setTimeout(()=>setCopied(false),2500); }catch(e){}
+  }
+
+  function downloadTxt(){
+    if(!analysis) return;
+    const text=`CardTracker AI Strategy\nGenerated: ${savedAt?new Date(savedAt).toLocaleString():"Today"}\n\nYour Portfolio:\n${cards.map(c=>`• ${c.name}: ${fmt$(parseFloat(c.balance)||0)} @ ${c.apr}% APR`).join("\n")}\n\nAnswers:\n${Object.entries(answers).map(([k,v])=>`${k}: ${v}`).join("\n")}\n\n${analysis}`;
+    const blob=new Blob([text],{type:"text/plain"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download=`cardtracker-strategy-${new Date().toISOString().slice(0,10)}.txt`; a.style.display="none";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),100);
+  }
+
   const allAnswered=Object.values(answers).every(v=>v);
-  return(
+
+  return (
     <div style={{display:"flex",flexDirection:"column",gap:18}}>
       {!apiKey&&<div style={{background:"#f59e0b18",border:"1px solid #f59e0b33",borderRadius:10,padding:"8px 14px",fontSize:12,color:"#f59e0b"}}>⚠ No API key set. Tap 🔑 in the top bar to add yours.</div>}
-      {!done&&(
+
+      {/* Saved result banner */}
+      {done&&savedAt&&!showQ&&(
+        <div style={{background:"#10b98110",border:"1px solid #10b98133",borderRadius:10,padding:"8px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
+          <span style={{fontSize:12,color:"#10b981",fontWeight:600}}>✓ Strategy from {new Date(savedAt).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</span>
+          <button onClick={()=>setShowQ(true)} style={{background:"none",border:"1px solid #10b98155",borderRadius:7,padding:"3px 10px",color:"#10b981",cursor:"pointer",fontSize:11,fontWeight:700}}>↺ Rerun Questionnaire</button>
+        </div>
+      )}
+
+      {/* Questionnaire */}
+      {showQ&&(
         <div style={{display:"flex",flexDirection:"column",gap:14}}>
-          <div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",borderRadius:14,padding:"14px 18px"}}><div style={{fontWeight:800,fontSize:14,color:"#fff"}}>🎯 Personalized Strategy Builder</div><div style={{fontSize:11,color:"rgba(255,255,255,.6)",marginTop:3}}>Answer 5 quick questions for a custom debt elimination plan</div></div>
+          <div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",borderRadius:14,padding:"14px 18px"}}>
+            <div style={{fontWeight:800,fontSize:14,color:"#fff"}}>🎯 Personalized Strategy Builder</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,.6)",marginTop:3}}>Answer 5 questions to get a custom debt elimination plan tailored to your goals and psychology</div>
+          </div>
           {Qs.map(q=>(
             <div key={q.key} style={{background:t.surf,borderRadius:12,padding:"12px 14px"}}>
               <div style={{fontSize:12,fontWeight:700,color:t.tx1,marginBottom:8}}>{q.label}</div>
               <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                {q.opts.map(opt=><button key={opt} onClick={()=>setAnswers(a=>({...a,[q.key]:opt}))} style={{background:answers[q.key]===opt?"#6366f1":t.panelBg,border:`1px solid ${answers[q.key]===opt?"#6366f1":t.border}`,borderRadius:8,padding:"7px 12px",color:answers[q.key]===opt?"#fff":t.tx2,cursor:"pointer",textAlign:"left",fontSize:12,transition:"all .15s"}}>{answers[q.key]===opt?"✓ ":""}{opt}</button>)}
+                {q.opts.map(opt=>(
+                  <button key={opt} onClick={()=>setAnswers(a=>({...a,[q.key]:opt}))} style={{background:answers[q.key]===opt?"#6366f1":t.panelBg,border:`1px solid ${answers[q.key]===opt?"#6366f1":t.border}`,borderRadius:8,padding:"7px 12px",color:answers[q.key]===opt?"#fff":t.tx2,cursor:"pointer",textAlign:"left",fontSize:12,transition:"all .15s"}}>
+                    {answers[q.key]===opt?"✓ ":""}{opt}
+                  </button>
+                ))}
               </div>
             </div>
           ))}
-          <button onClick={generate} disabled={!allAnswered||loading} style={{background:allAnswered?"linear-gradient(135deg,#6366f1,#8b5cf6)":t.surf,border:"none",borderRadius:12,padding:"12px 0",color:allAnswered?"#fff":t.tx3,cursor:allAnswered?"pointer":"default",fontWeight:700,fontSize:14,transition:"all .2s"}}>{loading?"✨ Building your strategy...":"✨ Generate My Personalized Strategy"}</button>
+          {done&&<button onClick={()=>setShowQ(false)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"8px 0",color:t.tx2,cursor:"pointer",fontWeight:600,fontSize:13}}>← Back to Last Analysis</button>}
+          <button onClick={generate} disabled={!allAnswered||loading} style={{background:allAnswered?"linear-gradient(135deg,#6366f1,#8b5cf6)":t.surf,border:"none",borderRadius:12,padding:"12px 0",color:allAnswered?"#fff":t.tx3,cursor:allAnswered?"pointer":"default",fontWeight:700,fontSize:14,transition:"all .2s"}}>
+            {loading?"✨ Building your strategy…":"✨ Generate My Personalized Strategy"}
+          </button>
         </div>
       )}
-      {(analysis||loading)&&<div ref={scrollRef} style={{background:t.surf,borderRadius:14,padding:"16px 18px",maxHeight:done?500:300,overflowY:"auto"}}><Markdown text={analysis} tx1={t.tx1} tx2={t.tx2}/></div>}
-      {done&&<button onClick={()=>{setDone(false);setAnalysis("");}} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"8px 0",color:t.tx2,cursor:"pointer",fontWeight:600,fontSize:13}}>↺ Redo Questionnaire</button>}
+
+      {/* Loading spinner */}
+      {loading&&(
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"16px",background:t.surf,borderRadius:12,color:t.tx2}}>
+          <div style={{width:16,height:16,border:"2px solid #6366f1",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite",flexShrink:0}}/>
+          <span style={{fontSize:13}}>Claude is analyzing your portfolio and building a personalized strategy…</span>
+        </div>
+      )}
+
+      {/* Analysis result */}
+      {done&&analysis&&!showQ&&(
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div ref={scrollRef} style={{background:t.surf,borderRadius:14,padding:"16px 18px",maxHeight:420,overflowY:"auto"}}>
+            <Markdown text={analysis} tx1={t.tx1} tx2={t.tx2}/>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {strategyData&&(
+              <button onClick={handleApply} style={{flex:"1 1 160px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",borderRadius:10,padding:"10px 16px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                ✅ Apply This Strategy
+              </button>
+            )}
+            <button onClick={copyToClipboard} style={{flex:"1 1 120px",background:copied?"#10b981":t.surf,border:`1px solid ${copied?"#10b981":t.border}`,borderRadius:10,padding:"10px 14px",color:copied?"#fff":t.tx2,cursor:"pointer",fontWeight:600,fontSize:12,transition:"all .2s"}}>
+              {copied?"✓ Copied!":"📋 Copy"}
+            </button>
+            <button onClick={downloadTxt} style={{flex:"1 1 120px",background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"10px 14px",color:t.tx2,cursor:"pointer",fontWeight:600,fontSize:12}}>
+              ⬇ Download .txt
+            </button>
+          </div>
+
+          {/* Applied confirmation */}
+          {strategyData&&(
+            <div style={{background:"#6366f110",border:"1px solid #6366f133",borderRadius:10,padding:"10px 14px",fontSize:12,color:t.tx2,lineHeight:1.6}}>
+              💡 <strong style={{color:t.tx1}}>Apply This Strategy</strong> will set the planner to <strong style={{color:"#6366f1"}}>{strategyData.method==="avalanche"?"🔥 Avalanche":"❄️ Snowball"}</strong> method{strategyData.cardFocus?` and focus on ${strategyData.cardFocus} first`:""}.{strategyData.extraBudget>0?` It also recommends adding ${fmt$(strategyData.extraBudget)}/mo in extra budget — you can adjust that in the Extra Budget field above.`:" "}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── Payoff Schedule Modal ────────────────────────────────────────────────────
-function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,onClose}){
+function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
   const t=useTheme(darkMode);
+  const {isMobile}=useBreakpoint();
   const [method,setMethod]=useState("avalanche");
-  const [activeTab,setActiveTab]=useState("schedule");
+  const [activeTab,setActiveTab]=useState("loading"); // resolved after checking storage
   const [showFull,setShowFull]=useState(false);
   const [showPrint,setShowPrint]=useState(false);
   const [extraBudget,setExtraBudget]=useState(0);
@@ -954,7 +1082,19 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,onClose}){
   const [aiText,setAiText]=useState("");
   const [aiLoading,setAiLoading]=useState(false);
   const [aiGenerated,setAiGenerated]=useState(false);
+  const [aiSavedAt,setAiSavedAt]=useState(null);
+  const [aiCopied,setAiCopied]=useState(false);
+  const [appliedStrategy,setAppliedStrategy]=useState(null);
   const aiRef=useRef(null);
+
+  const resultKey=`cc_ai_results_${profileId}`;
+
+  // Determine initial tab — first-time users go to strategy, returning go to schedule
+  useEffect(()=>{
+    storeGet(resultKey,true).then(saved=>{
+      setActiveTab(saved?.analysis ? "schedule" : "strategy");
+    });
+  },[profileId]);
 
   const validCards=cards.filter(c=>(parseFloat(c.balance)||0)>0);
   const opts={extraBudget,lumpSums,dynamicMins};
@@ -968,6 +1108,15 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,onClose}){
 
   function addLump(){ if(!lumpForm.month||!lumpForm.amount) return; setLumpSums(l=>[...l,{id:generateId(),month:parseInt(lumpForm.month),amount:parseFloat(lumpForm.amount)}]); setLumpForm({month:"",amount:""}); }
 
+  // Apply strategy from StrategyTab
+  function applyStrategy(data){
+    if(!data) return;
+    setMethod(data.method||"avalanche");
+    if(data.extraBudget>0) setExtraBudget(data.extraBudget);
+    setAppliedStrategy(data);
+    setActiveTab("schedule");
+  }
+
   async function generateAI(){
     setAiLoading(true); setAiText(""); setAiGenerated(true);
     const cs=validCards.map(c=>{ const b=parseFloat(c.balance)||0,a=parseFloat(c.apr)||0,m=c.minPaymentMode==="auto"?calcMinPmt(b,a):(parseFloat(c.minPaymentFixed)||0); return `• ${c.name}${c.last4?` (****${c.last4})`:""}: $${b.toFixed(2)}, ${a}% APR, $${(parseFloat(c.monthlyPayment)||m).toFixed(2)}/mo`; }).join("\n");
@@ -975,37 +1124,85 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,onClose}){
     try{
       const res=await callClaude(apiKey,{model:MODEL,max_tokens:1000,messages:[{role:"user",content:prompt}]});
       const data=await res.json();
-      setAiText(data.content?.[0]?.text||"Could not generate a response.");
+      const text=data.content?.[0]?.text||"Could not generate a response.";
+      setAiText(text);
+      const now=new Date().toISOString();
+      setAiSavedAt(now);
+      // Auto-save — merge with any saved strategy result
+      const existing=await storeGet(resultKey,true)||{};
+      await storeSet(resultKey,{...existing,scheduleAnalysis:text,scheduleAnalysisSavedAt:now},true);
     }catch(e){ setAiText(`Could not connect. ${!apiKey?"(No API key set — tap 🔑 in the top bar.)":""}`); }
     finally{ setAiLoading(false); }
   }
 
+  async function copyAI(){
+    if(!aiText) return;
+    try{ await navigator.clipboard.writeText(aiText); setAiCopied(true); setTimeout(()=>setAiCopied(false),2500); }catch(e){}
+  }
+  function downloadAI(){
+    if(!aiText) return;
+    const text=`CardTracker AI Schedule Analysis\nGenerated: ${aiSavedAt?new Date(aiSavedAt).toLocaleString():"Today"}\nMethod: ${method}\n\nPortfolio:\n${validCards.map(c=>`• ${c.name}: ${fmt$(parseFloat(c.balance)||0)} @ ${c.apr}% APR`).join("\n")}\n\n${aiText}`;
+    const blob=new Blob([text],{type:"text/plain"});
+    const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=`cardtracker-analysis-${new Date().toISOString().slice(0,10)}.txt`; a.style.display="none";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url),100);
+  }
+
   const iSm={background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.25)",borderRadius:7,padding:"6px 10px",color:"#fff",fontSize:12};
-  const TABS=[{id:"schedule",icon:"📅",label:"Schedule"},{id:"charts",icon:"📈",label:"Charts"},{id:"whatif",icon:"💬",label:"What-If AI"},{id:"strategy",icon:"🎯",label:"Strategy"},{id:"progress",icon:"📊",label:"Progress"}];
+  // NEW tab order: Strategy first
+  const TABS=[
+    {id:"strategy",icon:"🎯",label:"Strategy"},
+    {id:"schedule",icon:"📅",label:"Schedule"},
+    {id:"charts",icon:"📈",label:"Charts"},
+    {id:"whatif",icon:"💬",label:"What-If AI"},
+    {id:"progress",icon:"📊",label:"Progress"},
+  ];
+
+  if(activeTab==="loading") return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.82)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{width:32,height:32,border:"3px solid #6366f1",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.82)",zIndex:1000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:16,overflowY:"auto"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.82)",zIndex:1000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:isMobile?8:16,overflowY:"auto"}}>
       <div style={{background:t.panelBg,borderRadius:20,width:"100%",maxWidth:960,boxShadow:"0 24px 80px rgba(0,0,0,.6)",marginBottom:20}}>
 
         {/* Header */}
-        <div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95)",padding:"20px 24px",borderRadius:"20px 20px 0 0"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
-            <div><div style={{fontSize:20,fontWeight:900,color:"#fff"}}>📊 Payoff Strategy Planner</div><div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginTop:2}}>{validCards.length} card{validCards.length!==1?"s":""} · AI-powered analysis</div></div>
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <button onClick={()=>setShowPrint(true)} style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.2)",borderRadius:8,padding:"6px 12px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:600}}>🖨 Print / PDF</button>
-              <button onClick={()=>exportCSV(schedule,method)} style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.2)",borderRadius:8,padding:"6px 12px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:600}}>⬇ CSV</button>
+        <div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95)",padding:isMobile?"14px 16px":"20px 24px",borderRadius:"20px 20px 0 0"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+            <div>
+              <div style={{fontSize:isMobile?16:20,fontWeight:900,color:"#fff"}}>📊 Payoff Strategy Planner</div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,.6)",marginTop:2}}>{validCards.length} card{validCards.length!==1?"s":""} · AI-powered</div>
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              {!isMobile&&<button onClick={()=>setShowPrint(true)} style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.2)",borderRadius:8,padding:"6px 12px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:600}}>🖨 Print</button>}
+              {!isMobile&&<button onClick={()=>exportCSV(schedule,method)} style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.2)",borderRadius:8,padding:"6px 12px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:600}}>⬇ CSV</button>}
               <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",borderRadius:10,padding:"7px 14px",color:"#fff",cursor:"pointer",fontWeight:700}}>✕</button>
             </div>
           </div>
-          <div style={{display:"flex",gap:8,marginBottom:16}}>
+          {/* Method toggles */}
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
             {[{id:"avalanche",icon:"🔥",label:"Avalanche",sub:"Highest APR First"},{id:"snowball",icon:"❄️",label:"Snowball",sub:"Lowest Balance First"}].map(m=>(
-              <button key={m.id} onClick={()=>setMethod(m.id)} style={{flex:1,background:method===m.id?"rgba(255,255,255,.2)":"rgba(255,255,255,.06)",border:`2px solid ${method===m.id?"rgba(255,255,255,.5)":"rgba(255,255,255,.12)"}`,borderRadius:12,padding:"10px 16px",color:"#fff",cursor:"pointer",textAlign:"left",transition:"all .2s"}}>
-                <div style={{fontWeight:800,fontSize:13}}>{m.icon} {m.label}</div><div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2}}>{m.sub}</div>
+              <button key={m.id} onClick={()=>setMethod(m.id)} style={{flex:1,background:method===m.id?"rgba(255,255,255,.2)":"rgba(255,255,255,.06)",border:`2px solid ${method===m.id?"rgba(255,255,255,.5)":"rgba(255,255,255,.12)"}`,borderRadius:12,padding:isMobile?"8px 10px":"10px 16px",color:"#fff",cursor:"pointer",textAlign:"left",transition:"all .2s"}}>
+                <div style={{fontWeight:800,fontSize:isMobile?12:13}}>{m.icon} {m.label}</div>
+                {!isMobile&&<div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2}}>{m.sub}</div>}
               </button>
             ))}
           </div>
+          {/* Applied strategy badge */}
+          {appliedStrategy&&(
+            <div style={{background:"rgba(99,102,241,.3)",border:"1px solid rgba(99,102,241,.5)",borderRadius:8,padding:"6px 12px",marginBottom:10,fontSize:11,color:"#fff",display:"flex",alignItems:"center",gap:6}}>
+              ✅ <strong>AI Strategy Applied:</strong> {appliedStrategy.method==="avalanche"?"🔥 Avalanche":"❄️ Snowball"}{appliedStrategy.cardFocus?` · Focus: ${appliedStrategy.cardFocus}`:""}
+              {appliedStrategy.extraBudget>0&&` · +${fmt$(appliedStrategy.extraBudget)}/mo extra`}
+            </div>
+          )}
+          {/* Extra budget + lump sums */}
           <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Extra/mo:</span><input type="number" value={extraBudget||""} onChange={e=>setExtraBudget(parseFloat(e.target.value)||0)} placeholder="$0" style={{...iSm,width:80}}/></div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Extra/mo:</span>
+              <input type="number" value={extraBudget||""} onChange={e=>setExtraBudget(parseFloat(e.target.value)||0)} placeholder="$0" style={{...iSm,width:80}}/>
+            </div>
             <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
               <span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Lump sum at month:</span>
               <input type="number" value={lumpForm.month} onChange={e=>setLumpForm(f=>({...f,month:e.target.value}))} placeholder="Mo" style={{...iSm,width:50}}/>
@@ -1013,19 +1210,47 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,onClose}){
               <button onClick={addLump} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"5px 10px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700}}>+ Add</button>
               {lumpSums.map(ls=><span key={ls.id} style={{background:"rgba(255,255,255,.15)",borderRadius:6,padding:"3px 8px",fontSize:10,color:"#fff",display:"flex",alignItems:"center",gap:4}}>Mo{ls.month}: {fmt$(ls.amount)}<button onClick={()=>setLumpSums(l=>l.filter(x=>x.id!==ls.id))} style={{background:"none",border:"none",color:"rgba(255,255,255,.6)",cursor:"pointer",fontSize:12,padding:0,lineHeight:1}}>×</button></span>)}
             </div>
-            <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}><input type="checkbox" checked={dynamicMins} onChange={e=>setDynamicMins(e.target.checked)} style={{accentColor:"#6366f1"}}/><span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Recalculate minimums monthly</span></label>
+            <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+              <input type="checkbox" checked={dynamicMins} onChange={e=>setDynamicMins(e.target.checked)} style={{accentColor:"#6366f1"}}/>
+              <span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Recalculate minimums monthly</span>
+            </label>
           </div>
         </div>
 
         {/* Tabs */}
-        <div style={{borderBottom:`1px solid ${t.border}`,padding:"0 24px",display:"flex",gap:4}}>
-          {TABS.map(tab=><button key={tab.id} onClick={()=>setActiveTab(tab.id)} style={{background:"none",border:"none",borderBottom:`2px solid ${activeTab===tab.id?"#6366f1":"transparent"}`,padding:"10px 14px",color:activeTab===tab.id?"#6366f1":t.tx2,cursor:"pointer",fontWeight:activeTab===tab.id?700:500,fontSize:12,display:"flex",alignItems:"center",gap:5,transition:"all .15s",marginBottom:-1}}><span>{tab.icon}</span>{tab.label}</button>)}
+        <div style={{borderBottom:`1px solid ${t.border}`,padding:"0 16px",display:"flex",gap:2,overflowX:"auto"}}>
+          {TABS.map(tab=>(
+            <button key={tab.id} onClick={()=>setActiveTab(tab.id)} style={{background:"none",border:"none",borderBottom:`2px solid ${activeTab===tab.id?"#6366f1":"transparent"}`,padding:isMobile?"8px 10px":"10px 14px",color:activeTab===tab.id?"#6366f1":t.tx2,cursor:"pointer",fontWeight:activeTab===tab.id?700:500,fontSize:isMobile?11:12,display:"flex",alignItems:"center",gap:4,transition:"all .15s",marginBottom:-1,whiteSpace:"nowrap"}}>
+              <span>{tab.icon}</span>{!isMobile&&tab.label}
+            </button>
+          ))}
         </div>
 
-        <div style={{padding:24,display:"flex",flexDirection:"column",gap:20}}>
+        <div style={{padding:isMobile?14:24,display:"flex",flexDirection:"column",gap:20}}>
           {!validCards.length&&<div style={{textAlign:"center",padding:"40px 20px",color:t.tx2}}><div style={{fontSize:36,marginBottom:10}}>🃏</div><div style={{fontWeight:700,color:t.tx1}}>No cards with balances</div></div>}
 
+          {/* ── Strategy Tab (first) ── */}
+          {activeTab==="strategy"&&(
+            <StrategyTab
+              cards={validCards}
+              avalanche={avalanche}
+              snowball={snowball}
+              darkMode={darkMode}
+              apiKey={apiKey}
+              profileId={profileId}
+              onApplyStrategy={applyStrategy}
+              initiallyShowQuestionnaire={false}
+            />
+          )}
+
+          {/* ── Schedule Tab ── */}
           {validCards.length>0&&activeTab==="schedule"&&(<>
+            {/* Apply Strategy button on Schedule tab */}
+            <div style={{display:"flex",justifyContent:"flex-end"}}>
+              <button onClick={()=>setActiveTab("strategy")} style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",borderRadius:10,padding:"8px 16px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:6}}>
+                🎯 {appliedStrategy?"Change Strategy":"Apply AI Strategy"}
+              </button>
+            </div>
             {/* Comparison cards */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               {[{id:"avalanche",icon:"🔥",s:avalanche,ac:"#f97316"},{id:"snowball",icon:"❄️",s:snowball,ac:"#3b82f6"}].map(m=>{
@@ -1042,8 +1267,8 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,onClose}){
               })}
             </div>
             {/* Stats row */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-              {[{l:"Interest Saved (Avalanche)",v:fmt$(interestSaved),c:"#10b981"},{l:`${fasterMethod==="avalanche"?"🔥 Avalanche":"❄️ Snowball"} is faster by`,v:`${Math.abs(avalanche.totalMonths-snowball.totalMonths)} months`,c:"#6366f1"},{l:"Monthly Budget",v:fmt$(schedule.totalBudget),c:t.tx2}].map(s=>(
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(3,1fr)",gap:10}}>
+              {[{l:"Interest Saved (Avalanche)",v:fmt$(interestSaved),c:"#10b981"},{l:`${fasterMethod==="avalanche"?"🔥 Avalanche":"❄️ Snowball"} faster by`,v:`${Math.abs(avalanche.totalMonths-snowball.totalMonths)} months`,c:"#6366f1"},{l:"Monthly Budget",v:fmt$(schedule.totalBudget),c:t.tx2}].map(s=>(
                 <div key={s.l} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 14px",textAlign:"center"}}><div style={{fontSize:9,color:s.c,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>{s.l}</div><div style={{fontSize:16,fontWeight:800,color:t.tx1,fontFamily:"monospace"}}>{s.v}</div></div>
               ))}
             </div>
@@ -1056,8 +1281,8 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,onClose}){
                   return(<div key={po.id} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:12,padding:"10px 14px",display:"flex",alignItems:"center",gap:12}}>
                     <div style={{width:28,height:28,borderRadius:"50%",background:po.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:"#fff",flexShrink:0}}>{i+1}</div>
                     <div style={{width:3,height:36,borderRadius:2,background:po.color,flexShrink:0}}/>
-                    <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13,color:t.tx1}}>{po.name}</div><div style={{fontSize:11,color:t.tx2,marginTop:1}}>{fmt$(parseFloat(card?.balance)||0)} · {parseFloat(card?.apr)||0}% APR</div></div>
-                    <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:700,color:"#10b981"}}>Month {po.month}</div><div style={{fontSize:11,color:t.tx3}}>{fmtDate(po.date)}</div></div>
+                    <div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13,color:t.tx1}}>{po.name}</div><div style={{fontSize:11,color:t.tx2,marginTop:1}}>{fmt$(parseFloat(card?.balance)||0)} · {parseFloat(card?.apr)||0}% APR</div></div>
+                    <div style={{textAlign:"right",flexShrink:0}}><div style={{fontSize:13,fontWeight:700,color:"#10b981"}}>Month {po.month}</div><div style={{fontSize:11,color:t.tx3}}>{fmtDate(po.date)}</div></div>
                     <div style={{fontSize:20}}>✓</div>
                   </div>);
                 })}
@@ -1065,7 +1290,7 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,onClose}){
             </div>
             {/* Table */}
             <div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:6}}>
                 <div style={{fontSize:11,fontWeight:700,color:t.tx2,textTransform:"uppercase",letterSpacing:.8}}>Month-by-Month Schedule</div>
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>exportCSV(schedule,method)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:7,padding:"4px 10px",fontSize:10,color:t.tx2,cursor:"pointer",fontWeight:600}}>⬇ CSV</button>
@@ -1109,22 +1334,32 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,onClose}){
             </div>
             {/* AI Analysis */}
             <div style={{border:"1px solid #6366f133",borderRadius:16,overflow:"hidden"}}>
-              <div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",padding:"12px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div><div style={{fontWeight:800,fontSize:13,color:"#fff"}}>✨ AI Analysis</div><div style={{fontSize:10,color:"rgba(255,255,255,.55)",marginTop:1}}>{apiKey?"Powered by your API key":"Powered by Claude"}</div></div>
-                <button onClick={generateAI} disabled={aiLoading} style={{background:aiLoading?"rgba(255,255,255,.1)":"#6366f1",border:"none",borderRadius:8,padding:"7px 16px",color:"#fff",cursor:aiLoading?"default":"pointer",fontWeight:700,fontSize:12,opacity:aiLoading?.7:1}}>{aiLoading?"Analyzing…":aiGenerated?"↺ Regenerate":"Generate Analysis"}</button>
+              <div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",padding:"12px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                <div>
+                  <div style={{fontWeight:800,fontSize:13,color:"#fff"}}>✨ AI Analysis</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,.55)",marginTop:1}}>{aiSavedAt?`Last saved ${new Date(aiSavedAt).toLocaleDateString()}`:apiKey?"Powered by your API key":"Powered by Claude"}</div>
+                </div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {aiGenerated&&aiText&&(
+                    <>
+                      <button onClick={copyAI} style={{background:aiCopied?"#10b981":"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",borderRadius:7,padding:"5px 10px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:600}}>{aiCopied?"✓ Copied":"📋 Copy"}</button>
+                      <button onClick={downloadAI} style={{background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",borderRadius:7,padding:"5px 10px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:600}}>⬇ .txt</button>
+                    </>
+                  )}
+                  <button onClick={generateAI} disabled={aiLoading} style={{background:aiLoading?"rgba(255,255,255,.1)":"#6366f1",border:"none",borderRadius:8,padding:"7px 16px",color:"#fff",cursor:aiLoading?"default":"pointer",fontWeight:700,fontSize:12,opacity:aiLoading?.7:1}}>{aiLoading?"Analyzing…":aiGenerated?"↺ Regenerate":"Generate Analysis"}</button>
+                </div>
               </div>
               <div ref={aiRef} style={{padding:"16px 20px",minHeight:aiGenerated?100:70,maxHeight:420,overflowY:"auto"}}>
-                {!apiKey&&!aiGenerated&&<div style={{background:"#f59e0b18",border:"1px solid #f59e0b33",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#f59e0b"}}>⚠ No API key set — tap 🔑 in the top bar to enable AI features for all users.</div>}
-                {!aiGenerated&&<div style={{textAlign:"center",padding:"16px 0",color:t.tx3}}><div style={{fontSize:24,marginBottom:6}}>🤖</div><div style={{fontSize:12}}>Click "Generate Analysis" for personalized AI recommendations</div></div>}
+                {!apiKey&&!aiGenerated&&<div style={{background:"#f59e0b18",border:"1px solid #f59e0b33",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#f59e0b"}}>⚠ No API key set — tap 🔑 in the top bar to enable AI features.</div>}
+                {!aiGenerated&&<div style={{textAlign:"center",padding:"16px 0",color:t.tx3}}><div style={{fontSize:24,marginBottom:6}}>🤖</div><div style={{fontSize:12}}>Click "Generate Analysis" for AI recommendations on your current schedule</div></div>}
                 {aiLoading&&!aiText&&<div style={{display:"flex",alignItems:"center",gap:8,color:t.tx2,padding:"12px 0"}}><div style={{width:14,height:14,border:"2px solid #6366f1",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite"}}/><span style={{fontSize:12}}>Analyzing your portfolio…</span></div>}
-                {aiText&&<div><Markdown text={aiText} tx1={t.tx1} tx2={t.tx2}/></div>}
+                {aiText&&<Markdown text={aiText} tx1={t.tx1} tx2={t.tx2}/>}
               </div>
             </div>
           </>)}
 
           {validCards.length>0&&activeTab==="charts"&&(<div style={{display:"flex",flexDirection:"column",gap:18}}><ComparisonChart avalanche={avalanche} snowball={snowball} darkMode={darkMode}/><BalanceChart schedule={schedule} darkMode={darkMode} title={`${method==="avalanche"?"🔥 Avalanche":"❄️ Snowball"} — Individual Card Balances Over Time`}/></div>)}
           {validCards.length>0&&activeTab==="whatif"&&<WhatIfTab cards={validCards} avalanche={avalanche} snowball={snowball} darkMode={darkMode} apiKey={apiKey}/>}
-          {validCards.length>0&&activeTab==="strategy"&&<StrategyTab cards={validCards} avalanche={avalanche} snowball={snowball} darkMode={darkMode} apiKey={apiKey}/>}
           {activeTab==="progress"&&<ProgressTab cards={cards} schedule={schedule} logsKey={logsKey} darkMode={darkMode}/>}
         </div>
       </div>
@@ -1200,8 +1435,76 @@ function PayoffBar({balance,originalBalance,color,darkMode}){
   </div>);
 }
 
+// ─── Quick Pay Modal ──────────────────────────────────────────────────────────
+function QuickPayModal({card,onConfirm,onClose,darkMode}){
+  const t=useTheme(darkMode);
+  const bal=parseFloat(card.balance)||0;
+  const apr=parseFloat(card.apr)||0;
+  const minPmt=card.minPaymentMode==="auto"?calcMinPmt(bal,apr):(parseFloat(card.minPaymentFixed)||0);
+  const expected=parseFloat(card.monthlyPayment)||minPmt;
+  const monthlyInterest=bal*(apr/100/12);
+  const [amount,setAmount]=useState(expected.toFixed(2));
+  const [date,setDate]=useState(new Date().toISOString().slice(0,10));
+  const paid=parseFloat(amount)||0;
+  const principal=Math.max(0,paid-monthlyInterest);
+  const newBal=Math.max(0,bal-principal);
+  const diff=paid-expected;
+  const iS={width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"9px 12px",color:t.tx1,fontSize:14,boxSizing:"border-box",fontFamily:"monospace"};
+
+  function confirm(){
+    if(!paid||paid<=0) return;
+    onConfirm({cardId:card.id,expected,actual:paid,principal,newBalance:newBal,date,cardName:card.name,cardColor:card.color});
+  }
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",zIndex:5000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:t.panelBg,borderRadius:20,width:"100%",maxWidth:400,boxShadow:"0 24px 80px rgba(0,0,0,.6)"}}>
+        {/* Card header */}
+        <div style={{background:card.color,borderRadius:"20px 20px 0 0",padding:"16px 20px"}}>
+          <div style={{fontWeight:800,fontSize:16,color:"#fff"}}>{card.name}</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontFamily:"monospace",marginTop:2}}>•••• {card.last4||"????"}  ·  Balance: {fmt$(bal)}</div>
+        </div>
+        <div style={{padding:20,display:"flex",flexDirection:"column",gap:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:t.tx2,textTransform:"uppercase",letterSpacing:.8}}>✓ Log Payment</div>
+          {/* Expected vs actual */}
+          <div style={{background:t.surf,borderRadius:12,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div><div style={{fontSize:9,color:t.tx3,textTransform:"uppercase",letterSpacing:.5}}>Expected This Month</div><div style={{fontSize:18,fontWeight:800,color:t.tx1,fontFamily:"monospace"}}>{fmt$(expected)}</div></div>
+            {diff!==0&&paid>0&&<div style={{textAlign:"right"}}><div style={{fontSize:9,color:t.tx3,textTransform:"uppercase",letterSpacing:.5}}>{diff>0?"Over":"Under"}</div><div style={{fontSize:14,fontWeight:700,color:diff>0?"#10b981":"#f59e0b",fontFamily:"monospace"}}>{diff>0?"+":""}{fmt$(diff)}</div></div>}
+          </div>
+          {/* Actual amount */}
+          <div>
+            <div style={{fontSize:11,color:t.tx2,marginBottom:5,fontWeight:600}}>Actual Amount Paid</div>
+            <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} style={iS} min="0" step="0.01" autoFocus/>
+          </div>
+          {/* Date */}
+          <div>
+            <div style={{fontSize:11,color:t.tx2,marginBottom:5,fontWeight:600}}>Payment Date</div>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={iS}/>
+          </div>
+          {/* Balance preview */}
+          {paid>0&&(
+            <div style={{background:principal>0?"#10b98110":"#f59e0b10",border:`1px solid ${principal>0?"#10b98133":"#f59e0b33"}`,borderRadius:10,padding:"10px 14px"}}>
+              <div style={{fontSize:11,color:t.tx2,marginBottom:6}}>Balance after this payment</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><span style={{fontSize:9,color:t.tx3}}>Interest: </span><span style={{fontSize:12,fontFamily:"monospace",color:"#f97316"}}>{fmt$(monthlyInterest)}</span></div>
+                <div><span style={{fontSize:9,color:t.tx3}}>Principal: </span><span style={{fontSize:12,fontFamily:"monospace",color:"#10b981"}}>{fmt$(principal)}</span></div>
+                <div><span style={{fontSize:9,color:t.tx3}}>New balance: </span><span style={{fontSize:14,fontWeight:800,fontFamily:"monospace",color:t.tx1}}>{fmt$(newBal)}</span></div>
+              </div>
+            </div>
+          )}
+          {/* Buttons */}
+          <div style={{display:"flex",gap:8,marginTop:4}}>
+            <button onClick={onClose} style={{flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"10px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13}}>Cancel</button>
+            <button onClick={confirm} disabled={!paid||paid<=0} style={{flex:2,background:paid>0?"#10b981":t.surf,border:"none",borderRadius:10,padding:"10px 0",color:paid>0?"#fff":t.tx3,cursor:paid>0?"pointer":"default",fontWeight:700,fontSize:14,transition:"all .2s"}}>✓ Confirm Payment</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Card Panel ───────────────────────────────────────────────────────────────
-function CardPanel({card,onEdit,onDelete,darkMode,globalExpanded}){
+function CardPanel({card,onEdit,onDelete,onQuickPay,darkMode,globalExpanded}){
   const [expanded,setExpanded]=useState(false);
   useEffect(()=>{ setExpanded(globalExpanded); },[globalExpanded]);
   const t=useTheme(darkMode);
@@ -1218,6 +1521,7 @@ function CardPanel({card,onEdit,onDelete,darkMode,globalExpanded}){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{flex:1,minWidth:0}}><div style={{fontWeight:800,fontSize:15,color:"#fff",letterSpacing:.3}}>{card.name||"Unnamed Card"}</div><div style={{fontSize:11,color:"rgba(255,255,255,.75)",fontFamily:"monospace",marginTop:1}}>•••• {card.last4}{card.expiration?` · Exp ${card.expiration}`:""}</div></div>
           <div style={{display:"flex",gap:5,flexShrink:0,marginLeft:8}}>
+            <button onClick={()=>onQuickPay&&onQuickPay(card)} title="Log a payment" style={{background:"rgba(16,185,129,.25)",border:"1px solid rgba(16,185,129,.4)",borderRadius:7,padding:"4px 9px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700}}>✓ Pay</button>
             <button onClick={()=>setExpanded(e=>!e)} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:7,padding:"4px 9px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700}}>{expanded?"▲":"▼"}</button>
             <button onClick={()=>onEdit(card)} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:7,padding:"4px 9px",color:"#fff",cursor:"pointer",fontSize:11}}>✎</button>
             <button onClick={()=>onDelete(card)} style={{background:"rgba(0,0,0,.2)",border:"none",borderRadius:7,padding:"4px 9px",color:"#fff",cursor:"pointer",fontSize:11}}>✕</button>
@@ -1596,11 +1900,21 @@ export default function App(){
   const [allCardsExpanded,setAllCardsExpanded]=useState(false);
   const [showApiKey,setShowApiKey]=useState(false);
   const [showBackup,setShowBackup]=useState(false);
+  const [quickPayCard,setQuickPayCard]=useState(null);
 
   function saveProfile(p){ setProfiles(ps=>{ const i=ps.findIndex(x=>x.id===p.id); if(i>=0){const n=[...ps];n[i]=p;return n;} return[...ps,p]; }); setActiveProfileId(p.id); setShowProfile(false); }
   function saveCard(card){ setCards(cs=>{ const i=cs.findIndex(c=>c.id===card.id); if(i>=0){const n=[...cs];n[i]=card;return n;} return[...cs,card]; }); setShowForm(false); setEditCard(null); }
   function confirmDelete(card){ setDeleteTarget(card); }
   function doDelete(){ if(deleteTarget) setCards(cs=>cs.filter(c=>c.id!==deleteTarget.id)); setDeleteTarget(null); }
+  function handleQuickPay(payment){
+    // Update card balance and log payment
+    setCards(cs=>cs.map(c=>{
+      if(c.id!==payment.cardId) return c;
+      const newBal=Math.max(0,(parseFloat(c.balance)||0)-payment.principal);
+      return {...c,balance:newBal.toFixed(2)};
+    }));
+    setQuickPayCard(null);
+  }
   function handleImport(importedCards, mode){
     if(mode==="replace") setCards(importedCards.map(c=>({...c,id:c.id||generateId()})));
     else setCards(cs=>{
@@ -1704,7 +2018,7 @@ export default function App(){
             </div>
             {/* 1 col mobile, 2 col tablet, auto-fill desktop */}
             <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"repeat(2,1fr)":"repeat(auto-fill,minmax(360px,1fr))",gap:isMobile?10:14}}>
-              {cards.map(card=><CardPanel key={card.id} card={card} onEdit={c=>{setEditCard(c);setShowForm(true);}} onDelete={confirmDelete} darkMode={darkMode} globalExpanded={allCardsExpanded}/>)}
+              {cards.map(card=><CardPanel key={card.id} card={card} onEdit={c=>{setEditCard(c);setShowForm(true);}} onDelete={confirmDelete} onQuickPay={c=>setQuickPayCard(c)} darkMode={darkMode} globalExpanded={allCardsExpanded}/>)}
             </div>
           </>
         ))}
@@ -1714,10 +2028,11 @@ export default function App(){
 
       {showForm&&<CardFormModal initial={editCard} onSave={saveCard} onClose={()=>{setShowForm(false);setEditCard(null);}} darkMode={darkMode}/>}
       {showProfile&&<ProfileModal profile={activeProfile} onSave={saveProfile} onClose={()=>setShowProfile(false)} onSwitch={id=>{setActiveProfileId(id);setShowProfile(false);}} allProfiles={profiles} darkMode={darkMode}/>}
-      {showSchedule&&<PayoffScheduleModal cards={cards} logsKey={logsKey} darkMode={darkMode} apiKey={apiKey} onClose={()=>setShowSchedule(false)}/>}
+      {showSchedule&&<PayoffScheduleModal cards={cards} logsKey={logsKey} darkMode={darkMode} apiKey={apiKey} profileId={activeProfileId||"default"} onClose={()=>setShowSchedule(false)}/>}
       {showApiKey&&<ApiKeyModal currentKey={apiKey} onSave={k=>{setApiKey(k);setShowApiKey(false);}} onClose={()=>setShowApiKey(false)} darkMode={darkMode}/>}
       {showBackup&&<ImportExportModal cards={cards} profile={activeProfile} onImport={handleImport} onClose={()=>setShowBackup(false)} darkMode={darkMode}/>}
       {deleteTarget&&<DeleteConfirm cardName={deleteTarget.name} onConfirm={doDelete} onCancel={()=>setDeleteTarget(null)} darkMode={darkMode}/>}
+      {quickPayCard&&<QuickPayModal card={quickPayCard} onConfirm={handleQuickPay} onClose={()=>setQuickPayCard(null)} darkMode={darkMode}/>}
     </div>
   );
 }
