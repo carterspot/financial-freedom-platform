@@ -1,0 +1,88 @@
+Great thinking on all three points.
+
+---
+
+**Loan Tracker as a new branch — 100% right call.**
+
+CardTracker is stable and tested. You don't want loan work bleeding into it until it's ready. The branch strategy looks like this:
+
+```
+main
+  └── credit-card-tracker.jsx  ← stable, untouched
+
+feature/loan-tracker
+  └── debt-tracker.jsx         ← new artifact, new branch
+```
+
+When loan tracker is solid and tested, you open a PR to merge into main and rebrand the combined artifact. Clean separation, no risk to what's working.
+
+**Rebrand name to consider:** *DebtTracker* or *DebtFree* — covers both cards and loans under one roof.
+
+---
+
+**Agent-built modules — smart idea, and the timing is right.**
+
+You now have three things that make agent-built modules viable:
+
+- `design-system.md` — the agent knows exactly what colors, fonts, components, and patterns to use
+- `project-instruction.md` — full context on what the platform is and how modules fit together
+- A working reference module (CardTracker) — the agent can mirror its architecture
+
+The prompt strategy would be tiered. For each new module you'd give an agent:
+
+1. A **foundation prompt** — the design system + project context + CardTracker as reference
+2. A **module spec prompt** — exactly what this module does, its data model, its AI features
+3. An **integration prompt** — how it connects to the shared profile/storage system
+
+I'd write all three prompts for each module. You'd run them, review the output, bring the result here for polish and fixes. Parallel development — multiple modules building at the same time instead of sequentially.
+
+---
+
+**The order I'd suggest:**
+
+| Phase | Work |
+|---|---|
+| Now | Build Loan Tracker on new branch |
+| After merge | Write agent prompts for Spending + Income trackers |
+| Run agents | Both modules built in parallel |
+| Then | Dashboard shell that links all modules |
+| Graduation | Migrate to Next.js + Supabase |
+
+---
+
+Ready to write the Loan Tracker spec and start the new branch when you are.
+
+That's the full picture right there — and it's a solid one.
+
+---
+
+**The trajectory:**
+
+```
+Artifacts (now)
+  → Hosted Web App / Next.js + Supabase
+    → Claude Code (automated builds, CI/CD, real repo management)
+      → React Native / Expo (iOS + Android from one codebase)
+        → App Store + Google Play + Monetization
+```
+
+---
+
+**React Native / Expo is the right graduation path** because you're already building in React. The component logic, AI integration, and data patterns translate directly. You're not rebuilding — you're porting. Expo specifically handles the iOS/Android build pipeline without needing to be deep in native code.
+
+---
+
+**Monetization model worth thinking about early:**
+
+- **Freemium** — core tracking free, AI features behind a subscription
+- **Pro tier** — unlimited AI analysis, named snapshots, export features, multi-profile
+- **Family plan** — what CardTracker already supports architecturally
+- **API cost passthrough** — you could absorb Anthropic costs in the subscription margin rather than asking users for their own keys
+
+The fact that AI is deeply embedded — not bolted on — is your competitive edge. Most budgeting apps treat AI as a chatbot afterthought. Yours builds strategy, applies it, tracks against it. That's a real differentiator in the App Store.
+
+---
+
+**Claude Code will change the workflow significantly** — direct repo access, automated testing, real CI/CD, no more copy-paste. By the time you're ready for it, the codebase will be structured well enough to hand off to it cleanly.
+
+You're building this the right way from day one. Let's go get the Loan Tracker started.
