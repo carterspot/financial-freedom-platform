@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CardTracker — Quick Start Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#020617;--panel:#0f172a;--surf:#1e293b;
+    --indigo:#6366f1;--emerald:#10b981;--amber:#f59e0b;
+    --pink:#ec4899;--orange:#f97316;--purple:#8b5cf6;
+    --tx1:#f1f5f9;--tx2:#94a3b8;--tx3:#475569;
+    --border:#1e293b;
+  }
+  body{
+    background:var(--bg);color:var(--tx1);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;padding:32px 24px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 20% 10%,rgba(99,102,241,.12) 0%,transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 80%,rgba(236,72,153,.08) 0%,transparent 60%);
+  }
+  .page{max-width:960px;margin:0 auto}
+
+  /* Header */
+  .header{text-align:center;margin-bottom:40px;position:relative}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:100px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--indigo);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
+  .header h1{font-size:clamp(28px,5vw,48px);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:10px}
+  .header h1 span{background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header p{font-size:15px;color:var(--tx2);max-width:480px;margin:0 auto;line-height:1.6}
+
+  /* Grid layout */
+  .grid{display:grid;gap:16px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr 1fr}
+  .grid-4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:700px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+
+  /* Cards */
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none}
+  .card-accent{border-left:3px solid var(--indigo)}
+
+  /* Step number */
+  .step-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+
+  /* Section label */
+  .section-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .section-label::after{content:"";flex:1;height:1px;background:var(--border)}
+
+  /* Step card */
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .step-body h3{font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:4px}
+  .step-body p{font-size:12px;color:var(--tx2);line-height:1.6}
+  .step-body code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surf);padding:1px 6px;border-radius:4px;color:var(--indigo)}
+
+  /* Pill */
+  .pill{display:inline-flex;align-items:center;gap:5px;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+
+  /* Feature row */
+  .feat{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+  .feat:last-child{border:none;padding-bottom:0}
+  .feat-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;margin-top:1px}
+  .feat-body h4{font-size:13px;font-weight:700;color:var(--tx1);margin-bottom:2px}
+  .feat-body p{font-size:11px;color:var(--tx2);line-height:1.5}
+
+  /* Tip box */
+  .tip{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--tx2);line-height:1.6}
+  .tip strong{color:var(--indigo)}
+
+  /* Flow arrow */
+  .flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .flow-step{background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--tx1)}
+  .flow-arrow{color:var(--tx3);font-size:14px}
+
+  /* Method compare */
+  .method{background:var(--surf);border-radius:10px;padding:12px 14px;flex:1}
+  .method h4{font-size:12px;font-weight:800;margin-bottom:4px}
+  .method p{font-size:11px;color:var(--tx2);line-height:1.5}
+  .method .tag{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-top:4px}
+
+  /* Storage badge */
+  .storage{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px}
+
+  /* Keyboard */
+  kbd{background:var(--surf);border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx1)}
+
+  /* Divider */
+  .divider{height:1px;background:var(--border);margin:8px 0}
+
+  /* Animate in */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .card{animation:fadeUp .5s ease both}
+  .card:nth-child(1){animation-delay:.05s}
+  .card:nth-child(2){animation-delay:.1s}
+  .card:nth-child(3){animation-delay:.15s}
+  .card:nth-child(4){animation-delay:.2s}
+
+  .hero-card{background:linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95);border:none}
+  .hero-card *{border-color:rgba(255,255,255,.1)!important}
+
+  @media print{
+    body{background:#fff;color:#111;padding:16px}
+    .card{background:#f8fafc;border:1px solid #e2e8f0;break-inside:avoid}
+    .hero-card{background:#312e81}
+    :root{--tx1:#0f172a;--tx2:#475569;--tx3:#94a3b8;--border:#e2e8f0;--surf:#f1f5f9;--panel:#fff}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">💳 Quick Start Guide · v3.0</div>
+    <h1>Get started with<br/><span>CardTracker</span></h1>
+    <p>Your AI-powered credit card payoff planner. From setup to debt-free in five steps.</p>
+  </div>
+
+  <!-- Step 1–4: Getting Started -->
+  <div class="section-label" style="color:var(--indigo)">Getting Started</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <!-- Step 1: Profile -->
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(99,102,241,.2);color:var(--indigo)">1</div>
+        <div class="step-body">
+          <h3>Create Your Profile</h3>
+          <p>Enter your name and choose an avatar color. Set a <strong style="color:var(--tx1)">Recovery PIN</strong> — a memorable word or phrase like <code>smithfamily</code>. This PIN lets you recover your data on any device without an account.</p>
+          <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+            <span class="pill" style="background:rgba(16,185,129,.15);color:var(--emerald)">☁ Cloud Sync</span>
+            <span class="pill" style="background:rgba(245,158,11,.15);color:var(--amber)">💾 Local Backup</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Add Cards -->
+    <div class="card card-accent" style="border-left-color:var(--pink)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(236,72,153,.2);color:var(--pink)">2</div>
+        <div class="step-body">
+          <h3>Add Your Credit Cards</h3>
+          <p>Tap <strong style="color:var(--tx1)">+ Add Card</strong> for each card. Enter balance, APR, credit limit, and monthly payment. Set the <strong style="color:var(--tx1)">due day</strong> and <strong style="color:var(--tx1)">statement close day</strong> to unlock the calendar and alerts.</p>
+          <div style="margin-top:10px;font-size:11px;color:var(--tx3)">Minimum required: Balance + APR</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: API Key -->
+    <div class="card card-accent" style="border-left-color:var(--amber)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(245,158,11,.2);color:var(--amber)">3</div>
+        <div class="step-body">
+          <h3>Add Your API Key</h3>
+          <p>Tap <kbd>🔑</kbd> in the top bar and paste your Anthropic API key. This unlocks <strong style="color:var(--tx1)">AI Analysis</strong>, <strong style="color:var(--tx1)">Strategy Builder</strong>, and <strong style="color:var(--tx1)">What-If chat</strong> for everyone who uses this artifact URL.</p>
+          <div style="margin-top:8px;font-size:11px;color:var(--tx2)">Key stored in shared cloud storage — set once, works for all users.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Strategy -->
+    <div class="card card-accent" style="border-left-color:var(--purple)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(139,92,246,.2);color:var(--purple)">4</div>
+        <div class="step-body">
+          <h3>Get Your AI Strategy</h3>
+          <p>Open <strong style="color:var(--tx1)">Payoff Strategy Planner</strong> (📊 button). Answer 5 questions about your goals. Claude builds a custom plan and recommends Avalanche or Snowball. Tap <strong style="color:var(--tx1)">Apply This Strategy</strong>.</p>
+          <div class="flow" style="margin-top:10px">
+            <span class="flow-step">5 Questions</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">AI Plan</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">Apply ✅</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Methods Explained -->
+  <div class="card hero-card" style="margin-bottom:16px">
+    <div class="section-label" style="color:rgba(255,255,255,.4)">Payoff Methods — Which Should You Choose?</div>
+    <div class="grid grid-2" style="gap:12px">
+      <div class="method" style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.2)">
+        <h4 style="color:#f97316">🔥 Avalanche — Best for saving money</h4>
+        <p style="color:rgba(255,255,255,.6)">Pay highest APR card first. Mathematically optimal — saves the most interest. Best if you can stay motivated without quick wins.</p>
+        <div class="tag" style="color:#f97316">Highest APR first → lowest APR last</div>
+      </div>
+      <div class="method" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2)">
+        <h4 style="color:#3b82f6">❄️ Snowball — Best for motivation</h4>
+        <p style="color:rgba(255,255,255,.6)">Pay smallest balance first. Each payoff is a visible win. Costs slightly more interest but keeps you going when it's hard.</p>
+        <div class="tag" style="color:#3b82f6">Smallest balance first → largest balance last</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.4);text-align:center">Claude picks the right one for your situation after the 5-question questionnaire.</div>
+  </div>
+
+  <!-- Day to Day -->
+  <div class="section-label" style="color:var(--emerald)">Day-to-Day Usage</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <!-- Log Payments -->
+    <div class="card" style="border-left:3px solid var(--emerald)">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">✓ Logging a Payment</div>
+      <div class="feat">
+        <div class="feat-icon">1</div>
+        <div class="feat-body"><h4>Tap ✓ Pay on the card</h4><p>The green Pay button lives on each card panel in the main view.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">2</div>
+        <div class="feat-body"><h4>Edit the amount</h4><p>Pre-filled with your expected payment. Change it if you paid more or less — both work fine.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">3</div>
+        <div class="feat-body"><h4>Confirm</h4><p>Balance updates immediately. Payoff date and charts recalculate. No need to open the Planner.</p></div>
+      </div>
+      <div class="tip" style="margin-top:12px">
+        <strong>Over-payments</strong> go entirely to principal. <strong>Under-payments</strong> still reduce your balance — just more slowly.
+      </div>
+    </div>
+
+    <!-- Planner Features -->
+    <div class="card" style="border-left:3px solid var(--purple)">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">📊 Payoff Planner Tabs</div>
+      <div class="feat">
+        <div class="feat-icon">🎯</div>
+        <div class="feat-body"><h4>Strategy</h4><p>AI questionnaire → personalized plan. Saved automatically. Rerun anytime your situation changes.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📅</div>
+        <div class="feat-body"><h4>Schedule</h4><p>Month-by-month breakdown. Add extra budget or lump sums. Apply AI strategy from here too.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📈</div>
+        <div class="feat-body"><h4>Charts</h4><p>Visual balance curves for Avalanche vs Snowball. See the crossover point.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">💬</div>
+        <div class="feat-body"><h4>What-If AI</h4><p>Chat — "What if I paid $200 extra?" or "What happens if I get a $1k bonus?"</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📊</div>
+        <div class="feat-body"><h4>Progress</h4><p>Manual payment log with actual vs planned tracking and milestone badges.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Grid -->
+  <div class="section-label" style="color:var(--orange)">Features at a Glance</div>
+  <div class="grid grid-4" style="margin-bottom:16px">
+    <div class="card" style="text-align:center;padding:16px 12px">
+      <div style="font-size:28px;margin-bottom:8px">📅</div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:4px">Calendar Export</div>
+      <div style="font-size:11px;color:var(--tx2);line-height:1.5">Export .ics file to Google Calendar, Apple Calendar, or Outlook with payment reminders</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px 12px">
+      <div style="font-size:28px;margin-bottom:8px">📦</div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:4px">Backup & Restore</div>
+      <div style="font-size:11px;color:var(--tx2);line-height:1.5">Export JSON (full backup) or CSV (edit in Excel). Import back via file or paste.</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px 12px">
+      <div style="font-size:28px;margin-bottom:8px">⬇</div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:4px">Export AI Results</div>
+      <div style="font-size:11px;color:var(--tx2);line-height:1.5">Copy or download your strategy as a .txt file to save, share, or review later.</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px 12px">
+      <div style="font-size:28px;margin-bottom:8px">🌙</div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:4px">Dark / Light Mode</div>
+      <div style="font-size:11px;color:var(--tx2);line-height:1.5">Toggle with ☀️/🌙 in the nav bar. Preference saved per device.</div>
+    </div>
+  </div>
+
+  <!-- Tips & Recovery -->
+  <div class="grid grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">💡 Pro Tips</div>
+      <div class="feat">
+        <div class="feat-icon">💰</div>
+        <div class="feat-body"><h4>Use the Extra Budget field</h4><p>Even $50/month extra can cut months off your payoff. Enter it in the Planner header — the schedule recalculates instantly.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🎯</div>
+        <div class="feat-body"><h4>Rerun strategy after big changes</h4><p>Got a raise? Paid off a card? Change in goals? Open Strategy → Rerun Questionnaire → apply the fresh plan.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📋</div>
+        <div class="feat-body"><h4>Export before editing cards</h4><p>Tap 📦 → Export JSON before making major changes. A 30-second backup beats a full re-entry.</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">🔑 Data & Recovery</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="storage" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2)">
+          <span style="font-size:18px">☁</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--emerald)">Cloud Sync Active</div>
+            <div style="font-size:11px;color:var(--tx2)">Data synced across all devices sharing this artifact URL</div>
+          </div>
+        </div>
+        <div class="storage" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2)">
+          <span style="font-size:18px">💾</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--amber)">Local Only</div>
+            <div style="font-size:11px;color:var(--tx2)">Data stays on this device. Export JSON to back up or move.</div>
+          </div>
+        </div>
+        <div class="tip" style="margin-top:4px">
+          <strong>Lost your data?</strong> Open the app on any device and create a profile with the same <strong>Recovery PIN</strong> you set originally. Your cards load automatically.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;padding:20px 0 8px;font-size:11px;color:var(--tx3)">
+    CardTracker · Financial Freedom Platform · v3.0 · March 2026
+    &nbsp;·&nbsp; Part of the Financial Freedom Platform
+  </div>
+
+</div>
+</body>
+</html>
