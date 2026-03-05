@@ -150,6 +150,109 @@ function useTheme(dm){
   };
 }
 
+// ─── Responsive breakpoint hook ──────────────────────────────────────────────
+function useBreakpoint(){
+  const [w,setW]=useState(()=>typeof window!=="undefined"?window.innerWidth:1200);
+  useEffect(()=>{
+    const h=()=>setW(window.innerWidth);
+    window.addEventListener("resize",h);
+    return()=>window.removeEventListener("resize",h);
+  },[]);
+  return{isMobile:w<640,isTablet:w<1024,w};
+}
+
+// ─── ICS calendar export ──────────────────────────────────────────────────────
+function generateICS(cards){
+  const now=new Date();
+  const stamp=now.toISOString().replace(/[-:.]/g,"").slice(0,15)+"Z";
+  const pad=(n)=>String(n).padStart(2,"0");
+  const dateStr=(d)=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+  const escape=(s)=>(s||"").replace(/[,;\\]/g,"\\$&").replace(/\n/g,"\\n");
+
+  const lines=[
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//CardTracker//Financial Freedom Platform//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "X-WR-CALNAME:CardTracker Payments",
+    "X-WR-TIMEZONE:America/New_York",
+  ];
+
+  cards.forEach(card=>{
+    const bal=parseFloat(card.balance)||0;
+    const apr=parseFloat(card.apr)||0;
+    const mo=parseFloat(card.monthlyPayment)||calcMinPmt(bal,apr);
+
+    // ── Payment due — monthly recurring ──────────────────────────────────────
+    if(card.dueDay){
+      const day=Number(card.dueDay);
+      const yr=now.getFullYear(),mn=now.getMonth()+1;
+      const dtstart=`${yr}${pad(mn)}${pad(day)}`;
+      lines.push(
+        "BEGIN:VEVENT",
+        `UID:pmt-due-${card.id}@cardtracker`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART;VALUE=DATE:${dtstart}`,
+        `RRULE:FREQ=MONTHLY;BYMONTHDAY=${day}`,
+        `SUMMARY:💳 ${escape(card.name)} Payment Due`,
+        `DESCRIPTION:Payment due for ${escape(card.name)}${card.last4?` (****${card.last4})`:""}\\nBalance: $${bal.toFixed(2)}\\nMonthly payment: $${mo.toFixed(2)}`,
+        "BEGIN:VALARM",
+        "TRIGGER:-P3D",
+        "ACTION:DISPLAY",
+        `DESCRIPTION:3 days until ${escape(card.name)} payment is due`,
+        "END:VALARM",
+        "BEGIN:VALARM",
+        "TRIGGER:-P1D",
+        "ACTION:DISPLAY",
+        `DESCRIPTION:Tomorrow: ${escape(card.name)} payment due`,
+        "END:VALARM",
+        "END:VEVENT"
+      );
+    }
+
+    // ── Statement close — monthly recurring ───────────────────────────────────
+    if(card.statementDay){
+      const day=Number(card.statementDay);
+      const yr=now.getFullYear(),mn=now.getMonth()+1;
+      const dtstart=`${yr}${pad(mn)}${pad(day)}`;
+      lines.push(
+        "BEGIN:VEVENT",
+        `UID:pmt-stmt-${card.id}@cardtracker`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART;VALUE=DATE:${dtstart}`,
+        `RRULE:FREQ=MONTHLY;BYMONTHDAY=${day}`,
+        `SUMMARY:📋 ${escape(card.name)} Statement Closes`,
+        `DESCRIPTION:Statement closing date for ${escape(card.name)}${card.last4?` (****${card.last4})`:""}\\nNew charges after this date appear on next month's bill.`,
+        "BEGIN:VALARM",
+        "TRIGGER:-P3D",
+        "ACTION:DISPLAY",
+        `DESCRIPTION:${escape(card.name)} statement closes in 3 days — limit new charges`,
+        "END:VALARM",
+        "END:VEVENT"
+      );
+    }
+
+    // ── Projected payoff — single event ──────────────────────────────────────
+    const {months}=calcPayoff(bal,apr,mo);
+    if(months<Infinity&&months>0){
+      const pd=addMo(new Date(),months);
+      lines.push(
+        "BEGIN:VEVENT",
+        `UID:pmt-payoff-${card.id}@cardtracker`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART;VALUE=DATE:${dateStr(pd)}`,
+        `SUMMARY:🎉 ${escape(card.name)} PAID OFF!`,
+        `DESCRIPTION:Projected payoff date for ${escape(card.name)}\\n${months} months from today at $${mo.toFixed(2)}/mo\\nAPR: ${apr}%`,
+        "END:VEVENT"
+      );
+    }
+  });
+
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+
 // ─── SVG Balance Chart ────────────────────────────────────────────────────────
 function BalanceChart({schedule,darkMode,title}){
   const t=useTheme(darkMode);
@@ -1102,6 +1205,7 @@ function CardPanel({card,onEdit,onDelete,darkMode,globalExpanded}){
   const [expanded,setExpanded]=useState(false);
   useEffect(()=>{ setExpanded(globalExpanded); },[globalExpanded]);
   const t=useTheme(darkMode);
+  const {isMobile}=useBreakpoint();
   const balance=parseFloat(card.balance)||0,limit=parseFloat(card.limit)||0,apr=parseFloat(card.apr)||0;
   const minPay=card.minPaymentMode==="auto"?calcMinPmt(balance,apr):(parseFloat(card.minPaymentFixed)||0);
   const monthly=parseFloat(card.monthlyPayment)||minPay;
@@ -1131,7 +1235,7 @@ function CardPanel({card,onEdit,onDelete,darkMode,globalExpanded}){
       </div>
       {expanded&&(
         <div style={{padding:16,display:"flex",flexDirection:"column",gap:18}}>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(4,1fr)",gap:8}}>
             {[{l:"Balance",v:fmt$(balance)},{l:"Credit Limit",v:fmt$(limit)},{l:"APR",v:`${apr}%`},{l:"Monthly Pmt",v:fmt$(monthly)}].map(({l,v})=>(
               <div key={l} style={{background:t.surf,borderRadius:10,padding:"9px 11px"}}><div style={{fontSize:9,color:t.tx2,marginBottom:2,textTransform:"uppercase",letterSpacing:.4}}>{l}</div><div style={{fontSize:13,fontWeight:700,color:t.tx1,fontFamily:"monospace"}}>{v}</div></div>
             ))}
@@ -1171,20 +1275,21 @@ function SummaryDashboard({cards,darkMode,onOpenSchedule}){
   const [utilExpanded,setUtilExpanded]=useState(false);
   const [balanceMode,setBalanceMode]=useState("dollar");
   const t=useTheme(darkMode);
+  const {isMobile,isTablet}=useBreakpoint();
   const totalBalance=cards.reduce((s,c)=>s+(parseFloat(c.balance)||0),0);
   const totalLimit=cards.reduce((s,c)=>s+(parseFloat(c.limit)||0),0);
   const totalUtil=totalLimit>0?(totalBalance/totalLimit)*100:0;
   const totalMonthly=cards.reduce((s,c)=>{ const b=parseFloat(c.balance)||0,a=parseFloat(c.apr)||0,m=c.minPaymentMode==="auto"?calcMinPmt(b,a):(parseFloat(c.minPaymentFixed)||0); return s+(parseFloat(c.monthlyPayment)||m); },0);
   const upcoming=cards.filter(c=>c.dueDay).map(c=>({...c,du:(getNextPmt(c.dueDay)?.daysUntil??999)})).sort((a,b)=>a.du-b.du)[0];
   const obc=totalUtil<20?"#10b981":totalUtil<80?"#f59e0b":"#ef4444";
+  const statCols=isMobile?"repeat(2,1fr)":isTablet?"repeat(2,1fr)":"repeat(4,1fr)";
   return(
-    <div style={{background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:16,padding:20,boxShadow:darkMode?"0 4px 24px rgba(0,0,0,.35)":"0 2px 12px rgba(0,0,0,.07)"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+    <div style={{background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:16,padding:isMobile?14:20,boxShadow:darkMode?"0 4px 24px rgba(0,0,0,.35)":"0 2px 12px rgba(0,0,0,.07)"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
         <div style={{fontSize:10,color:t.tx2,fontWeight:700,textTransform:"uppercase",letterSpacing:1}}>Portfolio Summary</div>
-        <button onClick={onOpenSchedule} style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",borderRadius:10,padding:"7px 16px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:6}}>📊 Payoff Strategy Planner</button>
+        <button onClick={onOpenSchedule} style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",borderRadius:10,padding:"7px 16px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:isMobile?11:12,display:"flex",alignItems:"center",gap:6}}>📊 {isMobile?"Strategy":"Payoff Strategy Planner"}</button>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
-        {/* Total Balance with $ / % toggle */}
+      <div style={{display:"grid",gridTemplateColumns:statCols,gap:10,marginBottom:20}}>
         <div style={{background:t.surf,borderRadius:12,padding:"11px 14px",borderLeft:"3px solid #f97316"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
             <div style={{fontSize:9,color:t.tx2,textTransform:"uppercase",letterSpacing:.5}}>Total Balance</div>
@@ -1195,8 +1300,8 @@ function SummaryDashboard({cards,darkMode,onOpenSchedule}){
           <div style={{fontSize:14,fontWeight:800,color:t.tx1,fontFamily:"monospace"}}>{balanceMode==="dollar"?fmt$(totalBalance):`${totalUtil.toFixed(1)}%`}</div>
           {balanceMode==="percent"&&<div style={{fontSize:9,color:obc,marginTop:2,fontWeight:600}}>{totalUtil<20?"✓ Good":totalUtil<80?"⚠ Moderate":"⚠ High"} utilization</div>}
         </div>
-        {[{l:"Total Credit",v:fmt$(totalLimit),a:"#10b981"},{l:"Monthly Commitment",v:fmt$(totalMonthly),a:"#6366f1"},{l:"Next Payment",v:upcoming?`${upcoming.name} · ${upcoming.du===0?"Today!":upcoming.du===1?"Tomorrow":`${upcoming.du}d`}`:"—",a:upcoming?.color||"#94a3b8"}].map(({l,v,a})=>(
-          <div key={l} style={{background:t.surf,borderRadius:12,padding:"11px 14px",borderLeft:`3px solid ${a}`}}><div style={{fontSize:9,color:t.tx2,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>{l}</div><div style={{fontSize:14,fontWeight:800,color:t.tx1,fontFamily:"monospace"}}>{v}</div></div>
+        {[{l:"Total Credit",v:fmt$(totalLimit),a:"#10b981"},{l:"Monthly Commitment",v:fmt$(totalMonthly),a:"#6366f1"},{l:"Next Payment",v:upcoming?`${upcoming.name.length>12?upcoming.name.slice(0,12)+"…":upcoming.name} · ${upcoming.du===0?"Today!":upcoming.du===1?"Tomorrow":`${upcoming.du}d`}`:"—",a:upcoming?.color||"#94a3b8"}].map(({l,v,a})=>(
+          <div key={l} style={{background:t.surf,borderRadius:12,padding:"11px 14px",borderLeft:`3px solid ${a}`}}><div style={{fontSize:9,color:t.tx2,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>{l}</div><div style={{fontSize:isMobile?12:14,fontWeight:800,color:t.tx1,fontFamily:"monospace"}}>{v}</div></div>
         ))}
       </div>
       <div>
@@ -1215,7 +1320,7 @@ function SummaryDashboard({cards,darkMode,onOpenSchedule}){
         {utilExpanded&&cards.length>0&&(
           <div style={{marginTop:20,paddingTop:16,borderTop:`1px solid ${t.border}`,display:"flex",flexDirection:"column",gap:12}}>
             <div style={{fontSize:10,color:t.tx2,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>Individual Card Utilization</div>
-            {cards.map(card=>{ const b=parseFloat(card.balance)||0,l=parseFloat(card.limit)||0,p=l>0?Math.min(100,(b/l)*100):0,bc=p<20?"#10b981":p<80?"#f59e0b":"#ef4444"; return(<div key={card.id}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}><div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:10,height:10,borderRadius:"50%",background:card.color,flexShrink:0}}/><span style={{fontSize:12,color:t.tx1,fontWeight:600}}>{card.name||"Unnamed"}</span>{card.last4&&<span style={{fontSize:10,color:t.tx3,fontFamily:"monospace"}}>•••• {card.last4}</span>}</div><div style={{display:"flex",gap:12,alignItems:"center"}}><span style={{fontSize:11,color:t.tx3,fontFamily:"monospace"}}>{fmt$(b)} / {fmt$(l)}</span><span style={{fontSize:12,fontWeight:700,color:bc,fontFamily:"monospace",minWidth:38,textAlign:"right"}}>{p.toFixed(0)}%</span></div></div><div style={{position:"relative",height:10,background:t.surf,borderRadius:5,overflow:"visible"}}><div style={{position:"absolute",left:0,top:0,height:"100%",width:`${p}%`,background:card.color,borderRadius:5,opacity:.85,transition:"width .4s"}}/><div style={{position:"absolute",left:"20%",top:-2,bottom:-2,width:1.5,background:"#10b981",opacity:.7}}/><div style={{position:"absolute",left:"80%",top:-2,bottom:-2,width:1.5,background:"#ef4444",opacity:.7}}/></div></div>); })}
+            {cards.map(card=>{ const b=parseFloat(card.balance)||0,l=parseFloat(card.limit)||0,p=l>0?Math.min(100,(b/l)*100):0,bc=p<20?"#10b981":p<80?"#f59e0b":"#ef4444"; return(<div key={card.id}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}><div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:10,height:10,borderRadius:"50%",background:card.color,flexShrink:0}}/><span style={{fontSize:12,color:t.tx1,fontWeight:600}}>{card.name||"Unnamed"}</span>{card.last4&&!isMobile&&<span style={{fontSize:10,color:t.tx3,fontFamily:"monospace"}}>•••• {card.last4}</span>}</div><div style={{display:"flex",gap:12,alignItems:"center"}}>{!isMobile&&<span style={{fontSize:11,color:t.tx3,fontFamily:"monospace"}}>{fmt$(b)} / {fmt$(l)}</span>}<span style={{fontSize:12,fontWeight:700,color:bc,fontFamily:"monospace",minWidth:38,textAlign:"right"}}>{p.toFixed(0)}%</span></div></div><div style={{position:"relative",height:10,background:t.surf,borderRadius:5,overflow:"visible"}}><div style={{position:"absolute",left:0,top:0,height:"100%",width:`${p}%`,background:card.color,borderRadius:5,opacity:.85,transition:"width .4s"}}/><div style={{position:"absolute",left:"20%",top:-2,bottom:-2,width:1.5,background:"#10b981",opacity:.7}}/><div style={{position:"absolute",left:"80%",top:-2,bottom:-2,width:1.5,background:"#ef4444",opacity:.7}}/></div></div>); })}
           </div>
         )}
       </div>
@@ -1227,23 +1332,86 @@ function SummaryDashboard({cards,darkMode,onOpenSchedule}){
 function CalendarView({cards,darkMode}){
   const [viewDate,setViewDate]=useState(new Date());
   const t=useTheme(darkMode);
+  const {isMobile}=useBreakpoint();
   const year=viewDate.getFullYear(),month=viewDate.getMonth();
   const firstDay=new Date(year,month,1).getDay(),totalDays=new Date(year,month+1,0).getDate();
   const cells=Array.from({length:firstDay+totalDays},(_,i)=>i<firstDay?null:i-firstDay+1);
   const today=new Date();
+
   function getEvents(day){ const ev=[]; cards.forEach(card=>{ const b=parseFloat(card.balance)||0,a=parseFloat(card.apr)||0; const wd=card.statementDay?((Number(card.statementDay)-4+31)%31)+1:null; if(Number(card.dueDay)===day) ev.push({card,type:"payment",label:"Due"}); if(Number(card.statementDay)===day) ev.push({card,type:"statement",label:"Stmt"}); if(wd===day) ev.push({card,type:"warning",label:"⚠"}); const {months}=calcPayoff(b,a,parseFloat(card.monthlyPayment)||calcMinPmt(b,a)); if(months<Infinity&&months>0){ const pd=addMo(new Date(),months); if(pd.getFullYear()===year&&pd.getMonth()===month&&pd.getDate()===day) ev.push({card,type:"payoff",label:"✓"}); } }); return ev; }
-  return(
-    <div style={{background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:16,padding:20}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <button onClick={()=>setViewDate(d=>new Date(d.getFullYear(),d.getMonth()-1))} style={{background:t.surf,border:"none",borderRadius:8,padding:"6px 14px",color:t.tx1,cursor:"pointer"}}>‹</button>
-        <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontWeight:700,fontSize:15,color:t.tx1}}>{viewDate.toLocaleDateString("en-US",{month:"long",year:"numeric"})}</span><button onClick={()=>setViewDate(new Date())} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:6,padding:"2px 8px",color:t.tx2,cursor:"pointer",fontSize:10}}>Today</button></div>
-        <button onClick={()=>setViewDate(d=>new Date(d.getFullYear(),d.getMonth()+1))} style={{background:t.surf,border:"none",borderRadius:8,padding:"6px 14px",color:t.tx1,cursor:"pointer"}}>›</button>
+
+  function exportICS(){
+    const ics=generateICS(cards);
+    const blob=new Blob([ics],{type:"text/calendar;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url; a.download="cardtracker-payments.ics"; a.style.display="none";
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),100);
+  }
+
+  return (
+    <div style={{background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:16,padding:isMobile?12:20}}>
+
+      {/* Header row */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:8,flexWrap:"wrap"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <button onClick={()=>setViewDate(d=>new Date(d.getFullYear(),d.getMonth()-1))} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 14px",color:t.tx1,cursor:"pointer",fontSize:16,lineHeight:1}}>‹</button>
+          <span style={{fontWeight:700,fontSize:isMobile?13:15,color:t.tx1,whiteSpace:"nowrap"}}>{viewDate.toLocaleDateString("en-US",{month:"long",year:"numeric"})}</span>
+          <button onClick={()=>setViewDate(new Date())} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:6,padding:"2px 8px",color:t.tx2,cursor:"pointer",fontSize:10}}>Today</button>
+          <button onClick={()=>setViewDate(d=>new Date(d.getFullYear(),d.getMonth()+1))} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 14px",color:t.tx1,cursor:"pointer",fontSize:16,lineHeight:1}}>›</button>
+        </div>
+        <button
+          onClick={exportICS}
+          disabled={!cards.length}
+          title="Export to Google Calendar, Apple Calendar, Outlook, etc."
+          style={{background:cards.length?"#6366f1":t.surf,border:`1px solid ${cards.length?"#6366f1":t.border}`,borderRadius:8,padding:"7px 14px",color:cards.length?"#fff":t.tx3,cursor:cards.length?"pointer":"default",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap",opacity:cards.length?1:.5}}
+        >
+          📅 {isMobile?"Export":"Export to Calendar"}
+        </button>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:3}}>{["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=><div key={d} style={{textAlign:"center",fontSize:10,color:t.tx3,fontWeight:600,padding:"3px 0"}}>{d}</div>)}</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
-        {cells.map((day,i)=>{ const isTd=day&&today.getDate()===day&&today.getMonth()===month&&today.getFullYear()===year; const evs=day?getEvents(day):[]; return <div key={i} style={{minHeight:58,background:isTd?(darkMode?"#1e3a5f":"#dbeafe"):day?t.surf:"transparent",borderRadius:7,padding:4}}>{day&&<div style={{fontSize:11,color:isTd?"#3b82f6":t.tx3,fontWeight:isTd?700:400,marginBottom:2}}>{day}</div>}<div style={{display:"flex",flexDirection:"column",gap:2}}>{evs.map((ev,j)=><div key={j} title={`${ev.card.name} — ${ev.type}`} style={{fontSize:9,borderRadius:3,padding:"1px 4px",fontWeight:600,background:ev.type==="warning"?"#f59e0b22":ev.card.color+"22",color:ev.type==="warning"?"#f59e0b":ev.type==="statement"?(darkMode?"#e2e8f0":"#475569"):ev.card.color,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ev.label} {ev.card.name}</div>)}</div></div>; })}
+
+      {/* Day headers */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:isMobile?2:3,marginBottom:isMobile?2:3}}>
+        {(isMobile?["S","M","T","W","T","F","S"]:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]).map((d,i)=>(
+          <div key={i} style={{textAlign:"center",fontSize:isMobile?9:10,color:t.tx3,fontWeight:600,padding:"3px 0"}}>{d}</div>
+        ))}
       </div>
-      <div style={{display:"flex",gap:14,marginTop:10,flexWrap:"wrap",fontSize:10,color:t.tx3}}><span>● Payment Due</span><span>○ Statement</span><span style={{color:"#f59e0b"}}>⚠ Warning</span><span>✓ Payoff</span></div>
+
+      {/* Calendar grid */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:isMobile?2:3}}>
+        {cells.map((day,i)=>{
+          const isTd=day&&today.getDate()===day&&today.getMonth()===month&&today.getFullYear()===year;
+          const evs=day?getEvents(day):[];
+          return (
+            <div key={i} style={{minHeight:isMobile?44:58,background:isTd?(darkMode?"#1e3a5f":"#dbeafe"):day?t.surf:"transparent",borderRadius:isMobile?5:7,padding:isMobile?3:4}}>
+              {day&&<div style={{fontSize:isMobile?10:11,color:isTd?"#3b82f6":t.tx3,fontWeight:isTd?700:400,marginBottom:2}}>{day}</div>}
+              <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                {evs.slice(0,isMobile?2:4).map((ev,j)=>(
+                  <div key={j} title={`${ev.card.name} — ${ev.type}`} style={{fontSize:isMobile?7:9,borderRadius:3,padding:isMobile?"1px 2px":"1px 4px",fontWeight:600,background:ev.type==="warning"?"#f59e0b22":ev.card.color+"22",color:ev.type==="warning"?"#f59e0b":ev.type==="statement"?(darkMode?"#e2e8f0":"#475569"):ev.card.color,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                    {isMobile?ev.label:`${ev.label} ${ev.card.name}`}
+                  </div>
+                ))}
+                {isMobile&&evs.length>2&&<div style={{fontSize:7,color:t.tx3}}>+{evs.length-2}</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div style={{display:"flex",gap:isMobile?8:14,marginTop:10,flexWrap:"wrap",fontSize:10,color:t.tx3}}>
+        <span>● Payment Due</span>
+        <span>○ Statement</span>
+        <span style={{color:"#f59e0b"}}>⚠ Warning</span>
+        <span>✓ Payoff</span>
+      </div>
+
+      {/* Export info */}
+      <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${t.border}`,fontSize:11,color:t.tx3,lineHeight:1.6}}>
+        📅 <strong style={{color:t.tx2}}>Export to Calendar</strong> downloads a <code style={{background:t.surf,padding:"1px 4px",borderRadius:4,fontSize:10}}>.ics</code> file with all payment due dates, statement close dates, and projected payoff events — works with Google Calendar, Apple Calendar, Outlook, and any calendar app. Includes 3-day and 1-day reminders for payments.
+      </div>
     </div>
   );
 }
@@ -1443,6 +1611,7 @@ export default function App(){
   }
 
   const t=useTheme(darkMode);
+  const {isMobile,isTablet}=useBreakpoint();
   const aTS={background:"#6366f1",color:"#fff",border:"none"};
   const iTS={background:t.panelBg,color:t.tx2,border:`1px solid ${t.border}`};
 
@@ -1464,51 +1633,82 @@ export default function App(){
 
   return(
     <div style={{minHeight:"100vh",background:t.bg,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:t.tx1}}>
-      {/* Nav */}
-      <div style={{background:t.deepBg,borderBottom:`1px solid ${t.border}`,padding:"11px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:32,height:32,borderRadius:8,background:"linear-gradient(135deg,#6366f1,#ec4899)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>💳</div>
-          <span style={{fontWeight:800,fontSize:18,color:t.tx1}}>CardTracker</span>
-          <span style={{fontSize:11,color:t.tx2,background:t.surf,border:`1px solid ${t.border}`,borderRadius:6,padding:"2px 8px"}}>{cards.length} card{cards.length!==1?"s":""}</span>
-          <span title={hasCloudStorage()?"Synced via cloud — data shared across devices":"Saved locally — data stays on this device only"} style={{fontSize:10,color:hasCloudStorage()?"#10b981":"#f59e0b",background:hasCloudStorage()?"#10b98118":"#f59e0b18",border:`1px solid ${hasCloudStorage()?"#10b98133":"#f59e0b33"}`,borderRadius:6,padding:"2px 8px",cursor:"default"}}>{hasCloudStorage()?"☁ Cloud Sync":"💾 Local Only"}</span>
+
+      {/* ── Nav bar ── */}
+      <div style={{background:t.deepBg,borderBottom:`1px solid ${t.border}`,padding:isMobile?"9px 12px":"11px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100,gap:8}}>
+
+        {/* Left: logo + badges */}
+        <div style={{display:"flex",alignItems:"center",gap:isMobile?6:10,minWidth:0}}>
+          <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#6366f1,#ec4899)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>💳</div>
+          {!isMobile&&<span style={{fontWeight:800,fontSize:17,color:t.tx1,whiteSpace:"nowrap"}}>CardTracker</span>}
+          <span style={{fontSize:10,color:t.tx2,background:t.surf,border:`1px solid ${t.border}`,borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap"}}>{cards.length} card{cards.length!==1?"s":""}</span>
+          {!isMobile&&<span title={hasCloudStorage()?"Synced via cloud":"Saved locally"} style={{fontSize:10,color:hasCloudStorage()?"#10b981":"#f59e0b",background:hasCloudStorage()?"#10b98118":"#f59e0b18",border:`1px solid ${hasCloudStorage()?"#10b98133":"#f59e0b33"}`,borderRadius:6,padding:"2px 7px",whiteSpace:"nowrap",cursor:"default"}}>{hasCloudStorage()?"☁ Sync":"💾 Local"}</span>}
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>setDarkMode(d=>!d)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:14}}>{darkMode?"☀️":"🌙"}</button>
-          <button onClick={()=>setShowBackup(true)} title="Backup & Restore — export or import your cards" style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx2,cursor:"pointer",fontSize:14}}>📦</button>
-          {/* API Key button — glows amber if not set */}
-          <button onClick={()=>setShowApiKey(true)} title="Anthropic API Key — enables AI features for all users" style={{background:apiKey?t.surf:"#f59e0b22",border:`1px solid ${apiKey?t.border:"#f59e0b66"}`,borderRadius:8,padding:"6px 11px",color:apiKey?t.tx2:"#f59e0b",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",gap:4}}>
-            🔑{!apiKey&&<span style={{fontSize:10,fontWeight:700}}>Set Key</span>}
+
+        {/* Right: action buttons */}
+        <div style={{display:"flex",gap:isMobile?5:8,alignItems:"center",flexShrink:0}}>
+          <button onClick={()=>setDarkMode(d=>!d)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:isMobile?"5px 9px":"6px 11px",color:t.tx1,cursor:"pointer",fontSize:14}}>{darkMode?"☀️":"🌙"}</button>
+          <button onClick={()=>setShowBackup(true)} title="Backup & Restore" style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:isMobile?"5px 9px":"6px 11px",color:t.tx2,cursor:"pointer",fontSize:14}}>📦</button>
+          <button onClick={()=>setShowApiKey(true)} title="Anthropic API Key" style={{background:apiKey?t.surf:"#f59e0b22",border:`1px solid ${apiKey?t.border:"#f59e0b66"}`,borderRadius:8,padding:isMobile?"5px 9px":"6px 11px",color:apiKey?t.tx2:"#f59e0b",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",gap:4}}>
+            🔑{!apiKey&&!isMobile&&<span style={{fontSize:10,fontWeight:700}}>Set Key</span>}
           </button>
-          <button onClick={()=>setShowProfile(true)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"5px 10px",color:t.tx1,cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:26,height:26,borderRadius:"50%",background:activeProfile?.avatarColor||"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff"}}>{activeProfile?getInitials(activeProfile.name):"?"}</div>
-            <span style={{fontSize:12,fontWeight:600}}>{activeProfile?.name||"Set Up Profile"}</span>
+          {/* Profile avatar — shows name on tablet+, just avatar on mobile */}
+          <button onClick={()=>setShowProfile(true)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:isMobile?"4px 7px":"5px 10px",color:t.tx1,cursor:"pointer",display:"flex",alignItems:"center",gap:isMobile?0:8}}>
+            <div style={{width:24,height:24,borderRadius:"50%",background:activeProfile?.avatarColor||"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"#fff"}}>{activeProfile?getInitials(activeProfile.name):"?"}</div>
+            {!isMobile&&<span style={{fontSize:12,fontWeight:600,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{activeProfile?.name||"Profile"}</span>}
           </button>
-          <button onClick={()=>{setEditCard(null);setShowForm(true);}} style={{background:"#6366f1",border:"none",borderRadius:8,padding:"6px 16px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13}}>+ Add Card</button>
+          <button onClick={()=>{setEditCard(null);setShowForm(true);}} style={{background:"#6366f1",border:"none",borderRadius:8,padding:isMobile?"6px 12px":"6px 16px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:isMobile?12:13,whiteSpace:"nowrap"}}>
+            {isMobile?"+ Card":"+ Add Card"}
+          </button>
         </div>
       </div>
 
-      <div style={{maxWidth:1200,margin:"0 auto",padding:"20px 16px",display:"flex",flexDirection:"column",gap:20}}>
-        
-        {!apiKey&&<div style={{background:"#f59e0b18",border:"1px solid #f59e0b44",borderRadius:12,padding:"12px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700,color:"#f59e0b",marginBottom:2}}>🔑 Enable AI Features</div><div style={{fontSize:13,color:t.tx2}}>Add your Anthropic API key so all family members can use AI analysis, What-If chat, and Strategy Builder.</div></div><button onClick={()=>setShowApiKey(true)} style={{background:"#f59e0b",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13,whiteSpace:"nowrap",marginLeft:16}}>Add API Key</button></div>}
+      {/* ── Main content ── */}
+      <div style={{maxWidth:1200,margin:"0 auto",padding:isMobile?"12px 10px":"20px 16px",display:"flex",flexDirection:"column",gap:isMobile?12:20}}>
+
+        {/* API key banner */}
+        {!apiKey&&(
+          <div style={{background:"#f59e0b18",border:"1px solid #f59e0b44",borderRadius:12,padding:isMobile?"10px 12px":"12px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+            <div>
+              <div style={{fontWeight:700,color:"#f59e0b",marginBottom:2,fontSize:isMobile?12:14}}>🔑 Enable AI Features</div>
+              {!isMobile&&<div style={{fontSize:13,color:t.tx2}}>Add your Anthropic API key so all family members can use AI analysis, What-If chat, and Strategy Builder.</div>}
+            </div>
+            <button onClick={()=>setShowApiKey(true)} style={{background:"#f59e0b",border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:12,whiteSpace:"nowrap"}}>Add API Key</button>
+          </div>
+        )}
+
         <AlertsBanner cards={cards} dismissed={dismissed} onDismiss={id=>setDismissed(d=>[...d,id])}/>
         {cards.length>0&&<SummaryDashboard cards={cards} darkMode={darkMode} onOpenSchedule={()=>setShowSchedule(true)}/>}
+
+        {/* Tab bar */}
         <div style={{display:"flex",gap:7}}>
-          {[["cards","💳 Cards"],["calendar","📅 Calendar"]].map(([tab,label])=><button key={tab} onClick={()=>setActiveTab(tab)} style={{borderRadius:10,padding:"7px 18px",cursor:"pointer",fontWeight:600,fontSize:13,...(activeTab===tab?aTS:iTS)}}>{label}</button>)}
+          {[["cards","💳 Cards"],["calendar","📅 Calendar"]].map(([tab,label])=>(
+            <button key={tab} onClick={()=>setActiveTab(tab)} style={{borderRadius:10,padding:isMobile?"7px 14px":"7px 18px",cursor:"pointer",fontWeight:600,fontSize:isMobile?12:13,...(activeTab===tab?aTS:iTS)}}>{label}</button>
+          ))}
         </div>
+
+        {/* Cards tab */}
         {activeTab==="cards"&&(cards.length===0?(
-          <div style={{textAlign:"center",padding:"60px 20px",color:t.tx2}}><div style={{fontSize:48,marginBottom:12}}>💳</div><div style={{fontWeight:700,fontSize:18,marginBottom:6,color:t.tx1}}>No cards yet</div><div style={{fontSize:14,marginBottom:20}}>Add your first credit card to start tracking</div><button onClick={()=>setShowForm(true)} style={{background:"#6366f1",border:"none",borderRadius:10,padding:"10px 28px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14}}>+ Add Your First Card</button></div>
+          <div style={{textAlign:"center",padding:isMobile?"40px 16px":"60px 20px",color:t.tx2}}>
+            <div style={{fontSize:48,marginBottom:12}}>💳</div>
+            <div style={{fontWeight:700,fontSize:18,marginBottom:6,color:t.tx1}}>No cards yet</div>
+            <div style={{fontSize:14,marginBottom:20}}>Add your first credit card to start tracking</div>
+            <button onClick={()=>setShowForm(true)} style={{background:"#6366f1",border:"none",borderRadius:10,padding:"10px 28px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14}}>+ Add Your First Card</button>
+          </div>
         ):(
           <>
             <div style={{display:"flex",justifyContent:"flex-end"}}>
-              <button onClick={()=>setAllCardsExpanded(e=>!e)} title={allCardsExpanded?"Collapse all":"Expand all"} style={{background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:8,padding:"5px 12px",color:t.tx2,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5}}>
+              <button onClick={()=>setAllCardsExpanded(e=>!e)} style={{background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:8,padding:"5px 12px",color:t.tx2,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5}}>
                 <span style={{fontSize:14}}>{allCardsExpanded?"⊟":"⊞"}</span>{allCardsExpanded?"Collapse All":"Expand All"}
               </button>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(360px,1fr))",gap:14}}>
+            {/* 1 col mobile, 2 col tablet, auto-fill desktop */}
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"repeat(2,1fr)":"repeat(auto-fill,minmax(360px,1fr))",gap:isMobile?10:14}}>
               {cards.map(card=><CardPanel key={card.id} card={card} onEdit={c=>{setEditCard(c);setShowForm(true);}} onDelete={confirmDelete} darkMode={darkMode} globalExpanded={allCardsExpanded}/>)}
             </div>
           </>
         ))}
+
         {activeTab==="calendar"&&<CalendarView cards={cards} darkMode={darkMode}/>}
       </div>
 
