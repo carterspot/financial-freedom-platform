@@ -11,8 +11,9 @@ The platform is built as a collection of standalone Claude artifacts (React .jsx
 
 ```
 Financial Freedom Platform
-├── 💳 CardTracker      (BUILT — v1 complete)
-├── 🏦 DebtTracker      (PLANNED — cards + loans unified)
+├── 💳 CardTracker      (BUILT — v3 complete)
+├── 🏦 LoanTracker      (BUILT — v1 complete)
+├── 🏦 DebtTracker      (PLANNED — CardTracker + LoanTracker unified)
 ├── 💰 Income Module    (PLANNED — income streams, stability)
 ├── 📊 Spending Module  (PLANNED — budget, categories, trends)
 ├── 🏦 Savings Module   (PLANNED — emergency fund, goals)
@@ -24,7 +25,7 @@ Each module is a self-contained React artifact. The AI Advisor is the capstone �
 
 ---
 
-## Module 1: CardTracker (COMPLETE)
+## Module 1: CardTracker (COMPLETE — v3)
 
 ### What it is
 A credit card debt tracker and payoff planner. Users enter their credit cards, see utilization, track payment due dates on a calendar, and run avalanche/snowball payoff simulations with AI analysis.
@@ -38,36 +39,30 @@ A credit card debt tracker and payoff planner. Users enter their credit cards, s
 - Calendar view — payment due dates, statement close, payoff dates
 - AI Analysis tab — non-streaming Anthropic API call, personalized payoff plan
 - What-If AI chat — multi-turn conversation about the user's specific debt
-- Strategy Builder — 5-question questionnaire → personalized AI strategy
-- Progress tracker — payment log per card
+- Strategy Builder — 5-question questionnaire → personalized AI strategy with auto-save
+- Apply This Strategy button — applies AI recommendation directly to planner
+- Quick Pay (✓ Pay) button — logs payment, updates balance, recalculates instantly
+- Progress tracker — payment log per card with actual vs planned
 - Export (JSON + CSV) and Import (JSON + CSV, replace or merge)
+- Export AI results — copy or download .txt
 - Dark/light mode
+- Responsive layout (mobile/tablet/desktop) via useBreakpoint() hook
 - Cloud storage (window.storage) with localStorage fallback
 - Storage probe with 2.5s timeout — gracefully handles login modal dismissal
 - API key management — stored in shared cloud storage, one setup for all family members
+- ICS calendar export for payment reminders
 
 ### Storage keys (CardTracker)
 ```
-cc_profiles          (shared) — array of profile objects
-cc_active_profile    (shared) — active profile id string
-cc_cards_{profileId} (shared) — array of card objects for that profile
-cc_logs_{profileId}  (shared) — payment log entries for that profile
-cc_apikey            (shared) — Anthropic API key
-cc_dark              (local)  — dark mode boolean
+cc_profiles               (shared) — array of profile objects
+cc_active_profile         (shared) — active profile id string
+cc_cards_{profileId}      (shared) — array of card objects for that profile
+cc_logs_{profileId}       (shared) — payment log entries for that profile
+cc_strategy_answers_{profileId} (shared) — saved questionnaire answers
+cc_ai_results_{profileId} (shared) — saved AI analysis + strategy JSON
+cc_apikey                 (shared) — Anthropic API key (shared with all modules)
+cc_dark                   (local)  — dark mode boolean
 ```
-
-### Profile schema
-```json
-{
-  "id": "pin_smithfamily",
-  "name": "Carter",
-  "email": "optional@email.com",
-  "avatarColor": "#6366f1",
-  "pin": "smithfamily",
-  "createdAt": "2026-01-01T00:00:00.000Z"
-}
-```
-Note: if a PIN is set, id = `"pin_" + pin.toLowerCase().replace(/\s+/g,"_")`. This makes the storage key stable and recoverable on any device without cloud sync.
 
 ### Card schema
 ```json
@@ -90,8 +85,6 @@ Note: if a PIN is set, id = `"pin_" + pin.toLowerCase().replace(/\s+/g,"_")`. Th
   "originalBalance": "2342"
 }
 ```
-- `minPaymentMode`: `"auto"` (interest + 1% balance, floor $25) or `"fixed"`
-- `payoffMode`: `"payment"` (user sets monthly amount) or `"months"` (back-calculates required payment)
 
 ### Key functions
 - `calcMinPmt(balance, apr)` — auto minimum: interest + 1% principal, floor $25
@@ -100,43 +93,126 @@ Note: if a PIN is set, id = `"pin_" + pin.toLowerCase().replace(/\s+/g,"_")`. Th
 - `generateId()` — `Date.now().toString(36) + Math.random().toString(36).slice(2)`
 - `fmt$(n)` — formats number as USD currency string
 
-### Design system (shared across all modules — see below)
-Uses `useTheme(darkMode)` hook returning theme object.
+**Artifact:** `credit-card-tracker.jsx` (~2,039 lines)
 
-### Critical JSX rules (artifact sandbox constraints)
-These rules MUST be followed in every artifact or it will crash with `returnReact is not defined`:
-1. **Never write `return<` — always `return (`  or `return <` with a space**
-2. **Never define a function inside a component that returns JSX** — even a one-liner. Hoist all JSX-returning functions to top-level named components
-3. **Never use `window.confirm()`** — blocked in sandboxed iframes. Use a custom modal component instead
-4. **Never use `while(true)` streaming loops** — they freeze in the artifact sandbox. Use non-streaming API calls (`await res.json()`) instead
-5. **All components must be top-level named functions** — no nested component definitions
+---
 
-### AI integration
-```javascript
-const API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL   = "claude-sonnet-4-20250514";
+## Module 2: LoanTracker (COMPLETE — v1)
 
-async function callClaude(apiKey, body) {
-  const headers = { "Content-Type": "application/json" };
-  if (apiKey && apiKey.trim()) headers["x-api-key"] = apiKey.trim();
-  const res = await fetch(API_URL, { method: "POST", headers, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  return res;
-}
-// Usage (non-streaming only):
-const res = await callClaude(apiKey, { model: MODEL, max_tokens: 1000, messages: [...] });
-const data = await res.json();
-const text = data.content?.[0]?.text || "";
+### What it is
+An installment loan tracker and payoff planner. Users enter auto loans, mortgages, student loans, personal loans, and other installment debt. Features true amortization math, multi-loan payoff scheduling, AI-powered refinance analysis, and a full What-If chat.
+
+### Key features built
+- 5 loan types: Auto, Mortgage, Student, Personal, Other
+- Loan CRUD with color coding and type icons
+- Auto-calculates monthly payment from balance + rate + term
+- Auto-calculates remaining months from payment + balance + rate
+- Color-coded loan panels with progress bars and P&I breakdown
+- Quick Pay (✓ Pay) — logs payment, updates balance, recalculates remaining months
+- Expand/collapse all loans
+- Summary dashboard — total debt, monthly payments, total paid down, progress bar
+- Loan type breakdown badges
+
+### Payoff Planner (6 tabs)
+- **Schedule** — Avalanche vs Snowball, payoff order, month-by-month table, extra budget + lump sum, AI analysis
+- **Single Loan** — amortization schedule with CSV export and balance chart
+- **Charts** — comparison chart + per-loan balance over time (SVG)
+- **Refinance AI** — new rate/term/costs → instant preview + AI recommendation
+- **What-If AI** — multi-turn chat with loan context
+- **Progress** — milestone badges, actual vs planned payment log
+
+### Storage keys (LoanTracker)
 ```
-- API key stored in `window.storage` shared — one setup for all users of the artifact
-- When no key set: features show warning but app still fully functional
-- Non-logged-in users: app falls back to localStorage, must enter API key locally
+lt_loans_{profileId}      (shared) — array of loan objects
+lt_logs_{profileId}       (shared) — payment log entries
+lt_ai_results_{profileId} (shared) — saved AI payoff analysis
+cc_profiles               (shared) — SHARED with CardTracker
+cc_active_profile         (shared) — SHARED with CardTracker
+cc_apikey                 (shared) — SHARED with CardTracker (one key for all modules)
+lt_dark                   (local)  — dark mode boolean
+```
+
+### Loan schema
+```json
+{
+  "id": "m5fz3k2abc",
+  "name": "Toyota Camry",
+  "lender": "Chase Auto",
+  "type": "auto",
+  "color": "#3b82f6",
+  "originalBalance": "25000",
+  "currentBalance": "18500.00",
+  "interestRate": "6.900",
+  "monthlyPayment": "485.00",
+  "termMonths": 60,
+  "remainingMonths": "42",
+  "nextPaymentDay": "15",
+  "notes": ""
+}
+```
+
+### Key functions
+- `calcMonthlyPayment(balance, annualRate, months)` — standard amortization formula
+- `calcRemainingMonths(balance, annualRate, payment)` — remaining term from payment
+- `amortizeLoan(loan, extraMonthly, lumpSums)` — single-loan full amortization schedule
+- `computeMultiSchedule(loans, method, opts)` — multi-loan avalanche or snowball
+
+### Pinned for future upgrade
+- Mortgage equity panel (home value input → equity %, progress bar) — deferred, not in v1
+
+**Artifact:** `loan-tracker.jsx` (~1,418 lines)
+
+---
+
+## Module 3: DebtTracker (PLANNED)
+
+Unified merge of CardTracker + LoanTracker. All debt types in one artifact with a unified avalanche/snowball planner across cards and loans.
+
+**Planned artifact:** `debt-tracker.jsx`
+
+---
+
+## Module 4: Income Module (PLANNED)
+
+Track all income streams by type, stability, and frequency. Foundation for cash flow analysis.
+
+- Types: W2, self-employment, rental, dividends, side business, benefits, other
+- Fields: name, type, amount, frequency, stability rating, after-tax flag, start/end date
+- Storage prefix: `inc_`
+
+---
+
+## Module 5: Spending Module (PLANNED)
+
+Budget tracking — category budgets vs actuals. Calculates money available for debt/savings.
+
+- Storage prefix: `sp_`
+
+---
+
+## Module 6: Savings Module (PLANNED)
+
+Emergency fund tracker and named savings goals with target dates and required monthly amounts.
+
+- Storage prefix: `sav_`
+
+---
+
+## Module 7: Retirement Module (PLANNED)
+
+Retirement readiness — balances, contribution rates, employer match, projections, "am I on track?"
+
+- Storage prefix: `ret_`
+
+---
+
+## AI Advisor (PLANNED — capstone)
+
+Reads all modules, generates a holistic financial freedom plan with priority ranking, month-by-month action plan, and scenario modeling.
 
 ---
 
 ## Shared Design System
-
-All modules use this exact theme system for visual consistency:
 
 ```javascript
 function useTheme(dm) {
@@ -154,25 +230,17 @@ function useTheme(dm) {
 }
 ```
 
-**Accent colors (consistent across all modules):**
+**Accent colors:**
 - Primary: `#6366f1` (indigo)
-- Success/positive: `#10b981` (emerald)
+- Success: `#10b981` (emerald)
 - Warning: `#f59e0b` (amber)
-- Danger/negative: `#ef4444` (red)
-- Charts/secondary: `#ec4899` (pink), `#3b82f6` (blue), `#f97316` (orange)
+- Danger: `#ef4444` (red)
+- Charts: `#ec4899` (pink), `#3b82f6` (blue), `#f97316` (orange)
+- AI/strategy: `#8b5cf6` (purple)
 
-**Typography:**
-- Font family: `'DM Sans', 'Segoe UI', sans-serif`
-- Monospace (numbers/amounts): `monospace`
+**Typography:** `'DM Sans', 'Segoe UI', sans-serif` — monospace for all financial numbers
 
-**Border radius conventions:**
-- Cards/panels: `16px`
-- Modals: `20px`
-- Buttons: `8–10px`
-- Badges/pills: `6px`
-- Inputs: `8px`
-
-**Avatar/profile colors:**
+**Avatar colors:**
 ```javascript
 const AVATAR_COLORS = ["#6366f1","#ec4899","#f97316","#10b981","#3b82f6","#8b5cf6","#f43f5e","#06b6d4"];
 ```
@@ -180,8 +248,6 @@ const AVATAR_COLORS = ["#6366f1","#ec4899","#f97316","#10b981","#3b82f6","#8b5cf
 ---
 
 ## Shared Storage Strategy
-
-All modules use the same storage helper pattern:
 
 ```javascript
 let _cloudAvailable = null;
@@ -218,215 +284,102 @@ async function storeSet(key, value, shared = false) {
 const hasCloudStorage = () => _cloudAvailable === true;
 ```
 
-**Storage key naming convention:** `{modulePrefix}_{dataType}_{profileId}`
-- CardTracker prefix: `cc_`
-- DebtTracker prefix: `dt_`
-- Income Module prefix: `inc_`
-- Spending Module prefix: `sp_`
-- Savings Module prefix: `sav_`
-- Retirement Module prefix: `ret_`
-- Shared/cross-module prefix: `ffp_` (Financial Freedom Platform)
+**Storage prefixes:**
+- `cc_` — CardTracker
+- `lt_` — LoanTracker
+- `dt_` — DebtTracker (planned)
+- `inc_` — Income Module
+- `sp_` — Spending Module
+- `sav_` — Savings Module
+- `ret_` — Retirement Module
+- `ffp_` — Shared/cross-module
+
+**Keys shared across ALL modules:**
+- `cc_profiles` — profile list
+- `cc_active_profile` — active profile id
+- `cc_apikey` — Anthropic API key (set once, used everywhere)
 
 ---
 
-## Module 2: DebtTracker (PLANNED)
+## AI Integration Pattern
 
-### What it adds over CardTracker
-Supports both **credit cards** and **loans** (auto, mortgage, personal, student, HELOC) in a unified debt elimination planner.
+```javascript
+const API_URL = "https://api.anthropic.com/v1/messages";
+const MODEL   = "claude-sonnet-4-20250514";
 
-### Key differences for loans vs credit cards
-| | Credit Card | Loan |
-|---|---|---|
-| Payment | Variable | Fixed installment |
-| Interest | Revolving, daily/monthly | Amortizing (front-loaded) |
-| Extra payment | Reduces balance | Reduces principal, shortens term |
-| Utilization | Yes | No |
-| Progress | Balance vs limit | % of original loan paid off |
-
-### Loan-specific features planned
-- Amortization schedule (month-by-month interest/principal split)
-- Extra monthly principal payment field
-- Side-by-side comparison: with vs without extra payments
-- Refinance "what if" calculator
-- Unified avalanche/snowball across cards AND loans
-
-### Add Debt entry point
-```
-+ Add Debt
-   ├── 💳 Credit Card  (existing form)
-   └── 🏦 Loan         (new form: Auto / Mortgage / Personal / Student / HELOC / Other)
-```
-
-### Loan schema (draft)
-```json
-{
-  "id": "loan_abc123",
-  "type": "loan",
-  "loanType": "auto",
-  "name": "Toyota Camry",
-  "balance": "18500",
-  "originalAmount": "25000",
-  "apr": "6.9",
-  "fixedPayment": "485",
-  "extraPayment": "100",
-  "remainingMonths": "48",
-  "dueDay": "15",
-  "originationDate": "2023-06-01",
-  "color": "#3b82f6"
+async function callClaude(apiKey, body) {
+  const headers = { "Content-Type": "application/json" };
+  if (apiKey && apiKey.trim()) headers["x-api-key"] = apiKey.trim();
+  const res = await fetch(API_URL, { method: "POST", headers, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res;
 }
+
+// Usage (non-streaming only):
+const res = await callClaude(apiKey, { model: MODEL, max_tokens: 1000, messages: [...] });
+const data = await res.json();
+const text = data.content?.[0]?.text || "";
 ```
 
----
-
-## Module 3: Income Module (PLANNED)
-
-### Purpose
-Track all income streams. Categorize by type, stability, and frequency. Foundation for cash flow analysis and "how much can I put toward debt?" calculations.
-
-### Income stream types
-- W2 Employment (salary/hourly)
-- Self-employment / freelance
-- Rental income
-- Investment dividends
-- Side business
-- Government benefits
-- Other passive income
-
-### Key fields per stream
-- Name, type, amount, frequency (weekly/biweekly/monthly/annual)
-- Stability rating (very stable / mostly stable / variable)
-- After-tax flag
-- Start date, end date (optional — for temporary income)
-
-### Connections to other modules
-- Feeds "available extra payment" in DebtTracker
-- Feeds "monthly savings capacity" in Savings Module
-- Feeds "contribution capacity" in Retirement Module
-- AI Advisor uses income stability when recommending strategies
+- API key stored in `cc_apikey` shared — one setup for all modules
+- Never embed key in code — always user-supplied via the 🔑 UI
+- Non-streaming only — `await res.json()`, no streaming loops
 
 ---
 
-## Module 4: Spending Module (PLANNED)
+## Critical JSX Rules
 
-### Purpose
-Budget tracking and spending pattern analysis. Not a full transaction importer — focused on category budgets vs actuals.
+These MUST be followed or the artifact crashes with `returnReact is not defined`:
 
-### Core features planned
-- Monthly category budgets (Housing, Food, Transport, etc.)
-- Actual vs budgeted tracking
-- "Money available for debt/savings" calculation after fixed expenses
-- Spending trend charts
-
----
-
-## Module 5: Savings Module (PLANNED)
-
-### Purpose
-Emergency fund tracker and savings goal manager.
-
-### Core features planned
-- Emergency fund goal (3mo / 6mo / 12mo expenses — calculated from spending module)
-- Named savings goals with target amounts and target dates
-- Required monthly savings to hit each goal
-- Priority ranking (emergency fund first, then goals)
-
----
-
-## Module 6: Retirement Module (PLANNED)
-
-### Purpose
-Retirement readiness projections and contribution optimization.
-
-### Core features planned
-- Current balances (401k, IRA, Roth IRA, pension)
-- Contribution rates and employer match
-- Projected value at retirement (with inflation adjustment)
-- "Am I on track?" assessment
-- Contribution optimization vs debt payoff tradeoff analysis
-
----
-
-## AI Advisor (PLANNED — capstone module)
-
-### Purpose
-Holistic AI-powered financial planning that reads across all modules and generates a personalized financial freedom plan.
-
-### What it sees
-- Total debt picture (all cards + loans)
-- Income streams and stability
-- Monthly spending and available cash flow
-- Savings status and gaps
-- Retirement trajectory
-
-### What it produces
-- Priority ranking: "Here's the order to attack your finances"
-- Month-by-month action plan
-- Scenario modeling: "If you put $X extra toward debt vs savings, here's the 5-year outcome"
-- Plain-language explanation of tradeoffs
-
-### AI integration approach
-- Non-streaming API calls (streaming is unreliable in artifact sandbox)
-- Model: `claude-sonnet-4-20250514`
-- Each module sends a structured JSON summary to the advisor
-- Advisor prompt includes full cross-module context
+1. **Never `return<` — always `return (` or `return <` with a space**
+2. **Never define JSX-returning functions inside a component** — hoist all to top-level
+3. **Never use `window.confirm()`** — use a custom `<ConfirmModal>` component
+4. **Never stream AI responses** — use `await res.json()` only
+5. **All components are top-level named functions** — no inline/nested definitions
+6. **No external chart libraries** — SVG only
+7. **No `<form>` tags** — use `onClick`/`onChange`
+8. **No localStorage-only storage** — always use the probe/fallback pattern
 
 ---
 
 ## Development Principles
 
-1. **Each module ships independently** — fully functional standalone before integration
-2. **Non-breaking updates** — storage keys are stable, schema changes are additive (new fields with defaults, never removing fields)
-3. **Export/import in every module** — JSON (full backup) + CSV (spreadsheet-friendly) in every module from day one
-4. **Mobile-first** — all layouts work on phone screens, touch-friendly tap targets
-5. **No external dependencies** — no npm packages, no CDN libraries beyond React. All charts are SVG. All UI is inline styles.
-6. **Profile/PIN system** — every module uses the same profile identity so users only set up once
-7. **AI is enhancement, not requirement** — every feature works without an API key. AI adds insight, doesn't gate functionality
-8. **Dark mode everywhere** — `useTheme(darkMode)` in every component
+1. Each module ships independently — fully functional standalone before integration
+2. Non-breaking updates — schema changes are additive only, never remove fields
+3. Export/import in every module — JSON + CSV from day one
+4. Mobile-first — all layouts work on phones via `useBreakpoint()` hook
+5. No external dependencies — no npm, no CDN beyond React. SVG charts. Inline styles.
+6. Shared profile system — `cc_profiles` / `cc_active_profile` across all modules
+7. AI is enhancement, not requirement — everything works without an API key
+8. Dark mode everywhere — `useTheme(darkMode)` in every component
 
 ---
 
-## What NOT to do
+## Roadmap & Session Log
 
-- No `while(true)` streaming loops — use `await res.json()` for all AI calls
-- No `window.confirm()` — use custom modal components
-- No `return<JSX>` without a space — always `return <JSX>` or `return (`
-- No JSX-returning functions defined inside other components — always hoist to top level
-- No localStorage-only storage — always use the probe/fallback pattern
-- No external chart libraries — SVG only
-- No form tags — use `onClick`/`onChange` handlers
+### Completed
+- ✅ CardTracker v1 — core build
+- ✅ CardTracker v2 — responsive, ICS calendar, payment tracking
+- ✅ CardTracker v3 — Strategy Builder, AI persistence, Apply Strategy, Quick Pay
+- ✅ LoanTracker v1 — amortization engine, 6-tab planner, refinance AI, what-if chat, shared profiles + API key
 
----
-
-## Session Log
-
-### Session 1 (CardTracker v1)
-Built the complete CardTracker application including all core features, AI integration, export/import, profile system with Recovery PIN, and cloud/local storage with graceful fallback.
-
-**Current artifact:** `credit-card-tracker.jsx`
-**Status:** Complete and stable. Ready for minor tweaks only.
-
-**Known remaining tweaks (low priority):**
-- UI polish pass
-- Mobile layout review
-
-### Future Sessions
-- [ ] CardTracker minor tweaks (current chat)
-- [ ] DebtTracker planning and architecture
-- [ ] DebtTracker build — loan form and amortization engine
-- [ ] Income Module
-- [ ] Spending Module
-- [ ] Savings Module
-- [ ] Retirement Module
-- [ ] AI Advisor (capstone)
-- [ ] Platform unification
+### Up Next
+- [ ] LoanTracker v1 — bug testing and polish
+- [ ] LoanTracker v1.1 — improvements from test pass
+- [ ] DebtTracker — unified cards + loans module
+- [ ] Agent prompts — parallel builds of Income, Spending, Savings, Retirement modules
+- [ ] Platform dashboard — unified entry point linking all modules
+- [ ] Graduation — Next.js + Supabase hosted app
+- [ ] React Native / Expo — iOS + Android
+- [ ] Monetization — freemium, Pro tier, family plan
 
 ---
 
 ## How to Use This Project
 
-When starting a new chat in this project:
-1. This instruction gives full context — no need to re-explain the vision
+1. This file gives full context — no need to re-explain the vision in new chats
 2. Reference the module you're working on by name
-3. Copy the current artifact code into the chat when making changes
+3. Attach or paste the current `.jsx` file when making changes
 4. Always run the Critical JSX Rules checklist before finalizing any artifact
 5. Export a backup before any significant rebuild session
+6. `design-system.md` has full component patterns and visual specs
