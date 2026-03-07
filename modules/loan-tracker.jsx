@@ -218,7 +218,9 @@ function ProfileModal({profile,onSave,onClose,onSwitch,allProfiles,darkMode}){
   async function handleSave(){
     if(!name.trim()) return;
     if(isNew&&!pin.trim()){setPinError("Set a Recovery PIN to protect your data.");return;}
-    const p={...profile,id:profile?.id||generateId(),name:name.trim(),pin:pin.trim().toLowerCase(),avatarColor,createdAt:profile?.createdAt||new Date().toISOString()};
+    const cleanPin=pin.trim().toLowerCase().replace(/\s+/g,"_");
+    const stableId=cleanPin?"pin_"+cleanPin:generateId();
+    const p={...profile,id:profile?.id||stableId,name:name.trim(),pin:pin.trim().toLowerCase(),avatarColor,createdAt:profile?.createdAt||new Date().toISOString()};
     await storeSet(`lt_profile_${p.id}`,p,true);
     onSave(p);
   }
@@ -668,6 +670,147 @@ function ComparisonChart({avalanche,snowball,darkMode}){
   );
 }
 
+// ─── Single Loan Dual-Line Chart ──────────────────────────────────────────────
+function SingleLoanDualChart({baseSchedule,accelSchedule,loan,darkMode}){
+  const t=useTheme(darkMode);
+  const W=600,H=260,PL=64,PR=120,PT=24,PB=48,cW=W-PL-PR,cH=H-PT-PB;
+  if(!baseSchedule?.months?.length) return null;
+  const startBal=parseFloat(loan.currentBalance)||0;
+  const maxMo=Math.max(baseSchedule.totalMonths,accelSchedule?.totalMonths||0,1);
+  const maxBal=Math.max(startBal,1);
+  const xS=m=>(m/maxMo)*cW;
+  const yS=b=>cH-(Math.min(b,maxBal)/maxBal)*cH;
+  function sample(sch){
+    const step=Math.max(1,Math.floor(sch.months.length/80));
+    return [{month:0,balance:startBal},...sch.months.filter((_,i)=>i%step===0||i===sch.months.length-1).map(r=>({month:r.month,balance:r.balance}))];
+  }
+  const basePts=sample(baseSchedule).map(r=>`${PL+xS(r.month)},${PT+yS(r.balance)}`).join(" ");
+  const accelPts=accelSchedule?sample(accelSchedule).map(r=>`${PL+xS(r.month)},${PT+yS(r.balance)}`).join(" "):null;
+  const yTicks=[0,.25,.5,.75,1].map(f=>({val:maxBal*f,y:yS(maxBal*f)}));
+  const xTicks=[];for(let m=0;m<=maxMo;m+=Math.max(12,Math.floor(maxMo/6))) xTicks.push({m,x:xS(m)});
+  const hasAccel=accelSchedule&&accelSchedule.totalMonths<baseSchedule.totalMonths;
+  return(
+    <div style={{background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,padding:"16px 20px"}}>
+      <div style={{fontSize:11,fontWeight:700,color:t.tx2,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>📉 Balance Over Time</div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",display:"block"}}>
+        {yTicks.map((tk,i)=>(
+          <g key={i}>
+            <line x1={PL} y1={PT+tk.y} x2={PL+cW} y2={PT+tk.y} stroke={t.border} strokeWidth=".5" strokeDasharray="4,4"/>
+            <text x={PL-6} y={PT+tk.y+4} textAnchor="end" fontSize={9} fill={t.tx3}>{fmt$(tk.val).replace(".00","")}</text>
+          </g>
+        ))}
+        {xTicks.map((tk,i)=>(
+          <g key={i}>
+            <line x1={PL+tk.x} y1={PT+cH} x2={PL+tk.x} y2={PT+cH+4} stroke={t.tx3} strokeWidth="1"/>
+            <text x={PL+tk.x} y={PT+cH+16} textAnchor="middle" fontSize={9} fill={t.tx3}>{tk.m===0?"Now":`Mo ${tk.m}`}</text>
+          </g>
+        ))}
+        <line x1={PL} y1={PT} x2={PL} y2={PT+cH} stroke={t.border2} strokeWidth="1"/>
+        <line x1={PL} y1={PT+cH} x2={PL+cW} y2={PT+cH} stroke={t.border2} strokeWidth="1"/>
+        {/* Base fill + line */}
+        <polygon points={`${PL},${PT+cH} ${basePts} ${PL+xS(baseSchedule.totalMonths)},${PT+cH}`} fill={loan.color} fillOpacity=".1"/>
+        <polyline points={basePts} fill="none" stroke={loan.color} strokeWidth="2" strokeLinejoin="round" strokeDasharray="6,3" opacity=".7"/>
+        {/* Accel fill + line */}
+        {accelPts&&(
+          <>
+            <polygon points={`${PL},${PT+cH} ${accelPts} ${PL+xS(accelSchedule.totalMonths)},${PT+cH}`} fill="#10b981" fillOpacity=".15"/>
+            <polyline points={accelPts} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinejoin="round"/>
+          </>
+        )}
+        {/* Payoff markers */}
+        <line x1={PL+xS(baseSchedule.totalMonths)} y1={PT} x2={PL+xS(baseSchedule.totalMonths)} y2={PT+cH} stroke={loan.color} strokeWidth="1" strokeDasharray="3,3" opacity=".5"/>
+        {accelSchedule&&accelSchedule.totalMonths<baseSchedule.totalMonths&&(
+          <line x1={PL+xS(accelSchedule.totalMonths)} y1={PT} x2={PL+xS(accelSchedule.totalMonths)} y2={PT+cH} stroke="#10b981" strokeWidth="1" strokeDasharray="3,3" opacity=".7"/>
+        )}
+        {/* Legend */}
+        <g transform={`translate(${PL+cW+10},${PT+10})`}>
+          <line x1={0} y1={5} x2={18} y2={5} stroke={loan.color} strokeWidth="2" strokeDasharray="6,3" opacity=".7"/>
+          <text x={22} y={9} fontSize={9} fill={t.tx2}>Standard</text>
+          <text x={22} y={20} fontSize={9} fill={t.tx3}>{baseSchedule.totalMonths} mo</text>
+          {hasAccel&&(
+            <>
+              <line x1={0} y1={34} x2={18} y2={34} stroke="#10b981" strokeWidth="2.5"/>
+              <text x={22} y={38} fontSize={9} fill="#10b981">Accelerated</text>
+              <text x={22} y={49} fontSize={9} fill={t.tx3}>{accelSchedule.totalMonths} mo</text>
+            </>
+          )}
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+// ─── Interest Bar Chart ────────────────────────────────────────────────────────
+function StackedBar({x,barW,cH,PT,prinVal,intVal,maxVal,color,intColor,label,isAccel,baseInt,tx2,tx3}){
+  const totalVal=prinVal+intVal;
+  const totalH=Math.max(0,(totalVal/maxVal)*cH);
+  const intH=Math.max(0,(intVal/maxVal)*cH);
+  const prinH=totalH-intH;
+  const barTop=PT+cH-totalH;
+  return(
+    <g>
+      <rect x={x-barW/2} y={barTop+prinH} width={barW} height={Math.max(0,intH)} fill={intColor} rx="0"/>
+      <rect x={x-barW/2} y={barTop} width={barW} height={Math.max(0,prinH)} fill={color} rx="4"/>
+      <rect x={x-barW/2} y={barTop} width={barW} height={4} fill={color} rx="2"/>
+      {isAccel&&intVal<baseInt&&(
+        <text x={x} y={barTop-6} textAnchor="middle" fontSize={9} fill="#10b981" fontWeight="700">
+          {`-${fmt$(baseInt-intVal).replace(".00","")}`}
+        </text>
+      )}
+      <text x={x} y={PT+cH+14} textAnchor="middle" fontSize={10} fill={isAccel?"#10b981":tx2} fontWeight={isAccel?"700":"500"}>{label}</text>
+      <text x={x} y={PT+cH+26} textAnchor="middle" fontSize={9} fill={tx3}>{fmt$(totalVal).replace(".00","")}</text>
+    </g>
+  );
+}
+function InterestBarChart({baseSchedule,accelSchedule,loan,darkMode}){
+  const t=useTheme(darkMode);
+  const W=600,H=220,PL=64,PR=24,PT=24,PB=56,cW=W-PL-PR,cH=H-PT-PB;
+  if(!baseSchedule?.months?.length) return null;
+  const hasAccel=accelSchedule&&accelSchedule.totalInterest<baseSchedule.totalInterest;
+  const baseInt=baseSchedule.totalInterest;
+  const accelInt=accelSchedule?accelSchedule.totalInterest:baseInt;
+  const basePrin=baseSchedule.totalPaid-baseInt;
+  const accelPrin=accelSchedule?accelSchedule.totalPaid-accelInt:basePrin;
+  const maxVal=Math.max(baseSchedule.totalPaid,accelSchedule?.totalPaid||0,1);
+  const barW=hasAccel?cW/2-20:cW*0.4;
+  const gap=hasAccel?40:0;
+  const x0=PL+(hasAccel?barW/2:cW/2-barW/2);
+  const x1=hasAccel?PL+barW+gap+barW/2:0;
+  const yS=v=>cH-(v/maxVal)*cH;
+  const yTicks=[0,.25,.5,.75,1].map(f=>({val:maxVal*f,y:yS(maxVal*f)}));
+  const barProps={barW,cH,PT,maxVal,baseInt,tx2:t.tx2,tx3:t.tx3};
+  return(
+    <div style={{background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,padding:"16px 20px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+        <div style={{fontSize:11,fontWeight:700,color:t.tx2,textTransform:"uppercase",letterSpacing:.8}}>💰 Interest Cost Comparison</div>
+        {hasAccel&&(
+          <div style={{background:"#10b98118",border:"1px solid #10b98133",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:700,color:"#10b981"}}>
+            Save {fmt$(baseInt-accelInt)} in interest
+          </div>
+        )}
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",display:"block"}}>
+        {yTicks.map((tk,i)=>(
+          <g key={i}>
+            <line x1={PL} y1={PT+tk.y} x2={PL+cW} y2={PT+tk.y} stroke={t.border} strokeWidth=".5" strokeDasharray="4,4"/>
+            <text x={PL-6} y={PT+tk.y+4} textAnchor="end" fontSize={9} fill={t.tx3}>{fmt$(tk.val).replace(".00","")}</text>
+          </g>
+        ))}
+        <line x1={PL} y1={PT} x2={PL} y2={PT+cH} stroke={t.border2} strokeWidth="1"/>
+        <line x1={PL} y1={PT+cH} x2={PL+cW} y2={PT+cH} stroke={t.border2} strokeWidth="1"/>
+        <StackedBar {...barProps} x={x0} prinVal={basePrin} intVal={baseInt} color={loan.color} intColor="#f97316" label="Standard" isAccel={false}/>
+        {hasAccel&&<StackedBar {...barProps} x={x1} prinVal={accelPrin} intVal={accelInt} color="#10b981" intColor="#059669" label="Accelerated" isAccel={true}/>}
+        <g transform={`translate(${PL+cW-100},${PT+8})`}>
+          <rect x={0} y={0} width={10} height={10} fill={loan.color} rx="2"/>
+          <text x={14} y={9} fontSize={9} fill={t.tx2}>Principal</text>
+          <rect x={0} y={16} width={10} height={10} fill="#f97316" rx="2"/>
+          <text x={14} y={25} fontSize={9} fill={t.tx2}>Interest</text>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
 // ─── What-If Tab ───────────────────────────────────────────────────────────────
 function WhatIfTab({loans,avalanche,snowball,darkMode,apiKey}){
   const t=useTheme(darkMode);
@@ -907,6 +1050,9 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
   const [aiSavedAt,setAiSavedAt]=useState(null);
   const [aiCopied,setAiCopied]=useState(false);
   const [singleLoan,setSingleLoan]=useState(focusLoan||null);
+  const [singleExtra,setSingleExtra]=useState(0);
+  const [singleLumps,setSingleLumps]=useState([]);
+  const [singleLumpForm,setSingleLumpForm]=useState({month:"",amount:""});
   const aiRef=useRef(null);
   const resultKey=`lt_ai_results_${profileId}`;
 
@@ -924,7 +1070,11 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
   const schedule=method==="avalanche"?avalanche:snowball;
   const orderedLoans=schedule.loanPayoffs.map(p=>schedule.loans?.find(l=>l.id===p.id)).filter(Boolean);
   const tableRows=showFull?schedule.months:schedule.months.slice(0,12);
-  const singleSchedule=singleLoan?amortizeLoan(singleLoan,extraBudget,lumpSums):null;
+  const liveSingleLoan=singleLoan?validLoans.find(l=>l.id===singleLoan.id)||null:null;
+  const singleSchedule=liveSingleLoan?amortizeLoan(liveSingleLoan,singleExtra,singleLumps):null;
+  const singleBaseSchedule=liveSingleLoan?amortizeLoan(liveSingleLoan,0,[]):null;
+  const singleHasAccel=(singleExtra>0||singleLumps.length>0)&&singleSchedule&&singleBaseSchedule;
+  function addSingleLump(){if(!singleLumpForm.month||!singleLumpForm.amount) return;setSingleLumps(l=>[...l,{id:generateId(),month:parseInt(singleLumpForm.month),amount:parseFloat(singleLumpForm.amount)}]);setSingleLumpForm({month:"",amount:""});}
 
   function addLump(){if(!lumpForm.month||!lumpForm.amount) return;setLumpSums(l=>[...l,{id:generateId(),month:parseInt(lumpForm.month),amount:parseFloat(lumpForm.amount)}]);setLumpForm({month:"",amount:""});}
 
@@ -1000,6 +1150,14 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
 
         <div style={{padding:isMobile?14:24,display:"flex",flexDirection:"column",gap:20}}>
           {!validLoans.length&&<div style={{textAlign:"center",padding:"40px 20px",color:t.tx2}}><div style={{fontSize:36,marginBottom:10}}>🏦</div><div style={{fontWeight:700,color:t.tx1}}>No active loans</div><div style={{fontSize:13,color:t.tx2,marginTop:6}}>Add loans with a balance and payment amount to use the planner.</div></div>}
+          {validLoans.length>0&&validLoans.length<loans.length&&(
+            <div style={{background:"#f59e0b18",border:"1px solid #f59e0b33",borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:16}}>⚠️</span>
+              <div style={{fontSize:12,color:"#f59e0b"}}>
+                <strong>{loans.length-validLoans.length} loan{loans.length-validLoans.length!==1?"s are":" is"} excluded</strong> from the planner — missing balance or payment amount. Edit {loans.length-validLoans.length===1?"it":"them"} to include {loans.length-validLoans.length===1?"it":"them"}.
+              </div>
+            </div>
+          )}
 
           {/* Schedule Tab */}
           {validLoans.length>0&&activeTab==="schedule"&&(<>
@@ -1017,7 +1175,7 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
               })}
             </div>
             <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(3,1fr)",gap:10}}>
-              {[{l:"Interest Saved (Avalanche)",v:fmt$(Math.abs(avalanche.totalInterest-snowball.totalInterest)),c:"#10b981"},{l:`${avalanche.totalMonths<=snowball.totalMonths?"🔥 Avalanche":"❄️ Snowball"} faster by`,v:`${Math.abs(avalanche.totalMonths-snowball.totalMonths)} months`,c:"#6366f1"},{l:"Monthly Budget",v:fmt$(schedule.totalBudget),c:t.tx2}].map(s=>(
+              {[{l:avalanche.totalInterest<=snowball.totalInterest?"Interest Saved (Avalanche)":"Interest Saved (Snowball)",v:fmt$(Math.abs(avalanche.totalInterest-snowball.totalInterest)),c:"#10b981"},{l:`${avalanche.totalMonths<=snowball.totalMonths?"🔥 Avalanche":"❄️ Snowball"} faster by`,v:`${Math.abs(avalanche.totalMonths-snowball.totalMonths)} months`,c:"#6366f1"},{l:"Monthly Budget",v:fmt$(schedule.totalBudget),c:t.tx2}].map(s=>(
                 <div key={s.l} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 14px",textAlign:"center"}}>
                   <div style={{fontSize:9,color:s.c,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>{s.l}</div>
                   <div style={{fontSize:16,fontWeight:800,color:t.tx1,fontFamily:"monospace"}}>{s.v}</div>
@@ -1101,31 +1259,89 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
           {/* Single Loan Tab */}
           {validLoans.length>0&&activeTab==="single"&&(
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              {/* Loan selector */}
               <div>
                 <label style={{fontSize:11,color:t.tx2,display:"block",marginBottom:6,fontWeight:600}}>Select Loan</label>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   {validLoans.map(l=>(
-                    <button key={l.id} onClick={()=>setSingleLoan(l)} style={{display:"flex",alignItems:"center",gap:6,background:singleLoan?.id===l.id?l.color+"22":t.surf,border:`2px solid ${singleLoan?.id===l.id?l.color:t.border}`,borderRadius:10,padding:"8px 14px",color:singleLoan?.id===l.id?l.color:t.tx1,cursor:"pointer",fontSize:12,fontWeight:singleLoan?.id===l.id?700:500}}>
+                    <button key={l.id} onClick={()=>{setSingleLoan(l);setSingleExtra(0);setSingleLumps([]);setSingleLumpForm({month:"",amount:""});}} style={{display:"flex",alignItems:"center",gap:6,background:liveSingleLoan?.id===l.id?l.color+"22":t.surf,border:`2px solid ${liveSingleLoan?.id===l.id?l.color:t.border}`,borderRadius:10,padding:"8px 14px",color:liveSingleLoan?.id===l.id?l.color:t.tx1,cursor:"pointer",fontSize:12,fontWeight:liveSingleLoan?.id===l.id?700:500}}>
                       {getLoanType(l.type).icon} {l.name}
                     </button>
                   ))}
                 </div>
               </div>
-              {singleLoan&&singleSchedule&&(
+
+              {liveSingleLoan&&singleSchedule&&(
                 <>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-                    {[{l:"Total Months",v:`${singleSchedule.totalMonths} mo`,c:"#6366f1"},{l:"Total Interest",v:fmt$(singleSchedule.totalInterest),c:"#f97316"},{l:"Debt Free",v:fmtMo(addMo(new Date(),singleSchedule.totalMonths)),c:"#10b981"}].map(s=>(
-                      <div key={s.l} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 14px",textAlign:"center"}}>
-                        <div style={{fontSize:9,color:s.c,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>{s.l}</div>
-                        <div style={{fontSize:16,fontWeight:800,color:t.tx1,fontFamily:"monospace"}}>{s.v}</div>
+                  {/* Accelerator controls */}
+                  <div style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:14,padding:"14px 16px"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:t.tx2,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>⚡ Payoff Accelerator</div>
+                    <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"flex-end",marginBottom:singleLumps.length>0?12:0}}>
+                      <div style={{flex:"1 1 140px",minWidth:120}}>
+                        <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Extra / Month ($)</div>
+                        <input type="number" value={singleExtra||""} onChange={e=>setSingleExtra(parseFloat(e.target.value)||0)} placeholder="e.g. 200" min="0" style={{width:"100%",background:t.panelBg,border:`1px solid ${singleExtra>0?"#6366f1":t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
                       </div>
-                    ))}
+                      <div style={{flex:"1 1 80px",minWidth:70}}>
+                        <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Lump Sum Month</div>
+                        <input type="number" value={singleLumpForm.month} onChange={e=>setSingleLumpForm(f=>({...f,month:e.target.value}))} placeholder="Mo #" min="1" style={{width:"100%",background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
+                      </div>
+                      <div style={{flex:"1 1 100px",minWidth:90}}>
+                        <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Lump Sum Amount ($)</div>
+                        <input type="number" value={singleLumpForm.amount} onChange={e=>setSingleLumpForm(f=>({...f,amount:e.target.value}))} placeholder="e.g. 5000" min="0" style={{width:"100%",background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
+                      </div>
+                      <button onClick={addSingleLump} disabled={!singleLumpForm.month||!singleLumpForm.amount} style={{background:singleLumpForm.month&&singleLumpForm.amount?"#6366f1":t.border,border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",cursor:singleLumpForm.month&&singleLumpForm.amount?"pointer":"default",fontWeight:700,fontSize:12,flexShrink:0,whiteSpace:"nowrap"}}>+ Add</button>
+                      {(singleExtra>0||singleLumps.length>0)&&<button onClick={()=>{setSingleExtra(0);setSingleLumps([]);}} style={{background:"none",border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx3,cursor:"pointer",fontSize:12,flexShrink:0}}>✕ Clear</button>}
+                    </div>
+                    {singleLumps.length>0&&(
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap",paddingTop:8,borderTop:`1px solid ${t.border}`}}>
+                        {singleLumps.map(ls=>(
+                          <span key={ls.id} style={{background:"#6366f118",border:"1px solid #6366f133",borderRadius:6,padding:"3px 10px",fontSize:11,color:"#6366f1",display:"flex",alignItems:"center",gap:6,fontWeight:600}}>
+                            Mo {ls.month}: {fmt$(ls.amount)}
+                            <button onClick={()=>setSingleLumps(l=>l.filter(x=>x.id!==ls.id))} style={{background:"none",border:"none",color:"#6366f1",cursor:"pointer",fontSize:13,padding:0,lineHeight:1}}>×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <BalanceChart schedule={singleSchedule} loan={singleLoan} darkMode={darkMode} title={`${getLoanType(singleLoan.type).icon} ${singleLoan.name} — Balance Over Time`}/>
+
+                  {/* Comparison: base vs accelerated */}
+                  {singleHasAccel?(
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      {[{label:"Standard",sch:singleBaseSchedule,ac:t.tx2,border:t.border},{label:"Accelerated",sch:singleSchedule,ac:"#10b981",border:"#10b98133"}].map(({label,sch,ac,border})=>(
+                        <div key={label} style={{background:t.panelBg,border:`2px solid ${border}`,borderRadius:14,padding:"14px 16px"}}>
+                          <div style={{fontSize:11,fontWeight:700,color:ac,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}}>{label}</div>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                            {[{l:"Months",v:`${sch.totalMonths} mo`},{l:"Total Interest",v:fmt$(sch.totalInterest)},{l:"Total Paid",v:fmt$(sch.totalPaid)},{l:"Debt Free",v:fmtMo(addMo(new Date(),sch.totalMonths))}].map(s=>(
+                              <div key={s.l}><div style={{fontSize:9,color:t.tx3,textTransform:"uppercase",marginBottom:2}}>{s.l}</div><div style={{fontSize:12,fontWeight:700,color:t.tx1,fontFamily:"monospace"}}>{s.v}</div></div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <div style={{gridColumn:"1/-1",background:"#10b98110",border:"1px solid #10b98133",borderRadius:12,padding:"12px 16px",display:"flex",justifyContent:"space-around",flexWrap:"wrap",gap:8}}>
+                        {[{l:"Months Saved",v:`${singleBaseSchedule.totalMonths-singleSchedule.totalMonths} mo`},{l:"Interest Saved",v:fmt$(singleBaseSchedule.totalInterest-singleSchedule.totalInterest)},{l:"Paid Off",v:fmtMo(addMo(new Date(),singleSchedule.totalMonths))}].map(s=>(
+                          <div key={s.l} style={{textAlign:"center"}}><div style={{fontSize:9,color:"#10b981",textTransform:"uppercase",fontWeight:700,marginBottom:2}}>{s.l}</div><div style={{fontSize:16,fontWeight:800,color:"#10b981",fontFamily:"monospace"}}>{s.v}</div></div>
+                        ))}
+                      </div>
+                    </div>
+                  ):(
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+                      {[{l:"Total Months",v:`${singleSchedule.totalMonths} mo`,c:"#6366f1"},{l:"Total Interest",v:fmt$(singleSchedule.totalInterest),c:"#f97316"},{l:"Debt Free",v:fmtMo(addMo(new Date(),singleSchedule.totalMonths)),c:"#10b981"}].map(s=>(
+                        <div key={s.l} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 14px",textAlign:"center"}}>
+                          <div style={{fontSize:9,color:s.c,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>{s.l}</div>
+                          <div style={{fontSize:16,fontWeight:800,color:t.tx1,fontFamily:"monospace"}}>{s.v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <SingleLoanDualChart baseSchedule={singleBaseSchedule} accelSchedule={singleHasAccel?singleSchedule:null} loan={liveSingleLoan} darkMode={darkMode}/>
+                  <InterestBarChart baseSchedule={singleBaseSchedule} accelSchedule={singleHasAccel?singleSchedule:null} loan={liveSingleLoan} darkMode={darkMode}/>
+
+                  {/* Amortization table */}
                   <div>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                      <div style={{fontSize:11,fontWeight:700,color:t.tx2,textTransform:"uppercase",letterSpacing:.8}}>Amortization Schedule</div>
-                      <button onClick={()=>{const blob=new Blob([["Month,Date,Payment,Principal,Interest,Balance",...singleSchedule.months.map(r=>`${r.month},${fmtDate(addMo(new Date(),r.month))},${r.payment.toFixed(2)},${r.principal.toFixed(2)},${r.interest.toFixed(2)},${r.balance.toFixed(2)}`)].join("\n")],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`${singleLoan.name}-amortization.csv`;a.style.display="none";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),100);}} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:7,padding:"4px 10px",fontSize:10,color:t.tx2,cursor:"pointer",fontWeight:600}}>⬇ CSV</button>
+                      <div style={{fontSize:11,fontWeight:700,color:t.tx2,textTransform:"uppercase",letterSpacing:.8}}>Amortization Schedule{singleHasAccel&&<span style={{marginLeft:6,fontSize:9,background:"#10b981",color:"#fff",borderRadius:4,padding:"2px 6px",fontWeight:700}}>ACCELERATED</span>}</div>
+                      <button onClick={()=>{const blob=new Blob([["Month,Date,Payment,Principal,Interest,Balance,LumpSum",...singleSchedule.months.map(r=>`${r.month},${fmtDate(addMo(new Date(),r.month))},${r.payment.toFixed(2)},${r.principal.toFixed(2)},${r.interest.toFixed(2)},${r.balance.toFixed(2)},${(r.lump||0).toFixed(2)}`)].join("\n")],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`${liveSingleLoan.name}-amortization.csv`;a.style.display="none";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),100);}} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:7,padding:"4px 10px",fontSize:10,color:t.tx2,cursor:"pointer",fontWeight:600}}>⬇ CSV</button>
                     </div>
                     <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${t.border}`,maxHeight:400,overflowY:"auto"}}>
                       <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
@@ -1133,16 +1349,22 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
                           {["Mo","Date","Payment","Principal","Interest","Balance"].map(h=><th key={h} style={{padding:"8px 10px",textAlign:"right",color:t.tx2,fontWeight:600,fontSize:9,textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>)}
                         </tr></thead>
                         <tbody>
-                          {singleSchedule.months.map((row,idx)=>(
-                            <tr key={row.month} style={{background:idx%2===0?"transparent":t.surf+"66",borderBottom:`1px solid ${t.border}`}}>
-                              <td style={{padding:"6px 10px",fontFamily:"monospace",color:t.tx1,textAlign:"right"}}>{row.month}</td>
-                              <td style={{padding:"6px 10px",color:t.tx3,whiteSpace:"nowrap",textAlign:"right"}}>{fmtMo(addMo(new Date(),row.month))}</td>
-                              <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:t.tx1,fontWeight:600}}>{fmt$(row.payment)}</td>
-                              <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:"#10b981"}}>{fmt$(row.principal)}</td>
-                              <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:"#f97316"}}>{fmt$(row.interest)}</td>
-                              <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:row.balance<1?"#10b981":t.tx1,fontWeight:row.balance<1?700:400}}>{row.balance<0.01?"✓ PAID":fmt$(row.balance)}</td>
-                            </tr>
-                          ))}
+                          {singleSchedule.months.map((row,idx)=>{
+                            const hasLump=row.lump>0;
+                            return(
+                              <tr key={row.month} style={{background:hasLump?"#6366f108":idx%2===0?"transparent":t.surf+"66",borderBottom:`1px solid ${t.border}`}}>
+                                <td style={{padding:"6px 10px",fontFamily:"monospace",color:t.tx1,textAlign:"right"}}>
+                                  {row.month}
+                                  {hasLump&&<span style={{marginLeft:4,fontSize:9,background:"#6366f1",color:"#fff",borderRadius:4,padding:"1px 4px",fontWeight:700}}>LUMP</span>}
+                                </td>
+                                <td style={{padding:"6px 10px",color:t.tx3,whiteSpace:"nowrap",textAlign:"right"}}>{fmtMo(addMo(new Date(),row.month))}</td>
+                                <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:t.tx1,fontWeight:600}}>{fmt$(row.payment)}{hasLump&&<div style={{fontSize:9,color:"#6366f1",fontWeight:700}}>+{fmt$(row.lump)} lump</div>}</td>
+                                <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:"#10b981"}}>{fmt$(row.principal)}</td>
+                                <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:"#f97316"}}>{fmt$(row.interest)}</td>
+                                <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:row.balance<1?"#10b981":t.tx1,fontWeight:row.balance<1?700:400}}>{row.balance<0.01?"✓ PAID":fmt$(row.balance)}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                         <tfoot><tr style={{background:t.surf,borderTop:`2px solid ${t.border}`}}>
                           <td colSpan={2} style={{padding:"8px 10px",fontWeight:800,color:t.tx1,fontSize:11,textAlign:"right"}}>TOTALS</td>
@@ -1156,14 +1378,14 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
                   </div>
                 </>
               )}
-              {!singleLoan&&<div style={{textAlign:"center",padding:"32px",color:t.tx3,fontSize:13}}>Select a loan above to see its amortization schedule</div>}
+              {!liveSingleLoan&&<div style={{textAlign:"center",padding:"32px",color:t.tx3,fontSize:13}}>Select a loan above to see its amortization schedule</div>}
             </div>
           )}
 
           {validLoans.length>0&&activeTab==="charts"&&(
             <div style={{display:"flex",flexDirection:"column",gap:18}}>
               <ComparisonChart avalanche={avalanche} snowball={snowball} darkMode={darkMode}/>
-              {validLoans.map(l=><BalanceChart key={l.id} schedule={amortizeLoan(l,extraBudget,lumpSums)} loan={l} darkMode={darkMode} title={`${getLoanType(l.type).icon} ${l.name} — Balance Over Time`}/>)}
+              {validLoans.map(l=><BalanceChart key={l.id} schedule={amortizeLoan(l,extraBudget,[])} loan={l} darkMode={darkMode} title={`${getLoanType(l.type).icon} ${l.name} — Balance Over Time`}/>)}
             </div>
           )}
           {validLoans.length>0&&activeTab==="refinance"&&<RefinanceTab loans={validLoans} darkMode={darkMode} apiKey={apiKey}/>}
@@ -1191,12 +1413,92 @@ function ImportExportModal({loans,profile,onImport,onClose,darkMode}){
     const a=document.createElement("a");a.href=url;a.download=`loantracker-backup-${new Date().toISOString().slice(0,10)}.json`;a.style.display="none";
     document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),100);
   }
-  function parseImport(text){
-    setImportError("");setImportPreview(null);
-    try{const data=JSON.parse(text);if(Array.isArray(data.loans)&&data.loans.length>0){setImportPreview({loans:data.loans,exportedAt:data.exportedAt});}else throw new Error("No loans found");}
-    catch(e){setImportError(`Could not parse: ${e.message}`);}
+  function exportCSV(){
+    const headers=["Name","Lender","Type","Current Balance","Original Balance","Interest Rate (%)","Monthly Payment","Term (months)","Remaining Months","Due Day","Notes","Color"];
+    const rows=loans.map(l=>[
+      l.name,l.lender||"",getLoanType(l.type).label,
+      parseFloat(l.currentBalance)||0,parseFloat(l.originalBalance)||0,
+      parseFloat(l.interestRate)||0,parseFloat(l.monthlyPayment)||0,
+      parseInt(l.termMonths)||"",l.remainingMonths||"",
+      l.nextPaymentDay||"",`"${(l.notes||"").replace(/"/g,'""')}"`,l.color
+    ]);
+    const csv=[headers.join(","),...rows.map(r=>r.join(","))].join("\n");
+    const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=`loantracker-export-${new Date().toISOString().slice(0,10)}.csv`;a.style.display="none";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),100);
   }
-  function handleFile(e){const file=e.target.files?.[0];if(!file) return;const r=new FileReader();r.onload=ev=>{setImportText(ev.target.result);parseImport(ev.target.result);};r.readAsText(file);}
+  function parseCSV(text){
+    const lines=text.trim().split("\n").filter(l=>l.trim());
+    if(lines.length<2) throw new Error("File appears empty");
+    // Parse a single CSV row respecting quoted fields
+    function parseRow(line){
+      const cols=[];let cur="",inQ=false;
+      for(let i=0;i<line.length;i++){
+        const ch=line[i];
+        if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+        else if(ch===","&&!inQ){cols.push(cur.trim());cur="";}
+        else cur+=ch;
+      }
+      cols.push(cur.trim());
+      return cols;
+    }
+    const headers=parseRow(lines[0]).map(h=>h.toLowerCase().replace(/[^a-z0-9]/g,""));
+    // Map header names to loan schema fields
+    const col=(names)=>{for(const n of names){const i=headers.findIndex(h=>h.includes(n));if(i>=0) return i;}return -1;};
+    const iName=col(["name"]),iLender=col(["lender"]),iType=col(["type"]),
+          iCurBal=col(["currentbalance","currbal","balance"]),iOrigBal=col(["originalbalance","origbal"]),
+          iRate=col(["interestrate","rate","apr"]),iPmt=col(["monthlypayment","payment","monthly"]),
+          iTerm=col(["termmonths","term"]),iRem=col(["remainingmonths","remaining"]),
+          iDue=col(["dueday","due"]),iNotes=col(["notes"]),iColor=col(["color"]);
+    if(iName<0||iCurBal<0) throw new Error("Missing required columns: Name, Current Balance");
+    const typeMap={"auto loan":"auto","mortgage":"mortgage","student loan":"student","personal loan":"personal","other":"other"};
+    const parsed=lines.slice(1).map(line=>{
+      const c=parseRow(line);
+      const rawType=(iType>=0?c[iType]:"").toLowerCase().trim();
+      const loanType=typeMap[rawType]||LOAN_TYPES.find(lt=>lt.id===rawType)?.id||"other";
+      const lt=LOAN_TYPES.find(t=>t.id===loanType)||LOAN_TYPES[4];
+      const curBal=parseFloat(iCurBal>=0?c[iCurBal]:0)||0;
+      const rate=parseFloat(iRate>=0?c[iRate]:0)||0;
+      const pmt=parseFloat(iPmt>=0?c[iPmt]:0)||0;
+      return{
+        name:(iName>=0?c[iName]:"")||"Unnamed Loan",
+        lender:iLender>=0?c[iLender]:"",
+        type:loanType,
+        color:iColor>=0&&c[iColor]?.startsWith("#")?c[iColor]:lt.defaultColor,
+        currentBalance:curBal.toString(),
+        originalBalance:(parseFloat(iOrigBal>=0?c[iOrigBal]:0)||curBal).toString(),
+        interestRate:rate.toString(),
+        monthlyPayment:pmt.toString(),
+        termMonths:iTerm>=0?c[iTerm]:"",
+        remainingMonths:iRem>=0?c[iRem]:"",
+        nextPaymentDay:iDue>=0?c[iDue]:"",
+        notes:iNotes>=0?c[iNotes]:"",
+      };
+    }).filter(l=>l.name&&(parseFloat(l.currentBalance)||0)>0);
+    if(!parsed.length) throw new Error("No valid loans found in file");
+    return parsed;
+  }
+  function parseImport(text,isCSV=false){
+    setImportError("");setImportPreview(null);
+    try{
+      if(isCSV){
+        const loans=parseCSV(text);
+        setImportPreview({loans,exportedAt:null,fromCSV:true});
+      }else{
+        const data=JSON.parse(text);
+        if(Array.isArray(data.loans)&&data.loans.length>0) setImportPreview({loans:data.loans,exportedAt:data.exportedAt});
+        else throw new Error("No loans array found");
+      }
+    }catch(e){setImportError(`Could not parse: ${e.message}`);}
+  }
+  function handleFile(e){
+    const file=e.target.files?.[0];if(!file) return;
+    const isCSV=file.name.toLowerCase().endsWith(".csv");
+    const r=new FileReader();
+    r.onload=ev=>{setImportText(ev.target.result);parseImport(ev.target.result,isCSV);};
+    r.readAsText(file);
+    e.target.value="";
+  }
   function confirmImport(mode){if(!importPreview) return;onImport(importPreview.loans,mode);setImportSuccess(true);setImportPreview(null);setImportText("");}
   const tS=(active)=>({background:active?"#6366f1":t.surf,color:active?"#fff":t.tx2,border:`1px solid ${active?"#6366f1":t.border}`,borderRadius:8,padding:"7px 20px",cursor:"pointer",fontWeight:600,fontSize:13});
   return(
@@ -1217,6 +1519,10 @@ function ImportExportModal({loans,profile,onImport,onClose,darkMode}){
               <div><div style={{fontWeight:700,fontSize:14,color:t.tx1}}>📄 Full Backup (JSON)</div><div style={{fontSize:11,color:t.tx2,marginTop:3}}>Restores all loan details, settings, and colors.</div></div>
               <button onClick={exportJSON} disabled={!loans.length} style={{background:"#6366f1",border:"none",borderRadius:9,padding:"8px 16px",color:"#fff",cursor:loans.length?"pointer":"default",fontWeight:700,fontSize:12,opacity:loans.length?1:.4,marginLeft:12}}>Download</button>
             </div>
+            <div style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:12,padding:"16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontWeight:700,fontSize:14,color:t.tx1}}>📊 Spreadsheet (CSV)</div><div style={{fontSize:11,color:t.tx2,marginTop:3}}>Opens in Excel or Google Sheets. Balance, rate, payment, and all fields.</div></div>
+              <button onClick={exportCSV} disabled={!loans.length} style={{background:"#10b981",border:"none",borderRadius:9,padding:"8px 16px",color:"#fff",cursor:loans.length?"pointer":"default",fontWeight:700,fontSize:12,opacity:loans.length?1:.4,marginLeft:12}}>Download</button>
+            </div>
           </div>
         )}
         {tab==="import"&&(
@@ -1228,13 +1534,20 @@ function ImportExportModal({loans,profile,onImport,onClose,darkMode}){
             </div>
           ):(
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
-              <input ref={fileRef} type="file" accept=".json" onChange={handleFile} style={{display:"none"}}/>
-              <button onClick={()=>fileRef.current?.click()} style={{width:"100%",background:t.surf,border:`2px dashed ${t.border}`,borderRadius:12,padding:"18px",color:t.tx2,cursor:"pointer",fontSize:13,fontWeight:600,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><span style={{fontSize:28}}>📂</span><span>Click to choose a backup file (.json)</span></button>
-              <textarea value={importText} onChange={e=>{setImportText(e.target.value);if(e.target.value.trim()) parseImport(e.target.value);else{setImportPreview(null);setImportError("");}}} placeholder="Or paste JSON backup here…" style={{width:"100%",height:100,background:t.surf,border:`1px solid ${importError?"#ef4444":t.border}`,borderRadius:10,padding:"10px 12px",color:t.tx1,fontSize:12,fontFamily:"monospace",resize:"vertical",boxSizing:"border-box"}}/>
+              <input ref={fileRef} type="file" accept=".json,.csv" onChange={handleFile} style={{display:"none"}}/>
+              <button onClick={()=>fileRef.current?.click()} style={{width:"100%",background:t.surf,border:`2px dashed ${t.border}`,borderRadius:12,padding:"18px",color:t.tx2,cursor:"pointer",fontSize:13,fontWeight:600,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                <span style={{fontSize:28}}>📂</span>
+                <span>Click to choose a backup file</span>
+                <span style={{fontSize:11,color:t.tx3}}>Supports .json (full backup) and .csv (spreadsheet)</span>
+              </button>
+              <textarea value={importText} onChange={e=>{setImportText(e.target.value);if(e.target.value.trim()) parseImport(e.target.value,false);else{setImportPreview(null);setImportError("");}}} placeholder="Or paste JSON backup here…" style={{width:"100%",height:100,background:t.surf,border:`1px solid ${importError?"#ef4444":t.border}`,borderRadius:10,padding:"10px 12px",color:t.tx1,fontSize:12,fontFamily:"monospace",resize:"vertical",boxSizing:"border-box"}}/>
               {importError&&<div style={{background:"#ef444418",border:"1px solid #ef444433",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#ef4444"}}>⚠ {importError}</div>}
               {importPreview&&(
                 <div style={{background:t.surf,border:"1px solid #10b98144",borderRadius:12,padding:"14px 16px"}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#10b981",marginBottom:10}}>✓ {importPreview.loans.length} loan{importPreview.loans.length!==1?"s":""} found</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#10b981"}}>✓ {importPreview.loans.length} loan{importPreview.loans.length!==1?"s":""} found</div>
+                    {importPreview.fromCSV&&<span style={{fontSize:10,background:"#10b98120",border:"1px solid #10b98133",borderRadius:5,padding:"2px 7px",color:"#10b981",fontWeight:700}}>CSV</span>}
+                  </div>
                   {importPreview.loans.map((l,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:12,marginBottom:4}}>
                       <div style={{width:10,height:10,borderRadius:"50%",background:l.color||"#6366f1",flexShrink:0}}/>
@@ -1242,6 +1555,7 @@ function ImportExportModal({loans,profile,onImport,onClose,darkMode}){
                       <span style={{color:t.tx3}}>{fmt$(parseFloat(l.currentBalance)||0)}</span>
                     </div>
                   ))}
+                  {importPreview.fromCSV&&<div style={{fontSize:11,color:t.tx3,marginTop:8,paddingTop:8,borderTop:`1px solid ${t.border}`}}>⚠ CSV import does not restore colors from other apps — default colors assigned. Edit any loan to customize.</div>}
                   <div style={{display:"flex",gap:8,marginTop:12}}>
                     <button onClick={()=>confirmImport("replace")} style={{flex:1,background:"#ef4444",border:"none",borderRadius:9,padding:"9px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:12}}>Replace All</button>
                     <button onClick={()=>confirmImport("merge")} style={{flex:1,background:"#6366f1",border:"none",borderRadius:9,padding:"9px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:12}}>Merge</button>
@@ -1317,6 +1631,12 @@ export default function App(){
       const newRem=calcRemainingMonths(newBal,parseFloat(l.interestRate)||0,parseFloat(l.monthlyPayment)||0);
       return {...l,currentBalance:newBal.toFixed(2),remainingMonths:newRem<990?newRem.toString():l.remainingMonths};
     }));
+    // Auto-log to Progress tab
+    storeGet(logsKey,true).then(existing=>{
+      const logs=existing||[];
+      const newEntry={id:generateId(),loanId:payment.loanId,loanName:payment.loanName,loanColor:loans.find(l=>l.id===payment.loanId)?.color||"#6366f1",loanType:loans.find(l=>l.id===payment.loanId)?.type||"other",amount:payment.actual,planned:payment.expected,date:payment.date};
+      storeSet(logsKey,[...logs,newEntry],true);
+    });
     setQuickPayLoan(null);
   }
   function handleImport(importedLoans,mode){
@@ -1351,6 +1671,7 @@ export default function App(){
           <button onClick={()=>setAllExpanded(e=>!e)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx2,cursor:"pointer",fontSize:13}}>{allExpanded?"▲":"▼"}</button>
           <button onClick={()=>setDarkMode(d=>!d)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:14}}>{darkMode?"☀️":"🌙"}</button>
           {!isMobile&&<button onClick={()=>setShowBackup(true)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx2,cursor:"pointer",fontSize:13}}>📦</button>}
+          {isMobile&&<button onClick={()=>setShowBackup(true)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 9px",color:t.tx2,cursor:"pointer",fontSize:12}}>📦</button>}
           <button onClick={()=>setShowApiKey(true)} style={{background:apiKey?"#6366f118":t.surf,border:`1px solid ${apiKey?"#6366f133":t.border}`,borderRadius:8,padding:"6px 11px",color:apiKey?"#6366f1":t.tx2,cursor:"pointer",fontSize:13}}>🔑</button>
           <button onClick={()=>setShowProfile(true)} style={{width:32,height:32,borderRadius:"50%",background:activeProfile?.avatarColor||"#6366f1",border:"none",cursor:"pointer",fontWeight:800,fontSize:12,color:"#fff",flexShrink:0}}>{getInitials(activeProfile?.name)}</button>
         </div>
