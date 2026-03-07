@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FFP — Share Your Feedback</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#020617;--panel:#0f172a;--surf:#1e293b;--deep:#0a0f1e;
+    --border:#1e293b;--border2:#334155;
+    --tx1:#f1f5f9;--tx2:#94a3b8;--tx3:#475569;
+    --indigo:#6366f1;--emerald:#10b981;--amber:#f59e0b;
+    --pink:#ec4899;--purple:#8b5cf6;--danger:#ef4444;
+  }
+  body{
+    background:var(--bg);color:var(--tx1);
+    font-family:'DM Sans',sans-serif;
+    min-height:100vh;padding:32px 20px 60px;
+    background-image:
+      radial-gradient(ellipse 70% 50% at 15% 0%,rgba(99,102,241,.13) 0%,transparent 60%),
+      radial-gradient(ellipse 50% 40% at 85% 90%,rgba(139,92,246,.10) 0%,transparent 60%);
+  }
+
+  .page{max-width:600px;margin:0 auto}
+
+  /* Header */
+  .header{text-align:center;margin-bottom:36px}
+  .logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:20px;background:var(--panel);border:1px solid var(--border2);border-radius:40px;padding:8px 18px}
+  .logo-icon{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#6366f1,#ec4899);display:flex;align-items:center;justify-content:center;font-size:14px}
+  .logo-text{font-weight:800;font-size:13px;color:var(--tx1);letter-spacing:-.3px}
+  .header h1{font-size:clamp(22px,5vw,32px);font-weight:800;letter-spacing:-.5px;line-height:1.2;margin-bottom:10px}
+  .header h1 em{font-style:normal;background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header p{font-size:14px;color:var(--tx2);line-height:1.6;max-width:420px;margin:0 auto}
+
+  /* Progress bar */
+  .progress-wrap{background:var(--surf);border-radius:100px;height:4px;margin-bottom:32px;overflow:hidden}
+  .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#6366f1,#ec4899);border-radius:100px;transition:width .5s ease}
+
+  /* Section */
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px 22px;margin-bottom:14px;transition:border-color .2s}
+  .section:focus-within{border-color:var(--border2)}
+  .section-num{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--indigo);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .section-num::before{content:"";width:16px;height:2px;background:var(--indigo);border-radius:2px}
+  .question{font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:4px;line-height:1.4}
+  .hint{font-size:12px;color:var(--tx3);margin-bottom:14px;line-height:1.5}
+
+  /* Inputs */
+  input[type=text], input[type=email], textarea, select{
+    width:100%;background:var(--surf);border:1px solid var(--border2);
+    border-radius:8px;padding:10px 13px;color:var(--tx1);
+    font-size:13px;font-family:'DM Sans',sans-serif;
+    outline:none;transition:border-color .2s,box-shadow .2s;
+    -webkit-appearance:none;appearance:none;
+  }
+  input[type=text]:focus, input[type=email]:focus, textarea:focus, select:focus{
+    border-color:var(--indigo);
+    box-shadow:0 0 0 3px rgba(99,102,241,.15);
+  }
+  input::placeholder, textarea::placeholder{color:var(--tx3)}
+  textarea{resize:vertical;min-height:90px;line-height:1.6}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
+  select option{background:#1e293b;color:#f1f5f9}
+
+  /* Chip selector */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+  .chip{display:inline-flex;align-items:center;gap:5px;background:var(--surf);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--tx2);cursor:pointer;transition:all .15s;user-select:none}
+  .chip:hover{border-color:var(--indigo);color:var(--tx1)}
+  .chip.active{background:rgba(99,102,241,.15);border-color:var(--indigo);color:var(--indigo)}
+  .chip input{display:none}
+
+  /* Star rating */
+  .stars{display:flex;gap:6px;margin-top:2px}
+  .star{font-size:26px;cursor:pointer;transition:transform .1s;line-height:1;filter:grayscale(1) opacity(.35)}
+  .star:hover,.star.lit{filter:none;transform:scale(1.15)}
+  .star-label{font-size:11px;color:var(--tx3);margin-top:6px;text-align:center;min-height:16px}
+
+  /* Scale */
+  .scale{display:flex;gap:6px;margin-top:2px}
+  .scale-btn{flex:1;background:var(--surf);border:1px solid var(--border2);border-radius:8px;padding:9px 4px;font-size:13px;font-weight:700;color:var(--tx2);cursor:pointer;text-align:center;transition:all .15s;font-family:'JetBrains Mono',monospace}
+  .scale-btn:hover{border-color:var(--indigo);color:var(--tx1)}
+  .scale-btn.active{background:rgba(99,102,241,.15);border-color:var(--indigo);color:var(--indigo)}
+  .scale-labels{display:flex;justify-content:space-between;margin-top:5px}
+  .scale-label{font-size:10px;color:var(--tx3)}
+
+  /* File upload */
+  .upload-zone{border:1px dashed var(--border2);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+  .upload-zone:hover{border-color:var(--indigo);background:rgba(99,102,241,.04)}
+  .upload-icon{font-size:24px;margin-bottom:6px}
+  .upload-text{font-size:12px;color:var(--tx3);line-height:1.6}
+  .upload-text strong{color:var(--tx2)}
+
+  /* Submit */
+  .submit-wrap{margin-top:24px}
+  .btn-submit{width:100%;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;padding:14px;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:-.2px;transition:all .2s;position:relative;overflow:hidden}
+  .btn-submit:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(99,102,241,.35)}
+  .btn-submit:active{transform:translateY(0)}
+
+  /* Thank you screen */
+  .thankyou{display:none;text-align:center;padding:48px 20px}
+  .thankyou.visible{display:block}
+  .ty-icon{font-size:56px;margin-bottom:16px;animation:pop .4s ease}
+  .ty-title{font-size:24px;font-weight:800;margin-bottom:8px}
+  .ty-sub{font-size:14px;color:var(--tx2);line-height:1.6}
+  @keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+
+  /* Required asterisk */
+  .req{color:var(--danger);margin-left:3px}
+
+  /* Divider */
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:480px){.row{grid-template-columns:1fr}.scale{gap:4px}.scale-btn{padding:8px 2px;font-size:12px}}
+
+  /* Sticky footer hint */
+  .form-footer{text-align:center;margin-top:16px;font-size:11px;color:var(--tx3);line-height:1.7}
+  .form-footer a{color:var(--indigo);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">💳</div>
+      <span class="logo-text">Financial Freedom Platform</span>
+    </div>
+    <h1>Help us make it<br/><em>better for you</em></h1>
+    <p>Takes about 3 minutes. No account needed. Your honest feedback shapes what we build next.</p>
+  </div>
+
+  <div class="progress-wrap"><div class="progress-fill" id="progress"></div></div>
+
+  <div id="form-body">
+
+    <!-- Q1: Which tracker -->
+    <div class="section">
+      <div class="section-num">Question 1</div>
+      <div class="question">Which tracker are you giving feedback on?<span class="req">*</span></div>
+      <div class="hint">Pick all that apply if you've used more than one.</div>
+      <div class="chips" id="chips-tracker">
+        <label class="chip"><input type="checkbox" value="card" onchange="syncChip(this)">💳 Card Tracker</label>
+        <label class="chip"><input type="checkbox" value="loan" onchange="syncChip(this)">🏦 Loan Tracker</label>
+        <label class="chip"><input type="checkbox" value="both" onchange="syncChip(this)">Both</label>
+      </div>
+    </div>
+
+    <!-- Q2: Overall rating -->
+    <div class="section">
+      <div class="section-num">Question 2</div>
+      <div class="question">Overall, how would you rate your experience?<span class="req">*</span></div>
+      <div class="hint">Tap a star — 1 is rough, 5 is love it.</div>
+      <div class="stars" id="stars">
+        <span class="star" data-val="1" onclick="rateStar(1)">⭐</span>
+        <span class="star" data-val="2" onclick="rateStar(2)">⭐</span>
+        <span class="star" data-val="3" onclick="rateStar(3)">⭐</span>
+        <span class="star" data-val="4" onclick="rateStar(4)">⭐</span>
+        <span class="star" data-val="5" onclick="rateStar(5)">⭐</span>
+      </div>
+      <div class="star-label" id="star-label"></div>
+    </div>
+
+    <!-- Q3: What were you trying to do -->
+    <div class="section">
+      <div class="section-num">Question 3</div>
+      <div class="question">What were you trying to do when the issue happened?</div>
+      <div class="hint">For example: "I was adding a new card" or "I tried to run the payoff planner."</div>
+      <textarea placeholder="Describe what you were doing…"></textarea>
+    </div>
+
+    <!-- Q4: What happened -->
+    <div class="section">
+      <div class="section-num">Question 4</div>
+      <div class="question">What happened? What did you expect to happen instead?<span class="req">*</span></div>
+      <div class="hint">No need to be technical — just describe it like you'd tell a friend.</div>
+      <textarea placeholder="What happened: …&#10;&#10;What I expected: …" style="min-height:110px"></textarea>
+    </div>
+
+    <!-- Q5: Device -->
+    <div class="section">
+      <div class="section-num">Question 5</div>
+      <div class="question">What device and browser were you using?</div>
+      <div class="row">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:6px">Device</div>
+          <select>
+            <option value="" disabled selected>Pick one…</option>
+            <option>iPhone</option>
+            <option>Android phone</option>
+            <option>iPad / tablet</option>
+            <option>Mac laptop / desktop</option>
+            <option>Windows laptop / desktop</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:6px">Browser</div>
+          <select>
+            <option value="" disabled selected>Pick one…</option>
+            <option>Chrome</option>
+            <option>Safari</option>
+            <option>Firefox</option>
+            <option>Edge</option>
+            <option>Samsung Internet</option>
+            <option>Not sure</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q6: How hard was it to figure out -->
+    <div class="section">
+      <div class="section-num">Question 6</div>
+      <div class="question">How easy was the app to figure out on your own?</div>
+      <div class="hint">1 = very confusing &nbsp;·&nbsp; 5 = totally intuitive</div>
+      <div class="scale" id="ease-scale">
+        <div class="scale-btn" onclick="rateScale('ease',1)">1</div>
+        <div class="scale-btn" onclick="rateScale('ease',2)">2</div>
+        <div class="scale-btn" onclick="rateScale('ease',3)">3</div>
+        <div class="scale-btn" onclick="rateScale('ease',4)">4</div>
+        <div class="scale-btn" onclick="rateScale('ease',5)">5</div>
+      </div>
+      <div class="scale-labels">
+        <span class="scale-label">Very confusing</span>
+        <span class="scale-label">Totally intuitive</span>
+      </div>
+    </div>
+
+    <!-- Q7: What did you like -->
+    <div class="section">
+      <div class="section-num">Question 7</div>
+      <div class="question">What did you like most? (optional)</div>
+      <div class="hint">What should we make sure we never break?</div>
+      <textarea placeholder="I really liked…"></textarea>
+    </div>
+
+    <!-- Q8: What's missing -->
+    <div class="section">
+      <div class="section-num">Question 8</div>
+      <div class="question">Is there anything missing or confusing you'd want fixed?</div>
+      <div class="hint">Don't hold back — this is exactly the kind of thing we need to hear.</div>
+      <textarea placeholder="It would really help if…"></textarea>
+    </div>
+
+    <!-- Q9: Screenshot -->
+    <div class="section">
+      <div class="section-num">Question 9</div>
+      <div class="question">Screenshot (optional)</div>
+      <div class="hint">If something looked wrong, a screenshot helps a lot. Not required at all.</div>
+      <div class="upload-zone" onclick="document.getElementById('file-upload').click()">
+        <input type="file" id="file-upload" accept="image/*" style="display:none" onchange="handleFile(this)"/>
+        <div class="upload-icon">📎</div>
+        <div class="upload-text"><strong>Tap to attach a screenshot</strong><br/>PNG, JPG, or GIF — any size is fine</div>
+      </div>
+      <div id="file-name" style="font-size:12px;color:var(--emerald);margin-top:8px;display:none"></div>
+    </div>
+
+    <!-- Q10: Name / email -->
+    <div class="section">
+      <div class="section-num">Question 10</div>
+      <div class="question">Your name and email (optional)</div>
+      <div class="hint">Only if you want a follow-up. Completely optional — anonymous feedback is just as helpful.</div>
+      <div class="row" style="margin-top:2px">
+        <input type="text" placeholder="First name"/>
+        <input type="email" placeholder="Email address"/>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="submit-wrap">
+      <button class="btn-submit" onclick="submitForm()">Send My Feedback →</button>
+    </div>
+
+  </div>
+
+  <!-- Thank you -->
+  <div class="thankyou" id="thankyou">
+    <div class="ty-icon">🎉</div>
+    <div class="ty-title">Thank you so much!</div>
+    <div class="ty-sub">Your feedback goes directly to Carter and helps shape what gets built next.<br/><br/>Seriously — this is exactly what makes the app better for everyone. We really appreciate you taking the time.</div>
+  </div>
+
+  <div class="form-footer">
+    Financial Freedom Platform &nbsp;·&nbsp; Feedback Form v1.0<br/>
+    Your responses are private and used only to improve the app.
+  </div>
+
+</div>
+
+<script>
+  const starLabels = ["","Rough — needs work","Okay, but frustrating","Pretty good","Really good","Love it! 🙌"];
+  let starVal = 0;
+
+  function rateStar(n) {
+    starVal = n;
+    document.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('lit', i < n));
+    document.getElementById('star-label').textContent = starLabels[n];
+    updateProgress();
+  }
+
+  const scaleVals = {};
+  function rateScale(id, n) {
+    scaleVals[id] = n;
+    document.querySelectorAll(`#${id}-scale .scale-btn`).forEach((b,i) => b.classList.toggle('active', i+1 === n));
+    updateProgress();
+  }
+
+  function syncChip(input) {
+    input.closest('.chip').classList.toggle('active', input.checked);
+    updateProgress();
+  }
+
+  function handleFile(input) {
+    const el = document.getElementById('file-name');
+    if (input.files.length) { el.textContent = '✓ Attached: ' + input.files[0].name; el.style.display='block'; }
+  }
+
+  function updateProgress() {
+    const trackerChecked = document.querySelectorAll('#chips-tracker input:checked').length > 0;
+    const hasText = [...document.querySelectorAll('textarea')].some(t => t.value.trim());
+    const filled = [trackerChecked, starVal > 0, hasText].filter(Boolean).length;
+    document.getElementById('progress').style.width = Math.min(100, (filled / 3) * 100) + '%';
+  }
+
+  function submitForm() {
+    document.getElementById('form-body').style.display = 'none';
+    document.getElementById('thankyou').classList.add('visible');
+    document.getElementById('progress').style.width = '100%';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  document.querySelectorAll('textarea, input[type=text], input[type=email]').forEach(el => {
+    el.addEventListener('input', updateProgress);
+  });
+</script>
+</body>
+</html>
