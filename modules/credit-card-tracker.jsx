@@ -109,14 +109,16 @@ function computeSchedule(rawCards, method, opts={}) {
     if(!active.length) break;
     month++;
     let monthLump=0;
+    const rLumpPmts={};
     lumpSums.filter(ls=>ls.month===month).forEach(ls=>{
       monthLump+=ls.amount;
       if(lumpMode==="split"){
-        const total=sorted.reduce((s,c)=>s+(balances[c.id]>0?balances[c.id]:0),0);
-        if(total>0) sorted.forEach(c=>{ if(balances[c.id]<=0) return; const share=ls.amount*(balances[c.id]/total); balances[c.id]=Math.max(0,balances[c.id]-share); });
+        const activeCds=sorted.filter(c=>balances[c.id]>0);
+        const total=activeCds.reduce((s,c)=>s+balances[c.id],0);
+        if(total>0) activeCds.forEach(c=>{ const share=ls.amount*(balances[c.id]/total); balances[c.id]=Math.max(0,balances[c.id]-share); rLumpPmts[c.id]=(rLumpPmts[c.id]||0)+share; });
       } else {
         let rem=ls.amount;
-        for(const c of sorted){ if(balances[c.id]<=0) continue; const a=Math.min(rem,balances[c.id]); balances[c.id]-=a; rem-=a; if(rem<=0) break; }
+        for(const c of sorted){ if(balances[c.id]<=0) continue; const a=Math.min(rem,balances[c.id]); balances[c.id]-=a; rLumpPmts[c.id]=(rLumpPmts[c.id]||0)+a; rem-=a; if(rem<=0) break; }
       }
     });
     const mins={};
@@ -141,7 +143,7 @@ function computeSchedule(rawCards, method, opts={}) {
       rBal[c.id]=Math.max(0,balances[c.id]);
       if(balances[c.id]<0.005&&!paidOff[c.id]){ balances[c.id]=0; paidOff[c.id]=true; payoffs.push({id:c.id,name:c.name,color:c.color,month,date:addMo(new Date(),month)}); }
     });
-    rows.push({month,payments:{...rPmts},interest:{...rInt},balances:{...rBal},lumpAmount:monthLump});
+    rows.push({month,payments:{...rPmts},interest:{...rInt},balances:{...rBal},lumpAmount:monthLump,lumpPayments:{...rLumpPmts}});
   }
   const totalInterest=Object.values(intTotals).reduce((s,v)=>s+v,0);
   return {months:rows,cardPayoffs:payoffs,totalInterest,totalPaid:cards.reduce((s,c)=>s+c.balance,0)+totalInterest,totalMonths:month,cards,totalBudget:base};
@@ -1344,7 +1346,7 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
                       return(<tr key={row.month} style={{background:isPay?"#10b98110":hasLump?"#6366f108":idx%2===0?"transparent":t.surf+"66",borderBottom:`1px solid ${t.border}`}}>
                         <td style={{padding:"7px 11px",color:t.tx1,fontFamily:"monospace",fontWeight:isPay?700:400}}>{row.month}{isPay&&<span style={{marginLeft:5,fontSize:9,background:"#10b981",color:"#fff",borderRadius:4,padding:"1px 4px"}}>PAYOFF</span>}{hasLump&&<span style={{marginLeft:3,fontSize:9,background:"#6366f1",color:"#fff",borderRadius:4,padding:"1px 4px"}}>LUMP</span>}</td>
                         <td style={{padding:"7px 11px",color:t.tx3,whiteSpace:"nowrap"}}>{fmtMo(addMo(new Date(),row.month))}</td>
-                        {orderedCards.map(c=>{ const pHere=payHere.find(p=>p.id===c.id); return(<td key={c.id} style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",background:pHere?c.color+"22":"transparent"}}>{row.balances[c.id]!==undefined?<div><div style={{color:pHere?"#10b981":t.tx1,fontSize:10,fontWeight:pHere?700:400}}>{pHere?"✓ PAID":fmt$(row.balances[c.id])}</div><div style={{color:t.tx3,fontSize:9}}>pmt {fmt$(row.payments[c.id]||0)}</div></div>:<span style={{color:t.tx3,fontSize:10}}>—</span>}</td>); })}
+                        {orderedCards.map(c=>{ const pHere=payHere.find(p=>p.id===c.id); return(<td key={c.id} style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",background:pHere?c.color+"22":"transparent"}}>{row.balances[c.id]!==undefined?<div><div style={{color:pHere?"#10b981":t.tx1,fontSize:10,fontWeight:pHere?700:400}}>{pHere?"✓ PAID":fmt$(row.balances[c.id])}</div><div style={{color:t.tx3,fontSize:9}}>pmt {fmt$((row.payments[c.id]||0)+(row.lumpPayments?.[c.id]||0))}</div></div>:<span style={{color:t.tx3,fontSize:10}}>—</span>}</td>); })}
                         <td style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",color:t.tx1,fontWeight:600}}>{fmt$(tP+(row.lumpAmount||0))}</td>
                         <td style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",color:"#f97316"}}>{fmt$(tI)}</td>
                       </tr>);
