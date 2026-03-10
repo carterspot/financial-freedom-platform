@@ -17,9 +17,9 @@ A modular AI-powered personal finance platform built as standalone React JSX art
 
 | Module | File | Status |
 |--------|------|--------|
-| 💳 CardTracker | `modules/credit-card-tracker.jsx` | ✅ Complete — v3 |
-| 🏦 LoanTracker | `modules/loan-tracker.jsx` | ✅ Complete — v1.1 |
-| 🏦 DebtTracker | `modules/debt-tracker.jsx` | 🔲 Next to build |
+| 💳 CardTracker | `modules/credit-card-tracker.jsx` | ✅ Complete — v3.1 |
+| 🏦 LoanTracker | `modules/loan-tracker.jsx` | ✅ Complete — v1.2 |
+| 🏦 DebtTracker | `modules/debt-tracker.jsx` | 🔨 In Progress — architecture approved |
 | 💰 Income Module | `modules/income-tracker.jsx` | 🔲 Planned |
 | 📊 Spending Module | `modules/spending-tracker.jsx` | 🔲 Planned |
 | 🏦 Savings Module | `modules/savings-tracker.jsx` | 🔲 Planned |
@@ -34,7 +34,7 @@ Violating these crashes the artifact with `returnReact is not defined`. No excep
 
 1. **Never `return<JSX>` — always `return (` or `return <` with a space**
 2. **Never define JSX-returning functions inside a component** — hoist ALL to top-level named functions
-3. **Never use `window.confirm()`** — use a custom `<ConfirmModal>` component
+3. **Never use `window.confirm()` or `window.alert()`** — use custom modal components
 4. **Never use streaming AI** — use `await res.json()` only, no streaming loops
 5. **All components must be top-level named functions** — no nested component definitions
 6. **No external chart libraries** — SVG only
@@ -94,8 +94,12 @@ cc_apikey            (shared) — Anthropic API key
 ### Per-module prefixes
 ```
 cc_   CardTracker     cc_cards_{id}, cc_logs_{id}, cc_strategy_answers_{id}, cc_ai_results_{id}
+                      cc_planner_extra_{id}, cc_planner_lumps_{id}, cc_planner_lump_mode_{id}, cc_planner_recalc_{id}
 lt_   LoanTracker     lt_loans_{id}, lt_logs_{id}, lt_ai_results_{id}
+                      lt_planner_extra_{id}, lt_planner_lumps_{id}, lt_planner_lump_mode_{id}, lt_planner_recalc_{id}
+                      lt_single_extra_{id}, lt_single_lumps_{id}, lt_single_lump_mode_{id}
 dt_   DebtTracker     dt_cards_{id}, dt_loans_{id}, dt_logs_{id}, dt_ai_results_{id}
+                      dt_planner_extra_{id}, dt_planner_lumps_{id}, dt_planner_lump_mode_{id}, dt_planner_recalc_{id}
 inc_  Income          inc_streams_{id}
 sp_   Spending        sp_budgets_{id}, sp_actuals_{id}
 sav_  Savings         sav_goals_{id}, sav_logs_{id}
@@ -244,7 +248,7 @@ export default function App() {
 
 ```
 ✗  return<JSX>              → always return (<JSX>) or return <JSX>
-✗  window.confirm()         → custom ConfirmModal component
+✗  window.confirm/alert()   → custom modal component
 ✗  streaming AI             → await res.json() only
 ✗  JSX function inside component → hoist to top-level
 ✗  external chart library   → SVG only
@@ -271,5 +275,5 @@ Run this checklist:
 
 ---
 
-*Last updated: March 2026 — CardTracker v3 + LoanTracker v1.1 complete*
+*Last updated: March 2026 — CardTracker v3.1 + LoanTracker v1.2 complete, DebtTracker architecture approved*
 *Full details: project-instruction.md | Visual spec: design-system.md*
