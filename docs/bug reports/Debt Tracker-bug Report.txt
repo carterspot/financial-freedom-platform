@@ -1,0 +1,82 @@
+Fresh session. Fixing modules/debt-tracker.jsx — DebtTracker v1.1 bug fixes.
+Read CLAUDE.md before writing any code.
+Do not touch any other module files.
+
+This is a targeted bug fix pass only. Do not refactor or restructure anything
+not listed below. Preserve all existing functionality.
+
+---
+
+BUG 1 — LUMP SUM ENGINE NOT WORKING
+The lump sum Priority Debt / Split Evenly allocation is not functioning.
+Fix the following:
+
+a) In computeUnifiedSchedule, when lump sums are applied:
+   - Priority mode: apply the full lump sum amount to the current target debt
+     (highest rate for avalanche, lowest balance for snowball) in the month it falls
+   - Split mode: divide the lump sum equally across all debts with remaining balance
+     in that month
+
+b) In the month-by-month schedule table, add a LUMP row marker:
+   - When a lump sum is applied in a given month, insert a visually distinct row
+     labeled "LUMP SUM — [date]" with the amount shown in the PAID column
+   - Style it with an amber/orange left border or background tint to stand out
+
+c) The PAID column value on lump sum rows must show: regularPayment + lumpAmount
+   - On non-lump rows, PAID shows the regular payment only
+
+d) Individual debt payment sub-lines in the payoff order list must reflect
+   the lump sum when it applies:
+   - Priority mode: target debt shows base + lump
+   - Split mode: each active debt shows base + (lump / activeDebtCount)
+
+---
+
+BUG 2 — MISSING TOTAL DEBT SUMMARY CARD
+Add a "Total Debt" card as the FIRST card in the portfolio summary bar
+(currently the bar shows: Monthly Payments | Est. Interest | Payoff Date).
+New order: Total Debt | Monthly Payments | Est. Interest | Payoff Date
+
+Also add a "Total Debt" stat to the Single Debt tab summary row
+(currently: Total Interest | Total Paid | Payoff Date | Months).
+New order: Total Debt | Total Interest | Total Paid | Payoff Date | Months
+Where "Total Debt" = the current balance of the selected debt.
+
+---
+
+BUG 3 — SINGLE DEBT TAB MISSING CSV EXPORT
+The Single Debt tab has a balance chart and amortization table but no export button.
+Add a "↓ CSV" button in the top-right of the Amortization Schedule panel.
+CSV columns: Date, Payment, Principal, Interest, Balance
+Filename: {debtName}-amortization.csv
+
+---
+
+BUG 4 — AI OUTPUTS MISSING COPY/SAVE
+Two places need copy-to-clipboard + download-.txt buttons added:
+
+a) Schedule tab — AI Schedule Analysis result panel:
+   After the AI response renders, show two buttons below the text:
+   [📋 Copy] [⬇ Download .txt]
+   Download filename: debt-schedule-analysis.txt
+
+b) What-If tab — after each AI response in the chat:
+   Add a small [📋 Copy] icon button on the right side of each AI message bubble.
+   (No download needed for individual chat messages — copy only.)
+
+Both copy actions use navigator.clipboard.writeText().
+Both should show a brief "Copied!" confirmation that fades after 1.5 seconds.
+
+---
+
+CRITICAL JSX RULES — verify before finishing:
+1. Never return<JSX> — always return ( or return < with a space
+2. Never define JSX-returning functions inside a component — hoist ALL to top level
+3. Never window.confirm() or window.alert() — use custom modal components
+4. Never stream AI — await res.json() only
+5. All components are top-level named functions
+6. No external chart libraries — SVG only
+7. No <form> tags — onClick/onChange only
+8. Always use probe/fallback storage pattern
+
+OUTPUT: modules/debt-tracker.jsx only. No other files modified.
