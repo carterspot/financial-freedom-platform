@@ -63,7 +63,7 @@ function amortizeLoan(loan,extraMonthly=0,lumpSums=[]){
   return {months:rows,totalInterest,totalPaid:balance+totalInterest,totalMonths:month};
 }
 function computeMultiSchedule(loans,method,opts={}){
-  const {extraBudget=0,lumpSums=[]}=opts;
+  const {extraBudget=0,lumpSums=[],lumpMode="priority",dynamicMins=false}=opts;
   const active=loans.map(l=>({
     id:l.id,name:l.name,color:l.color,type:l.type,
     balance:parseFloat(l.currentBalance)||0,
@@ -81,15 +81,25 @@ function computeMultiSchedule(loans,method,opts={}){
     const stillActive=sorted.filter(l=>balances[l.id]>0.005);
     if(!stillActive.length) break;
     month++;
+    let monthLump=0;
+    const rLumpPmts={};
     lumpSums.filter(ls=>ls.month===month).forEach(ls=>{
-      let rem=ls.amount;
-      for(const l of sorted){if(balances[l.id]<=0) continue;const a=Math.min(rem,balances[l.id]);balances[l.id]-=a;rem-=a;if(rem<=0) break;}
+      monthLump+=ls.amount;
+      if(lumpMode==="split"){
+        const activeCds=sorted.filter(l=>balances[l.id]>0);
+        const total=activeCds.reduce((s,l)=>s+balances[l.id],0);
+        if(total>0) activeCds.forEach(l=>{ const share=ls.amount*(balances[l.id]/total); balances[l.id]=Math.max(0,balances[l.id]-share); rLumpPmts[l.id]=(rLumpPmts[l.id]||0)+share; });
+      } else {
+        let rem=ls.amount;
+        for(const l of sorted){if(balances[l.id]<=0) continue;const a=Math.min(rem,balances[l.id]);balances[l.id]-=a;rLumpPmts[l.id]=(rLumpPmts[l.id]||0)+a;rem-=a;if(rem<=0) break;}
+      }
     });
     let rem=base;
     const rPmts={},rInt={},rBal={};
     stillActive.forEach(l=>{
       const int=balances[l.id]*(l.rate/100/12);
-      const minPmt=Math.min(l.payment,balances[l.id]+int);
+      const dynMin=dynamicMins?Math.max(int+balances[l.id]*0.01,l.payment*0.1):l.payment;
+      const minPmt=Math.min(dynMin,balances[l.id]+int);
       balances[l.id]=Math.max(0,balances[l.id]+int-minPmt);
       rInt[l.id]=int;rPmts[l.id]=minPmt;intTotals[l.id]+=int;rem-=minPmt;
     });
@@ -105,7 +115,7 @@ function computeMultiSchedule(loans,method,opts={}){
         payoffs.push({id:l.id,name:l.name,color:l.color,type:l.type,month,date:addMo(new Date(),month)});
       }
     });
-    rows.push({month,payments:{...rPmts},interest:{...rInt},balances:{...rBal}});
+    rows.push({month,payments:{...rPmts},interest:{...rInt},balances:{...rBal},lumpAmount:monthLump,lumpPayments:{...rLumpPmts}});
   }
   const totalInterest=Object.values(intTotals).reduce((s,v)=>s+v,0);
   return {months:rows,loanPayoffs:payoffs,totalInterest,totalPaid:active.reduce((s,l)=>s+l.balance,0)+totalInterest,totalMonths:month,loans:active,totalBudget:base};
@@ -1035,6 +1045,22 @@ function ProgressTab({loans,logsKey,darkMode}){
 }
 
 // ─── Payoff Planner Modal ──────────────────────────────────────────────────────
+// ─── Info Modal ───────────────────────────────────────────────────────────────
+function InfoModal({title,body,onClose,darkMode}){
+  const t=useTheme(darkMode);
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:t.panelBg,border:"1px solid #6366f155",borderRadius:16,maxWidth:480,width:"100%",boxShadow:"0 16px 60px rgba(0,0,0,.5)",overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontWeight:800,fontSize:14,color:"#fff"}}>{title}</div>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",borderRadius:8,padding:"5px 11px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14}}>✕</button>
+        </div>
+        <div style={{padding:"18px 20px",fontSize:13,color:t.tx1,lineHeight:1.65,whiteSpace:"pre-wrap"}}>{body}</div>
+      </div>
+    </div>
+  );
+}
+
 function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,onClose}){
   const t=useTheme(darkMode);
   const {isMobile}=useBreakpoint();
@@ -1053,18 +1079,38 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
   const [singleExtra,setSingleExtra]=useState(0);
   const [singleLumps,setSingleLumps]=useState([]);
   const [singleLumpForm,setSingleLumpForm]=useState({month:"",amount:""});
+  const [dynamicMins,setDynamicMins]=useState(false);
+  const [lumpMode,setLumpMode]=useState("priority");
+  const [extraSaved,setExtraSaved]=useState(false);
+  const [singleLumpMode,setSingleLumpMode]=useState("priority");
+  const [singleExtraSaved,setSingleExtraSaved]=useState(false);
+  const [showRecalcInfo,setShowRecalcInfo]=useState(false);
   const aiRef=useRef(null);
   const resultKey=`lt_ai_results_${profileId}`;
+  const plannerExtraKey=`lt_planner_extra_${profileId}`;
+  const plannerLumpsKey=`lt_planner_lumps_${profileId}`;
+  const plannerLumpModeKey=`lt_planner_lump_mode_${profileId}`;
+  const plannerRecalcKey=`lt_planner_recalc_${profileId}`;
+  const singleExtraKey=`lt_single_extra_${profileId}`;
+  const singleLumpsKey=`lt_single_lumps_${profileId}`;
+  const singleLumpModeKey=`lt_single_lump_mode_${profileId}`;
 
   useEffect(()=>{
     storeGet(resultKey,true).then(saved=>{
       if(saved?.analysis){setAiText(saved.analysis);setAiSavedAt(saved.savedAt);setAiGenerated(true);}
       if(focusLoan){setSingleLoan(focusLoan);setActiveTab("single");}
     });
+    storeGet(plannerExtraKey,true).then(v=>{ if(v!=null) setExtraBudget(parseFloat(v)||0); });
+    storeGet(plannerLumpsKey,true).then(v=>{ if(Array.isArray(v)) setLumpSums(v); });
+    storeGet(plannerLumpModeKey,true).then(v=>{ if(v) setLumpMode(v); });
+    storeGet(plannerRecalcKey,true).then(v=>{ if(v!=null) setDynamicMins(!!v); });
+    storeGet(singleExtraKey,true).then(v=>{ if(v!=null) setSingleExtra(parseFloat(v)||0); });
+    storeGet(singleLumpsKey,true).then(v=>{ if(Array.isArray(v)) setSingleLumps(v); });
+    storeGet(singleLumpModeKey,true).then(v=>{ if(v) setSingleLumpMode(v); });
   },[profileId]);
 
   const validLoans=loans.filter(l=>(parseFloat(l.currentBalance)||0)>0&&(parseFloat(l.monthlyPayment)||0)>0);
-  const opts={extraBudget,lumpSums};
+  const opts={extraBudget,lumpSums,lumpMode,dynamicMins};
   const avalanche=computeMultiSchedule(validLoans,"avalanche",opts);
   const snowball=computeMultiSchedule(validLoans,"snowball",opts);
   const schedule=method==="avalanche"?avalanche:snowball;
@@ -1074,9 +1120,15 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
   const singleSchedule=liveSingleLoan?amortizeLoan(liveSingleLoan,singleExtra,singleLumps):null;
   const singleBaseSchedule=liveSingleLoan?amortizeLoan(liveSingleLoan,0,[]):null;
   const singleHasAccel=(singleExtra>0||singleLumps.length>0)&&singleSchedule&&singleBaseSchedule;
-  function addSingleLump(){if(!singleLumpForm.month||!singleLumpForm.amount) return;setSingleLumps(l=>[...l,{id:generateId(),month:parseInt(singleLumpForm.month),amount:parseFloat(singleLumpForm.amount)}]);setSingleLumpForm({month:"",amount:""});}
+  function addLump(){if(!lumpForm.month||!lumpForm.amount) return;const updated=[...lumpSums,{id:generateId(),month:parseInt(lumpForm.month),amount:parseFloat(lumpForm.amount)}];setLumpSums(updated);storeSet(plannerLumpsKey,updated,true);setLumpForm({month:"",amount:""});}
+  function removeLump(id){const updated=lumpSums.filter(x=>x.id!==id);setLumpSums(updated);storeSet(plannerLumpsKey,updated,true);}
+  function saveExtra(){storeSet(plannerExtraKey,extraBudget,true);setExtraSaved(true);setTimeout(()=>setExtraSaved(false),2000);}
+  function changeLumpMode(mode){setLumpMode(mode);storeSet(plannerLumpModeKey,mode,true);}
 
-  function addLump(){if(!lumpForm.month||!lumpForm.amount) return;setLumpSums(l=>[...l,{id:generateId(),month:parseInt(lumpForm.month),amount:parseFloat(lumpForm.amount)}]);setLumpForm({month:"",amount:""});}
+  function addSingleLump(){if(!singleLumpForm.month||!singleLumpForm.amount) return;const updated=[...singleLumps,{id:generateId(),month:parseInt(singleLumpForm.month),amount:parseFloat(singleLumpForm.amount)}];setSingleLumps(updated);storeSet(singleLumpsKey,updated,true);setSingleLumpForm({month:"",amount:""});}
+  function removeSingleLump(id){const updated=singleLumps.filter(x=>x.id!==id);setSingleLumps(updated);storeSet(singleLumpsKey,updated,true);}
+  function saveSingleExtra(){storeSet(singleExtraKey,singleExtra,true);setSingleExtraSaved(true);setTimeout(()=>setSingleExtraSaved(false),2000);}
+  function changeSingleLumpMode(mode){setSingleLumpMode(mode);storeSet(singleLumpModeKey,mode,true);}
 
   async function generateAI(){
     setAiLoading(true);setAiText("");setAiGenerated(true);
@@ -1129,14 +1181,31 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
             ))}
           </div>
           <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Extra/mo:</span><input type="number" value={extraBudget||""} onChange={e=>setExtraBudget(parseFloat(e.target.value)||0)} placeholder="$0" style={{...iSm,width:80}}/></div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Extra/mo:</span>
+              <input type="number" value={extraBudget||""} onChange={e=>setExtraBudget(parseFloat(e.target.value)||0)} placeholder="$0" style={{...iSm,width:80}}/>
+              <button onClick={saveExtra} style={{background:extraSaved?"#10b981":"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"5px 10px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700,transition:"background .2s"}}>{extraSaved?"Saved ✓":"Apply"}</button>
+            </div>
             <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
               <span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Lump sum at month:</span>
               <input type="number" value={lumpForm.month} onChange={e=>setLumpForm(f=>({...f,month:e.target.value}))} placeholder="Mo" style={{...iSm,width:50}}/>
               <input type="number" value={lumpForm.amount} onChange={e=>setLumpForm(f=>({...f,amount:e.target.value}))} placeholder="$" style={{...iSm,width:70}}/>
               <button onClick={addLump} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"5px 10px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700}}>+ Add</button>
-              {lumpSums.map(ls=><span key={ls.id} style={{background:"rgba(255,255,255,.15)",borderRadius:6,padding:"3px 8px",fontSize:10,color:"#fff",display:"flex",alignItems:"center",gap:4}}>Mo{ls.month}: {fmt$(ls.amount)}<button onClick={()=>setLumpSums(l=>l.filter(x=>x.id!==ls.id))} style={{background:"none",border:"none",color:"rgba(255,255,255,.6)",cursor:"pointer",fontSize:12,padding:0}}>×</button></span>)}
+              {lumpSums.length>0&&<div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+                {lumpSums.map(ls=><span key={ls.id} style={{background:"rgba(255,255,255,.15)",borderRadius:6,padding:"3px 8px",fontSize:10,color:"#fff",display:"flex",alignItems:"center",gap:4}}>Mo{ls.month}: {fmt$(ls.amount)}<button onClick={()=>removeLump(ls.id)} style={{background:"none",border:"none",color:"rgba(255,255,255,.6)",cursor:"pointer",fontSize:12,padding:0}}>×</button></span>)}
+                <div style={{display:"flex",gap:3,alignItems:"center",marginLeft:4}}>
+                  <span style={{fontSize:10,color:"rgba(255,255,255,.6)"}}>Apply:</span>
+                  {[{id:"priority",label:"Priority"},{id:"split",label:"Split"}].map(m=>(
+                    <button key={m.id} onClick={()=>changeLumpMode(m.id)} style={{background:lumpMode===m.id?"rgba(99,102,241,.5)":"rgba(255,255,255,.1)",border:`1px solid ${lumpMode===m.id?"#6366f1":"rgba(255,255,255,.2)"}`,borderRadius:5,padding:"2px 7px",color:"#fff",cursor:"pointer",fontSize:10,fontWeight:lumpMode===m.id?700:400}}>{m.label}</button>
+                  ))}
+                </div>
+              </div>}
             </div>
+            <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+              <input type="checkbox" checked={dynamicMins} onChange={e=>{ const v=e.target.checked; setDynamicMins(v); storeSet(plannerRecalcKey,v,true); }} style={{accentColor:"#6366f1"}}/>
+              <span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Recalculate minimums monthly</span>
+              <button onClick={e=>{ e.preventDefault(); setShowRecalcInfo(true); }} style={{background:"none",border:"none",color:"rgba(255,255,255,.5)",cursor:"pointer",fontSize:13,padding:0,lineHeight:1,display:"flex",alignItems:"center"}} title="Learn more">ℹ️</button>
+            </label>
           </div>
         </div>
         {/* Tabs */}
@@ -1222,8 +1291,8 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
                       return(<tr key={row.month} style={{background:isPay?"#10b98110":hasLump?"#6366f108":idx%2===0?"transparent":t.surf+"66",borderBottom:`1px solid ${t.border}`}}>
                         <td style={{padding:"7px 11px",color:t.tx1,fontFamily:"monospace",fontWeight:isPay?700:400}}>{row.month}{isPay&&<span style={{marginLeft:5,fontSize:9,background:"#10b981",color:"#fff",borderRadius:4,padding:"1px 4px"}}>PAYOFF</span>}{hasLump&&<span style={{marginLeft:3,fontSize:9,background:"#6366f1",color:"#fff",borderRadius:4,padding:"1px 4px"}}>LUMP</span>}</td>
                         <td style={{padding:"7px 11px",color:t.tx3,whiteSpace:"nowrap"}}>{fmtMo(addMo(new Date(),row.month))}</td>
-                        {orderedLoans.map(l=>{const pHere=payHere.find(p=>p.id===l.id);return(<td key={l.id} style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",background:pHere?l.color+"22":"transparent"}}>{row.balances[l.id]!==undefined?<div><div style={{color:pHere?"#10b981":t.tx1,fontSize:10,fontWeight:pHere?700:400}}>{pHere?"✓ PAID":fmt$(row.balances[l.id])}</div><div style={{color:t.tx3,fontSize:9}}>pmt {fmt$(row.payments[l.id]||0)}</div></div>:<span style={{color:t.tx3}}>—</span>}</td>);})}
-                        <td style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",color:t.tx1,fontWeight:600}}>{fmt$(tP)}</td>
+                        {orderedLoans.map(l=>{const pHere=payHere.find(p=>p.id===l.id);return(<td key={l.id} style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",background:pHere?l.color+"22":"transparent"}}>{row.balances[l.id]!==undefined?<div><div style={{color:pHere?"#10b981":t.tx1,fontSize:10,fontWeight:pHere?700:400}}>{pHere?"✓ PAID":fmt$(row.balances[l.id])}</div><div style={{color:t.tx3,fontSize:9}}>pmt {fmt$((row.payments[l.id]||0)+(row.lumpPayments?.[l.id]||0))}</div></div>:<span style={{color:t.tx3}}>—</span>}</td>);})}
+                        <td style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",color:t.tx1,fontWeight:600}}>{fmt$(tP+(row.lumpAmount||0))}</td>
                         <td style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",color:"#f97316"}}>{fmt$(tI)}</td>
                       </tr>);
                     })}
@@ -1279,7 +1348,10 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
                     <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"flex-end",marginBottom:singleLumps.length>0?12:0}}>
                       <div style={{flex:"1 1 140px",minWidth:120}}>
                         <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Extra / Month ($)</div>
-                        <input type="number" value={singleExtra||""} onChange={e=>setSingleExtra(parseFloat(e.target.value)||0)} placeholder="e.g. 200" min="0" style={{width:"100%",background:t.panelBg,border:`1px solid ${singleExtra>0?"#6366f1":t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
+                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                          <input type="number" value={singleExtra||""} onChange={e=>setSingleExtra(parseFloat(e.target.value)||0)} placeholder="e.g. 200" min="0" style={{flex:1,background:t.panelBg,border:`1px solid ${singleExtra>0?"#6366f1":t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
+                          <button onClick={saveSingleExtra} style={{background:singleExtraSaved?"#10b981":"#6366f1",border:"none",borderRadius:8,padding:"8px 12px",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0,transition:"background .2s",whiteSpace:"nowrap"}}>{singleExtraSaved?"Saved ✓":"Apply"}</button>
+                        </div>
                       </div>
                       <div style={{flex:"1 1 80px",minWidth:70}}>
                         <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Lump Sum Month</div>
@@ -1293,13 +1365,19 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
                       {(singleExtra>0||singleLumps.length>0)&&<button onClick={()=>{setSingleExtra(0);setSingleLumps([]);}} style={{background:"none",border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx3,cursor:"pointer",fontSize:12,flexShrink:0}}>✕ Clear</button>}
                     </div>
                     {singleLumps.length>0&&(
-                      <div style={{display:"flex",gap:6,flexWrap:"wrap",paddingTop:8,borderTop:`1px solid ${t.border}`}}>
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap",paddingTop:8,borderTop:`1px solid ${t.border}`,alignItems:"center"}}>
                         {singleLumps.map(ls=>(
                           <span key={ls.id} style={{background:"#6366f118",border:"1px solid #6366f133",borderRadius:6,padding:"3px 10px",fontSize:11,color:"#6366f1",display:"flex",alignItems:"center",gap:6,fontWeight:600}}>
                             Mo {ls.month}: {fmt$(ls.amount)}
-                            <button onClick={()=>setSingleLumps(l=>l.filter(x=>x.id!==ls.id))} style={{background:"none",border:"none",color:"#6366f1",cursor:"pointer",fontSize:13,padding:0,lineHeight:1}}>×</button>
+                            <button onClick={()=>removeSingleLump(ls.id)} style={{background:"none",border:"none",color:"#6366f1",cursor:"pointer",fontSize:13,padding:0,lineHeight:1}}>×</button>
                           </span>
                         ))}
+                        <div style={{display:"flex",gap:4,alignItems:"center",marginLeft:4}}>
+                          <span style={{fontSize:11,color:t.tx3}}>Apply:</span>
+                          {[{id:"priority",label:"Priority"},{id:"split",label:"Split"}].map(m=>(
+                            <button key={m.id} onClick={()=>changeSingleLumpMode(m.id)} style={{background:singleLumpMode===m.id?"#6366f1":"transparent",border:`1px solid ${singleLumpMode===m.id?"#6366f1":t.border}`,borderRadius:6,padding:"3px 9px",color:singleLumpMode===m.id?"#fff":t.tx2,cursor:"pointer",fontSize:11,fontWeight:singleLumpMode===m.id?700:400}}>{m.label}</button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1358,7 +1436,7 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
                                   {hasLump&&<span style={{marginLeft:4,fontSize:9,background:"#6366f1",color:"#fff",borderRadius:4,padding:"1px 4px",fontWeight:700}}>LUMP</span>}
                                 </td>
                                 <td style={{padding:"6px 10px",color:t.tx3,whiteSpace:"nowrap",textAlign:"right"}}>{fmtMo(addMo(new Date(),row.month))}</td>
-                                <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:t.tx1,fontWeight:600}}>{fmt$(row.payment)}{hasLump&&<div style={{fontSize:9,color:"#6366f1",fontWeight:700}}>+{fmt$(row.lump)} lump</div>}</td>
+                                <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:t.tx1,fontWeight:600}}>{fmt$(row.payment+(row.lump||0))}{hasLump&&<div style={{fontSize:9,color:"#6366f1",fontWeight:700}}>incl. {fmt$(row.lump)} lump</div>}</td>
                                 <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:"#10b981"}}>{fmt$(row.principal)}</td>
                                 <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:"#f97316"}}>{fmt$(row.interest)}</td>
                                 <td style={{padding:"6px 10px",textAlign:"right",fontFamily:"monospace",color:row.balance<1?"#10b981":t.tx1,fontWeight:row.balance<1?700:400}}>{row.balance<0.01?"✓ PAID":fmt$(row.balance)}</td>
@@ -1394,6 +1472,7 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
         </div>
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      {showRecalcInfo&&<InfoModal darkMode={darkMode} onClose={()=>setShowRecalcInfo(false)} title="Recalculate Minimums Monthly" body={`As you pay down balances each month, your minimum payment technically gets smaller (minimum = interest + 1% of remaining balance).\n\n✅ Checked: The schedule recalculates a new, lower minimum each month as balances drop. More realistic, but your payoff takes longer because you're paying less over time.\n\n☐ Unchecked: Keeps your minimum payment fixed at the month 1 amount. You effectively pay a little extra each month as balances drop, paying off debt faster.\n\n💡 Most financial advisors recommend leaving this unchecked — keep paying the original amount even as minimums drop.`}/>}
     </div>
   );
 }
