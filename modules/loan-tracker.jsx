@@ -1345,24 +1345,28 @@ function PayoffPlannerModal({loans,logsKey,darkMode,apiKey,profileId,focusLoan,o
                   {/* Accelerator controls */}
                   <div style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:14,padding:"14px 16px"}}>
                     <div style={{fontSize:11,fontWeight:700,color:t.tx2,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>⚡ Payoff Accelerator</div>
-                    <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"flex-end",marginBottom:singleLumps.length>0?12:0}}>
-                      <div style={{flex:"1 1 140px",minWidth:120}}>
-                        <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Extra / Month ($)</div>
-                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                          <input type="number" value={singleExtra||""} onChange={e=>setSingleExtra(parseFloat(e.target.value)||0)} placeholder="e.g. 200" min="0" style={{flex:1,background:t.panelBg,border:`1px solid ${singleExtra>0?"#6366f1":t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
-                          <button onClick={saveSingleExtra} style={{background:singleExtraSaved?"#10b981":"#6366f1",border:"none",borderRadius:8,padding:"8px 12px",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0,transition:"background .2s",whiteSpace:"nowrap"}}>{singleExtraSaved?"Saved ✓":"Apply"}</button>
+                    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:singleLumps.length>0?12:0}}>
+                      {/* Row 1: Extra/Month + Apply — always full width, never clipped */}
+                      <div style={{display:"flex",gap:6,alignItems:"flex-end"}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Extra / Month ($)</div>
+                          <input type="number" value={singleExtra||""} onChange={e=>setSingleExtra(parseFloat(e.target.value)||0)} placeholder="e.g. 200" min="0" style={{width:"100%",background:t.panelBg,border:`1px solid ${singleExtra>0?"#6366f1":t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
                         </div>
+                        <button onClick={saveSingleExtra} style={{background:singleExtraSaved?"#10b981":"#6366f1",border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0,transition:"background .2s",whiteSpace:"nowrap",alignSelf:"flex-end"}}>{singleExtraSaved?"Saved ✓":"Apply"}</button>
                       </div>
-                      <div style={{flex:"1 1 80px",minWidth:70}}>
-                        <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Lump Sum Month</div>
-                        <input type="number" value={singleLumpForm.month} onChange={e=>setSingleLumpForm(f=>({...f,month:e.target.value}))} placeholder="Mo #" min="1" style={{width:"100%",background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
+                      {/* Row 2: Lump Sum fields + Add + Clear — wrap on narrow screens */}
+                      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>
+                        <div style={{flex:"1 1 80px",minWidth:70}}>
+                          <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Lump Sum Month</div>
+                          <input type="number" value={singleLumpForm.month} onChange={e=>setSingleLumpForm(f=>({...f,month:e.target.value}))} placeholder="Mo #" min="1" style={{width:"100%",background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
+                        </div>
+                        <div style={{flex:"1 1 100px",minWidth:90}}>
+                          <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Lump Sum Amount ($)</div>
+                          <input type="number" value={singleLumpForm.amount} onChange={e=>setSingleLumpForm(f=>({...f,amount:e.target.value}))} placeholder="e.g. 5000" min="0" style={{width:"100%",background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
+                        </div>
+                        <button onClick={addSingleLump} disabled={!singleLumpForm.month||!singleLumpForm.amount} style={{background:singleLumpForm.month&&singleLumpForm.amount?"#6366f1":t.border,border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",cursor:singleLumpForm.month&&singleLumpForm.amount?"pointer":"default",fontWeight:700,fontSize:12,flexShrink:0,whiteSpace:"nowrap"}}>+ Add</button>
+                        {(singleExtra>0||singleLumps.length>0)&&<button onClick={()=>{setSingleExtra(0);setSingleLumps([]);}} style={{background:"none",border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx3,cursor:"pointer",fontSize:12,flexShrink:0}}>✕ Clear</button>}
                       </div>
-                      <div style={{flex:"1 1 100px",minWidth:90}}>
-                        <div style={{fontSize:11,color:t.tx2,marginBottom:4,fontWeight:600}}>Lump Sum Amount ($)</div>
-                        <input type="number" value={singleLumpForm.amount} onChange={e=>setSingleLumpForm(f=>({...f,amount:e.target.value}))} placeholder="e.g. 5000" min="0" style={{width:"100%",background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
-                      </div>
-                      <button onClick={addSingleLump} disabled={!singleLumpForm.month||!singleLumpForm.amount} style={{background:singleLumpForm.month&&singleLumpForm.amount?"#6366f1":t.border,border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",cursor:singleLumpForm.month&&singleLumpForm.amount?"pointer":"default",fontWeight:700,fontSize:12,flexShrink:0,whiteSpace:"nowrap"}}>+ Add</button>
-                      {(singleExtra>0||singleLumps.length>0)&&<button onClick={()=>{setSingleExtra(0);setSingleLumps([]);}} style={{background:"none",border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx3,cursor:"pointer",fontSize:12,flexShrink:0}}>✕ Clear</button>}
                     </div>
                     {singleLumps.length>0&&(
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",paddingTop:8,borderTop:`1px solid ${t.border}`,alignItems:"center"}}>
