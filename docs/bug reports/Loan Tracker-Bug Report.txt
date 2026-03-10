@@ -1,46 +1,89 @@
-## LoanTracker v1.0 — Bug Report
+Fix five bugs and add one enhancement in modules/loan-tracker.jsx. 
+These bugs exist in both the Schedule tab (multi-loan planner) and 
+the Single Loan tab. Fix both independently unless noted otherwise. 
+Do not change any other functionality.
 
-### 🔴 Critical
+BUG 1 — Extra/mo and Lump Sum reset on close:
+The extraMonthly and lumpSums values are lost when the planner modal 
+closes. Fix: persist them to storage on change and reload when the 
+planner opens.
 
-**1. Profile ID doesn't use PIN-based stable format**
-Line 221: New profiles get `id: generateId()` — a random ID. The spec requires `id: "pin_" + pin.toLowerCase().replace(/\s+/g, "_")`. Cross-module consequences: if a user creates a profile in LoanTracker, then opens CardTracker and hits "Recover by PIN," the stable `pin_smithfamily` key won't match the random ID stored in `cc_profiles`. Recovery breaks.
+Storage keys for Schedule tab:
+  lt_planner_extra_{profileId}   (shared)
+  lt_planner_lumps_{profileId}   (shared)
+  
+Storage keys for Single Loan tab:
+  lt_single_extra_{profileId}    (shared)
+  lt_single_lumps_{profileId}    (shared)
 
----
+BUG 2 — Extra/mo has no save mechanism:
+Add an Apply button next to the Extra/mo field in both tabs. On click, 
+save the value to the appropriate storage key and show a brief 
+"Saved ✓" confirmation that fades after 2 seconds. Each field should 
+pre-populate from storage when the planner opens.
 
-### 🟡 Medium
+BUG 3 — Lump sum amount not showing in PAID column + distribution:
+In the month-by-month table in both tabs, rows marked LUMP are showing 
+the regular payment amount instead of regular + lump. Fix the PAID 
+column to show regularPayment + lumpAmount for that month.
 
-**2. Charts tab applies lump sums to every individual loan chart**
-Line 1166: `validLoans.map(l => <BalanceChart schedule={amortizeLoan(l, extraBudget, lumpSums)} .../>)` — a $5,000 lump sum is independently subtracted from *each* loan's balance chart. A user with 3 loans sees each one drop by $5k. In reality a lump sum is applied once to the priority loan.
+For lump sum distribution, add a toggle below the lump sum fields 
+in both tabs:
+  "Apply lump sum to: [● Priority loan] [○ Split evenly]"
+Default to Priority loan (financially optimal for both avalanche and 
+snowball). Save the preference to storage:
+  Schedule tab:    lt_planner_lump_mode_{profileId}  (shared)
+  Single Loan tab: lt_single_lump_mode_{profileId}   (shared)
+Update the schedule math in both tabs to respect their toggle.
 
-**3. `singleLoan` holds stale loan snapshot**
-Line 927: `singleSchedule = amortizeLoan(singleLoan, ...)` uses the loan object snapshotted at time of selection. If the user edits a loan (balance, rate, payment) and reopens the planner, the Single Loan tab shows old data until they click the loan button again. Fix: derive live data with `validLoans.find(l => l.id === singleLoan?.id)`.
+BUG 4 — Lump sum not reflected in individual loan PMT display:
+In the month-by-month table in both tabs, the pmt sub-line shown under 
+each loan's balance does not include the lump sum amount for LUMP rows.
 
-**4. "Interest Saved" label is hardcoded to Avalanche**
-Line 1020: `{l: "Interest Saved (Avalanche)", v: fmt$(Math.abs(...))}` — always says "Avalanche" even when snowball saves more interest or they're equal.
+Fix the pmt display so it reflects the full amount applied to that loan:
+- Priority mode: loan #1 pmt = base payment + extra + full lump amount
+- Split mode: each loan pmt = base payment + (lump / number of active loans)
 
----
+The PAID column total should already be correct — only the individual 
+loan pmt sub-line needs fixing. If the PAID column total is also wrong, 
+fix that too.
 
-### 🟢 Minor / Polish
+BUG 5 — Recalculate minimums monthly checkbox does not persist:
+Save the recalculateMinimums checkbox state to storage key 
+lt_planner_recalc_{profileId} (shared) on change. 
+Reload it when the planner opens. Default to false if not set.
+This applies to the Schedule tab only — Single Loan tab uses fixed 
+amortization math and does not need this checkbox.
 
-**5. Mobile backup button is hidden with no alternative path**
-Line 1353: `{!isMobile && <button onClick={() => setShowBackup(true)}>📦</button>}` — users on mobile have no way to export their loans.
+ENHANCEMENT — Add info tooltip to Recalculate minimums monthly:
+Add a small ℹ️ icon button immediately after the "Recalculate minimums 
+monthly" checkbox label in the Schedule tab. On click, show a custom 
+modal (never window.alert()) with this exact content:
 
-**6. Quick Pay doesn't auto-log to Progress tab**
-`handleQuickPay` (line 1313) updates the balance but doesn't write an entry to `lt_logs_{profileId}`. Users must manually duplicate the payment in the Progress tab to maintain log accuracy.
+Title: "Recalculate Minimums Monthly"
 
-**7. Loans excluded from planner with no explanation**
-Line 920: `validLoans` silently filters out any loan missing a payment amount. Users with incomplete loans don't know why those loans don't appear in the planner, refinance tab, or what-if chat.
+Body:
+"As you pay down balances each month, your minimum payment technically 
+gets smaller (minimum = interest + 1% of remaining balance).
 
----
+✅ Checked: The schedule recalculates a new, lower minimum each month 
+as balances drop. More realistic, but your payoff takes longer because 
+you're paying less over time.
 
-### v1.1 Scope Recommendation
+☐ Unchecked: Keeps your minimum payment fixed at the month 1 amount. 
+You effectively pay a little extra each month as balances drop, paying 
+off debt faster.
 
-The most impactful things to fix, roughly in priority order:
+💡 Most financial advisors recommend leaving this unchecked — keep 
+paying the original amount even as minimums drop."
 
-1. **Profile PIN ID fix** (critical, 2-line change)
-2. **Stale singleLoan fix** (medium, clean it up with a derived value)
-3. **Charts lump sum fix** (medium, pass `[]` for lump sums in per-loan charts)
-4. **Interest Saved label** (minor, dynamic label)
-5. **Mobile backup** (minor, add backup button to profile modal on mobile)
-6. **Auto-log Quick Pay → Progress** (nice UX, links the two flows together)
-7. **"Excluded loans" warning** in planner header
+Style the modal to match the existing design system (dark panel, 
+indigo border, rounded corners, same typography). Use a new top-level 
+component called InfoModal — never window.alert().
+
+After fixing, run this checklist before delivering the file:
+- No return< without a space (search for return<)
+- No JSX-returning functions defined inside another component
+- No window.confirm() or window.alert() anywhere
+- No streaming AI calls
+- All components are top-level named functions

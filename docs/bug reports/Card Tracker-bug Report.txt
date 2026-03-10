@@ -1,17 +1,20 @@
-Fix three bugs in the Payoff Strategy Planner in 
-modules/credit-card-tracker.jsx. Do not change any other functionality.
+Fix five bugs and add one enhancement in modules/credit-card-tracker.jsx. 
+Do not change any other functionality.
 
 BUG 1 — Extra/mo and Lump Sum reset on close:
 The extraMonthly and lumpSums values are lost when the planner modal 
-closes. Fix: persist them to storage on change using keys 
-cc_planner_extra_{profileId} and cc_planner_lumps_{profileId} (shared). 
-Reload them when the planner opens.
+closes. Fix: persist them to storage on change and reload when the 
+planner opens.
+
+Storage keys:
+  cc_planner_extra_{profileId}   (shared)
+  cc_planner_lumps_{profileId}   (shared)
 
 BUG 2 — Extra/mo has no save mechanism:
-Add an Apply button next to the Extra/mo field that saves the value to 
-cc_planner_extra_{profileId} and shows a brief "Saved ✓" confirmation 
-that fades after 2 seconds. The field should pre-populate from storage 
-when the planner opens.
+Add an Apply button next to the Extra/mo field. On click, save the 
+value to cc_planner_extra_{profileId} and show a brief "Saved ✓" 
+confirmation that fades after 2 seconds. The field should pre-populate 
+from storage when the planner opens.
 
 BUG 3 — Lump sum amount not showing in PAID column + distribution:
 In the month-by-month table, rows marked LUMP are showing the regular 
@@ -25,9 +28,51 @@ snowball). Save the preference to storage as
 cc_planner_lump_mode_{profileId} (shared).
 Update the schedule math to respect the toggle.
 
+BUG 4 — Lump sum not reflected in individual card PMT display:
+In the month-by-month table, the pmt sub-line shown under each card's 
+balance does not include the lump sum amount for LUMP rows.
+
+Fix the pmt display so it reflects the full amount applied to that card:
+- Priority mode: card #1 pmt = base payment + extra + full lump amount
+- Split mode: each card pmt = base payment + (lump / number of active cards)
+
+The PAID column total is already correct — only the individual card pmt 
+sub-line needs fixing.
+
+BUG 5 — Recalculate minimums monthly checkbox does not persist:
+Save the recalculateMinimums checkbox state to storage key 
+cc_planner_recalc_{profileId} (shared) on change. 
+Reload it when the planner opens. Default to false if not set.
+
+ENHANCEMENT — Add info tooltip to Recalculate minimums monthly:
+Add a small ℹ️ icon button immediately after the "Recalculate minimums 
+monthly" checkbox label. On click, show a custom modal or inline 
+tooltip (never window.alert()) with this exact content:
+
+Title: "Recalculate Minimums Monthly"
+
+Body:
+"As you pay down balances each month, your minimum payment technically 
+gets smaller (minimum = interest + 1% of remaining balance).
+
+✅ Checked: The schedule recalculates a new, lower minimum each month 
+as balances drop. More realistic, but your payoff takes longer because 
+you're paying less over time.
+
+☐ Unchecked: Keeps your minimum payment fixed at the month 1 amount. 
+You effectively pay a little extra each month as balances drop, paying 
+off debt faster.
+
+💡 Most financial advisors recommend leaving this unchecked — keep 
+paying the original amount even as minimums drop."
+
+Style the modal to match the existing design system (dark panel, 
+indigo border, rounded corners, same typography). Use a new top-level 
+component called InfoModal — never window.alert().
+
 After fixing, run this checklist before delivering the file:
 - No return< without a space (search for return<)
 - No JSX-returning functions defined inside another component
-- No window.confirm() anywhere
+- No window.confirm() or window.alert() anywhere
 - No streaming AI calls
 - All components are top-level named functions
