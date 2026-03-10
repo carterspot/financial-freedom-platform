@@ -11,9 +11,9 @@ The platform is built as a collection of standalone Claude artifacts (React .jsx
 
 ```
 Financial Freedom Platform
-├── 💳 CardTracker      (BUILT — v3 complete)
-├── 🏦 LoanTracker      (BUILT — v1 complete)
-├── 🏦 DebtTracker      (PLANNED — CardTracker + LoanTracker unified)
+├── 💳 CardTracker      (BUILT — v3.1 complete)
+├── 🏦 LoanTracker      (BUILT — v1.2 complete)
+├── 🏦 DebtTracker      (IN PROGRESS — architecture approved)
 ├── 💰 Income Module    (PLANNED — income streams, stability)
 ├── 📊 Spending Module  (PLANNED — budget, categories, trends)
 ├── 🏦 Savings Module   (PLANNED — emergency fund, goals)
@@ -25,7 +25,7 @@ Each module is a self-contained React artifact. The AI Advisor is the capstone �
 
 ---
 
-## Module 1: CardTracker (COMPLETE — v3)
+## Module 1: CardTracker (COMPLETE — v3.1)
 
 ### What it is
 A credit card debt tracker and payoff planner. Users enter their credit cards, see utilization, track payment due dates on a calendar, and run avalanche/snowball payoff simulations with AI analysis.
@@ -51,17 +51,32 @@ A credit card debt tracker and payoff planner. Users enter their credit cards, s
 - Storage probe with 2.5s timeout — gracefully handles login modal dismissal
 - API key management — stored in shared cloud storage, one setup for all family members
 - ICS calendar export for payment reminders
+- Planner settings persist across sessions (extra/mo, lump sums, distribution mode, recalc toggle)
+- Lump sum distribution toggle — Priority debt (default) or Split evenly
+- ℹ️ tooltip on Recalculate minimums monthly checkbox
+
+### v3.1 bug fixes (March 2026)
+- Extra/mo and lump sum values now persist across planner open/close
+- Apply button added to Extra/mo field with "Saved ✓" confirmation
+- PAID column now correctly shows regularPayment + lumpAmount on LUMP rows
+- Individual card pmt sub-line now reflects lump sum in Priority and Split modes
+- Recalculate minimums monthly checkbox persists across sessions
+- InfoModal component added for ℹ️ tooltip — no window.alert()
 
 ### Storage keys (CardTracker)
 ```
-cc_profiles               (shared) — array of profile objects
-cc_active_profile         (shared) — active profile id string
-cc_cards_{profileId}      (shared) — array of card objects for that profile
-cc_logs_{profileId}       (shared) — payment log entries for that profile
-cc_strategy_answers_{profileId} (shared) — saved questionnaire answers
-cc_ai_results_{profileId} (shared) — saved AI analysis + strategy JSON
-cc_apikey                 (shared) — Anthropic API key (shared with all modules)
-cc_dark                   (local)  — dark mode boolean
+cc_profiles                    (shared) — array of profile objects
+cc_active_profile              (shared) — active profile id string
+cc_cards_{profileId}           (shared) — array of card objects for that profile
+cc_logs_{profileId}            (shared) — payment log entries for that profile
+cc_strategy_answers_{profileId}(shared) — saved questionnaire answers
+cc_ai_results_{profileId}      (shared) — saved AI analysis + strategy JSON
+cc_apikey                      (shared) — Anthropic API key (shared with all modules)
+cc_planner_extra_{profileId}   (shared) — saved Extra/mo amount
+cc_planner_lumps_{profileId}   (shared) — saved lump sum entries array
+cc_planner_lump_mode_{profileId}(shared)— lump distribution: "priority" or "split"
+cc_planner_recalc_{profileId}  (shared) — recalculate minimums toggle boolean
+cc_dark                        (local)  — dark mode boolean
 ```
 
 ### Card schema
@@ -93,11 +108,11 @@ cc_dark                   (local)  — dark mode boolean
 - `generateId()` — `Date.now().toString(36) + Math.random().toString(36).slice(2)`
 - `fmt$(n)` — formats number as USD currency string
 
-**Artifact:** `credit-card-tracker.jsx` (~2,039 lines)
+**Artifact:** `modules/credit-card-tracker.jsx`
 
 ---
 
-## Module 2: LoanTracker (COMPLETE — v1)
+## Module 2: LoanTracker (COMPLETE — v1.2)
 
 ### What it is
 An installment loan tracker and payoff planner. Users enter auto loans, mortgages, student loans, personal loans, and other installment debt. Features true amortization math, multi-loan payoff scheduling, AI-powered refinance analysis, and a full What-If chat.
@@ -108,28 +123,57 @@ An installment loan tracker and payoff planner. Users enter auto loans, mortgage
 - Auto-calculates monthly payment from balance + rate + term
 - Auto-calculates remaining months from payment + balance + rate
 - Color-coded loan panels with progress bars and P&I breakdown
-- Quick Pay (✓ Pay) — logs payment, updates balance, recalculates remaining months
+- Quick Pay (✓ Pay) — logs payment, updates balance, recalculates remaining months, auto-logs to Progress tab
 - Expand/collapse all loans
 - Summary dashboard — total debt, monthly payments, total paid down, progress bar
 - Loan type breakdown badges
+- Planner settings persist across sessions (extra/mo, lump sums, distribution mode, recalc toggle)
+- Lump sum distribution toggle — Priority loan (default) or Split evenly
+- ℹ️ tooltip on Recalculate minimums monthly checkbox
+- Responsive Payoff Accelerator panel in Single Loan tab
 
 ### Payoff Planner (6 tabs)
 - **Schedule** — Avalanche vs Snowball, payoff order, month-by-month table, extra budget + lump sum, AI analysis
-- **Single Loan** — amortization schedule with CSV export and balance chart
+- **Single Loan** — amortization schedule with CSV export, balance chart, independent extra/lump sum controls
 - **Charts** — comparison chart + per-loan balance over time (SVG)
 - **Refinance AI** — new rate/term/costs → instant preview + AI recommendation
 - **What-If AI** — multi-turn chat with loan context
 - **Progress** — milestone badges, actual vs planned payment log
 
+### v1.1 bug fixes
+- Profile ID now uses stable PIN-based format (`pin_smithfamily`) for cross-module recovery
+- Single Loan tab derives live data from validLoans on every render (stale snapshot fixed)
+- Charts tab no longer incorrectly applies lump sums to every individual loan chart
+- Interest Saved label now dynamically shows which method actually wins
+- Mobile backup button now visible on all screen sizes
+- Quick Pay auto-logs to Progress tab
+- Excluded loans warning banner in planner header
+
+### v1.2 bug fixes (March 2026)
+- Extra/mo and lump sum values now persist across planner open/close (Schedule + Single Loan tabs)
+- Apply button added to Extra/mo field in both tabs with "Saved ✓" confirmation
+- PAID column now correctly shows regularPayment + lumpAmount on LUMP rows in both tabs
+- Individual loan pmt sub-line now reflects lump sum in Priority and Split modes
+- Recalculate minimums monthly checkbox persists across sessions (Schedule tab)
+- InfoModal component added for ℹ️ tooltip — no window.alert()
+- Payoff Accelerator panel is fully responsive on small screens (Single Loan tab)
+
 ### Storage keys (LoanTracker)
 ```
-lt_loans_{profileId}      (shared) — array of loan objects
-lt_logs_{profileId}       (shared) — payment log entries
-lt_ai_results_{profileId} (shared) — saved AI payoff analysis
-cc_profiles               (shared) — SHARED with CardTracker
-cc_active_profile         (shared) — SHARED with CardTracker
-cc_apikey                 (shared) — SHARED with CardTracker (one key for all modules)
-lt_dark                   (local)  — dark mode boolean
+lt_loans_{profileId}             (shared) — array of loan objects
+lt_logs_{profileId}              (shared) — payment log entries
+lt_ai_results_{profileId}        (shared) — saved AI payoff analysis
+lt_planner_extra_{profileId}     (shared) — saved Extra/mo (Schedule tab)
+lt_planner_lumps_{profileId}     (shared) — saved lump sum entries (Schedule tab)
+lt_planner_lump_mode_{profileId} (shared) — lump distribution: "priority" or "split"
+lt_planner_recalc_{profileId}    (shared) — recalculate minimums toggle boolean
+lt_single_extra_{profileId}      (shared) — saved Extra/mo (Single Loan tab)
+lt_single_lumps_{profileId}      (shared) — saved lump sum entries (Single Loan tab)
+lt_single_lump_mode_{profileId}  (shared) — Single Loan lump distribution mode
+cc_profiles                      (shared) — SHARED with CardTracker
+cc_active_profile                (shared) — SHARED with CardTracker
+cc_apikey                        (shared) — SHARED with CardTracker (one key for all modules)
+lt_dark                          (local)  — dark mode boolean
 ```
 
 ### Loan schema
@@ -160,15 +204,67 @@ lt_dark                   (local)  — dark mode boolean
 ### Pinned for future upgrade
 - Mortgage equity panel (home value input → equity %, progress bar) — deferred, not in v1
 
-**Artifact:** `loan-tracker.jsx` (~1,418 lines)
+**Artifact:** `modules/loan-tracker.jsx`
 
 ---
 
-## Module 3: DebtTracker (PLANNED)
+## Module 3: DebtTracker (IN PROGRESS)
 
 Unified merge of CardTracker + LoanTracker. All debt types in one artifact with a unified avalanche/snowball planner across cards and loans.
 
-**Planned artifact:** `debt-tracker.jsx`
+### Architecture approved (March 2026)
+- Card and loan schemas stay separate in storage — no migration of existing data
+- Runtime normalizer function converts both types to `{ balance, rate, minPayment }` for the unified payoff engine — not persisted
+- Unified schedule loop: revolving math for cards, amortization for loans, waterfall across both
+
+### Approved tab structure
+Schedule / Single Debt / Charts / Refinance AI / What-If AI (Strategy Builder folded in) / Progress
+
+### Approved decisions
+- **Q1 Strategy Builder:** Folded into What-If AI tab as collapsible "Build My Strategy" panel
+- **Q2 Debt list ordering:** Grouped by default (cards then loans) with toggle to interleave by APR
+- **Q3 ICS calendar:** Preserved and extended to cover loan nextPaymentDay
+- **Q4 dt_ai_results structure:** `{ scheduleAnalysis, refinance: { [loanId]: "..." }, strategy }`
+- **Q5 Migration timing:** Banner on first load if cc_cards_* or lt_loans_* detected — dismissible and non-blocking
+
+### Unified log schema (new — dt_logs_{profileId})
+```json
+{
+  "id": "...",
+  "_type": "card|loan",
+  "debtId": "...",
+  "debtName": "...",
+  "debtColor": "...",
+  "loanType": "auto",
+  "amount": 150,
+  "planned": 150,
+  "date": "2026-03-10T00:00:00.000Z"
+}
+```
+
+### Log migration (on first load)
+If `dt_logs_*` doesn't exist but `cc_logs_*` does, run one-time migration:
+- Convert `month` → `date` (reconstruct from month field)
+- Rename `cardId` → `debtId`, `cardName` → `debtName`, `cardColor` → `debtColor`
+- Add `_type: "card"`
+- Write to `dt_logs_{profileId}`, leave `cc_logs_*` untouched
+
+### Storage keys (DebtTracker)
+```
+dt_cards_{profileId}             (shared) — card objects (same schema as CardTracker)
+dt_loans_{profileId}             (shared) — loan objects (same schema as LoanTracker)
+dt_logs_{profileId}              (shared) — unified payment log (new schema above)
+dt_ai_results_{profileId}        (shared) — { scheduleAnalysis, refinance, strategy }
+dt_planner_extra_{profileId}     (shared) — saved Extra/mo
+dt_planner_lumps_{profileId}     (shared) — saved lump sum entries
+dt_planner_lump_mode_{profileId} (shared) — "priority" or "split"
+dt_planner_recalc_{profileId}    (shared) — recalculate minimums toggle
+cc_profiles                      (shared) — SHARED across all modules
+cc_active_profile                (shared) — SHARED across all modules
+cc_apikey                        (shared) — SHARED across all modules
+```
+
+**Planned artifact:** `modules/debt-tracker.jsx`
 
 ---
 
@@ -287,7 +383,7 @@ const hasCloudStorage = () => _cloudAvailable === true;
 **Storage prefixes:**
 - `cc_` — CardTracker
 - `lt_` — LoanTracker
-- `dt_` — DebtTracker (planned)
+- `dt_` — DebtTracker
 - `inc_` — Income Module
 - `sp_` — Spending Module
 - `sav_` — Savings Module
@@ -333,7 +429,7 @@ These MUST be followed or the artifact crashes with `returnReact is not defined`
 
 1. **Never `return<` — always `return (` or `return <` with a space**
 2. **Never define JSX-returning functions inside a component** — hoist all to top-level
-3. **Never use `window.confirm()`** — use a custom `<ConfirmModal>` component
+3. **Never use `window.confirm()` or `window.alert()`** — use custom modal components
 4. **Never stream AI responses** — use `await res.json()` only
 5. **All components are top-level named functions** — no inline/nested definitions
 6. **No external chart libraries** — SVG only
@@ -355,6 +451,16 @@ These MUST be followed or the artifact crashes with `returnReact is not defined`
 
 ---
 
+## Local Development
+
+- **Repo:** `carterspot/financial-freedom-platform` (GitHub)
+- **Preview server:** `cd preview && npm run dev` → localhost:5173
+- **Switch modules:** edit `preview/src/App.jsx` import line
+- **CLAUDE.md:** root of repo — read automatically by Claude Code each session
+- **Token limit:** set `CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000` before large builds
+
+---
+
 ## Roadmap & Session Log
 
 ### Completed
@@ -362,11 +468,15 @@ These MUST be followed or the artifact crashes with `returnReact is not defined`
 - ✅ CardTracker v2 — responsive, ICS calendar, payment tracking
 - ✅ CardTracker v3 — Strategy Builder, AI persistence, Apply Strategy, Quick Pay
 - ✅ LoanTracker v1 — amortization engine, 6-tab planner, refinance AI, what-if chat, shared profiles + API key
+- ✅ LoanTracker v1.1 — PIN profile fix, stale data fix, charts fix, mobile backup, Quick Pay auto-log, excluded loans warning
+- ✅ CardTracker v3.1 — planner persistence, lump sum display fixes, distribution toggle, recalc tooltip
+- ✅ LoanTracker v1.2 — same planner fixes as CardTracker, responsive Payoff Accelerator
+- ✅ CLAUDE.md — added to repo root for Claude Code context
+- ✅ Vite preview server — localhost:5173 for local JSX testing
+- ✅ DebtTracker architecture — approved, ready to build
 
 ### Up Next
-- [ ] LoanTracker v1 — bug testing and polish
-- [ ] LoanTracker v1.1 — improvements from test pass
-- [ ] DebtTracker — unified cards + loans module
+- [ ] DebtTracker v1 — unified cards + loans module
 - [ ] Agent prompts — parallel builds of Income, Spending, Savings, Retirement modules
 - [ ] Platform dashboard — unified entry point linking all modules
 - [ ] Graduation — Next.js + Supabase hosted app
@@ -383,3 +493,4 @@ These MUST be followed or the artifact crashes with `returnReact is not defined`
 4. Always run the Critical JSX Rules checklist before finalizing any artifact
 5. Export a backup before any significant rebuild session
 6. `design-system.md` has full component patterns and visual specs
+7. Update this file every time a module ships or architecture is approved
