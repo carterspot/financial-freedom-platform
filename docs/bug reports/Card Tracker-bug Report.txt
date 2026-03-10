@@ -1,0 +1,33 @@
+Fix three bugs in the Payoff Strategy Planner in 
+modules/credit-card-tracker.jsx. Do not change any other functionality.
+
+BUG 1 — Extra/mo and Lump Sum reset on close:
+The extraMonthly and lumpSums values are lost when the planner modal 
+closes. Fix: persist them to storage on change using keys 
+cc_planner_extra_{profileId} and cc_planner_lumps_{profileId} (shared). 
+Reload them when the planner opens.
+
+BUG 2 — Extra/mo has no save mechanism:
+Add an Apply button next to the Extra/mo field that saves the value to 
+cc_planner_extra_{profileId} and shows a brief "Saved ✓" confirmation 
+that fades after 2 seconds. The field should pre-populate from storage 
+when the planner opens.
+
+BUG 3 — Lump sum amount not showing in PAID column + distribution:
+In the month-by-month table, rows marked LUMP are showing the regular 
+payment amount instead of regular + lump. Fix the PAID column to show 
+regularPayment + lumpAmount for that month.
+
+For lump sum distribution, add a toggle below the lump sum fields:
+  "Apply lump sum to: [● Priority debt] [○ Split evenly]"
+Default to Priority debt (financially optimal for both avalanche and 
+snowball). Save the preference to storage as 
+cc_planner_lump_mode_{profileId} (shared).
+Update the schedule math to respect the toggle.
+
+After fixing, run this checklist before delivering the file:
+- No return< without a space (search for return<)
+- No JSX-returning functions defined inside another component
+- No window.confirm() anywhere
+- No streaming AI calls
+- All components are top-level named functions

@@ -88,7 +88,7 @@ const hasCloudStorage = () => _cloudAvailable === true;
 
 // ─── Schedule Engine ──────────────────────────────────────────────────────────
 function computeSchedule(rawCards, method, opts={}) {
-  const { extraBudget=0, lumpSums=[], dynamicMins=false } = opts;
+  const { extraBudget=0, lumpSums=[], dynamicMins=false, lumpMode="priority" } = opts;
   const cards=rawCards.map(c=>{
     const bal=parseFloat(c.balance)||0, apr=parseFloat(c.apr)||0;
     const min=c.minPaymentMode==="auto"?calcMinPmt(bal,apr):(parseFloat(c.minPaymentFixed)||0);
@@ -108,9 +108,16 @@ function computeSchedule(rawCards, method, opts={}) {
     const active=sorted.filter(c=>balances[c.id]>0.005);
     if(!active.length) break;
     month++;
+    let monthLump=0;
     lumpSums.filter(ls=>ls.month===month).forEach(ls=>{
-      let rem=ls.amount;
-      for(const c of sorted){ if(balances[c.id]<=0) continue; const a=Math.min(rem,balances[c.id]); balances[c.id]-=a; rem-=a; if(rem<=0) break; }
+      monthLump+=ls.amount;
+      if(lumpMode==="split"){
+        const total=sorted.reduce((s,c)=>s+(balances[c.id]>0?balances[c.id]:0),0);
+        if(total>0) sorted.forEach(c=>{ if(balances[c.id]<=0) return; const share=ls.amount*(balances[c.id]/total); balances[c.id]=Math.max(0,balances[c.id]-share); });
+      } else {
+        let rem=ls.amount;
+        for(const c of sorted){ if(balances[c.id]<=0) continue; const a=Math.min(rem,balances[c.id]); balances[c.id]-=a; rem-=a; if(rem<=0) break; }
+      }
     });
     const mins={};
     active.forEach(c=>{ mins[c.id]=dynamicMins?calcMinPmt(balances[c.id],c.apr):c.minPayment; });
@@ -134,7 +141,7 @@ function computeSchedule(rawCards, method, opts={}) {
       rBal[c.id]=Math.max(0,balances[c.id]);
       if(balances[c.id]<0.005&&!paidOff[c.id]){ balances[c.id]=0; paidOff[c.id]=true; payoffs.push({id:c.id,name:c.name,color:c.color,month,date:addMo(new Date(),month)}); }
     });
-    rows.push({month,payments:{...rPmts},interest:{...rInt},balances:{...rBal}});
+    rows.push({month,payments:{...rPmts},interest:{...rInt},balances:{...rBal},lumpAmount:monthLump});
   }
   const totalInterest=Object.values(intTotals).reduce((s,v)=>s+v,0);
   return {months:rows,cardPayoffs:payoffs,totalInterest,totalPaid:cards.reduce((s,c)=>s+c.balance,0)+totalInterest,totalMonths:month,cards,totalBudget:base};
@@ -1085,19 +1092,28 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
   const [aiSavedAt,setAiSavedAt]=useState(null);
   const [aiCopied,setAiCopied]=useState(false);
   const [appliedStrategy,setAppliedStrategy]=useState(null);
+  const [lumpMode,setLumpMode]=useState("priority");
+  const [extraSaved,setExtraSaved]=useState(false);
   const aiRef=useRef(null);
 
   const resultKey=`cc_ai_results_${profileId}`;
+  const extraKey=`cc_planner_extra_${profileId}`;
+  const lumpsKey=`cc_planner_lumps_${profileId}`;
+  const lumpModeKey=`cc_planner_lump_mode_${profileId}`;
 
   // Determine initial tab — first-time users go to strategy, returning go to schedule
+  // Also reload persisted planner state
   useEffect(()=>{
     storeGet(resultKey,true).then(saved=>{
       setActiveTab(saved?.analysis ? "schedule" : "strategy");
     });
+    storeGet(extraKey,true).then(v=>{ if(v!=null) setExtraBudget(parseFloat(v)||0); });
+    storeGet(lumpsKey,true).then(v=>{ if(Array.isArray(v)) setLumpSums(v); });
+    storeGet(lumpModeKey,true).then(v=>{ if(v) setLumpMode(v); });
   },[profileId]);
 
   const validCards=cards.filter(c=>(parseFloat(c.balance)||0)>0);
-  const opts={extraBudget,lumpSums,dynamicMins};
+  const opts={extraBudget,lumpSums,dynamicMins,lumpMode};
   const avalanche=computeSchedule(validCards,"avalanche",opts);
   const snowball=computeSchedule(validCards,"snowball",opts);
   const schedule=method==="avalanche"?avalanche:snowball;
@@ -1106,7 +1122,10 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
   const interestSaved=Math.abs(avalanche.totalInterest-snowball.totalInterest);
   const fasterMethod=avalanche.totalMonths<=snowball.totalMonths?"avalanche":"snowball";
 
-  function addLump(){ if(!lumpForm.month||!lumpForm.amount) return; setLumpSums(l=>[...l,{id:generateId(),month:parseInt(lumpForm.month),amount:parseFloat(lumpForm.amount)}]); setLumpForm({month:"",amount:""}); }
+  function addLump(){ if(!lumpForm.month||!lumpForm.amount) return; const updated=[...lumpSums,{id:generateId(),month:parseInt(lumpForm.month),amount:parseFloat(lumpForm.amount)}]; setLumpSums(updated); storeSet(lumpsKey,updated,true); setLumpForm({month:"",amount:""}); }
+  function removeLump(id){ const updated=lumpSums.filter(x=>x.id!==id); setLumpSums(updated); storeSet(lumpsKey,updated,true); }
+  function saveExtra(){ storeSet(extraKey,extraBudget,true); setExtraSaved(true); setTimeout(()=>setExtraSaved(false),2000); }
+  function changeLumpMode(mode){ setLumpMode(mode); storeSet(lumpModeKey,mode,true); }
 
   // Apply strategy from StrategyTab
   function applyStrategy(data){
@@ -1202,13 +1221,22 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Extra/mo:</span>
               <input type="number" value={extraBudget||""} onChange={e=>setExtraBudget(parseFloat(e.target.value)||0)} placeholder="$0" style={{...iSm,width:80}}/>
+              <button onClick={saveExtra} style={{background:extraSaved?"#10b981":"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"5px 10px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700,transition:"background .2s"}}>{extraSaved?"Saved ✓":"Apply"}</button>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
               <span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Lump sum at month:</span>
               <input type="number" value={lumpForm.month} onChange={e=>setLumpForm(f=>({...f,month:e.target.value}))} placeholder="Mo" style={{...iSm,width:50}}/>
               <input type="number" value={lumpForm.amount} onChange={e=>setLumpForm(f=>({...f,amount:e.target.value}))} placeholder="$" style={{...iSm,width:70}}/>
               <button onClick={addLump} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"5px 10px",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700}}>+ Add</button>
-              {lumpSums.map(ls=><span key={ls.id} style={{background:"rgba(255,255,255,.15)",borderRadius:6,padding:"3px 8px",fontSize:10,color:"#fff",display:"flex",alignItems:"center",gap:4}}>Mo{ls.month}: {fmt$(ls.amount)}<button onClick={()=>setLumpSums(l=>l.filter(x=>x.id!==ls.id))} style={{background:"none",border:"none",color:"rgba(255,255,255,.6)",cursor:"pointer",fontSize:12,padding:0,lineHeight:1}}>×</button></span>)}
+              {lumpSums.length>0&&<div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+                {lumpSums.map(ls=><span key={ls.id} style={{background:"rgba(255,255,255,.15)",borderRadius:6,padding:"3px 8px",fontSize:10,color:"#fff",display:"flex",alignItems:"center",gap:4}}>Mo{ls.month}: {fmt$(ls.amount)}<button onClick={()=>removeLump(ls.id)} style={{background:"none",border:"none",color:"rgba(255,255,255,.6)",cursor:"pointer",fontSize:12,padding:0,lineHeight:1}}>×</button></span>)}
+                <div style={{display:"flex",gap:3,alignItems:"center",marginLeft:4}}>
+                  <span style={{fontSize:10,color:"rgba(255,255,255,.6)"}}>Apply:</span>
+                  {[{id:"priority",label:"Priority"},{id:"split",label:"Split"}].map(m=>(
+                    <button key={m.id} onClick={()=>changeLumpMode(m.id)} style={{background:lumpMode===m.id?"rgba(99,102,241,.5)":"rgba(255,255,255,.1)",border:`1px solid ${lumpMode===m.id?"#6366f1":"rgba(255,255,255,.2)"}`,borderRadius:5,padding:"2px 7px",color:"#fff",cursor:"pointer",fontSize:10,fontWeight:lumpMode===m.id?700:400}}>{m.label}</button>
+                  ))}
+                </div>
+              </div>}
             </div>
             <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
               <input type="checkbox" checked={dynamicMins} onChange={e=>setDynamicMins(e.target.checked)} style={{accentColor:"#6366f1"}}/>
@@ -1317,7 +1345,7 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
                         <td style={{padding:"7px 11px",color:t.tx1,fontFamily:"monospace",fontWeight:isPay?700:400}}>{row.month}{isPay&&<span style={{marginLeft:5,fontSize:9,background:"#10b981",color:"#fff",borderRadius:4,padding:"1px 4px"}}>PAYOFF</span>}{hasLump&&<span style={{marginLeft:3,fontSize:9,background:"#6366f1",color:"#fff",borderRadius:4,padding:"1px 4px"}}>LUMP</span>}</td>
                         <td style={{padding:"7px 11px",color:t.tx3,whiteSpace:"nowrap"}}>{fmtMo(addMo(new Date(),row.month))}</td>
                         {orderedCards.map(c=>{ const pHere=payHere.find(p=>p.id===c.id); return(<td key={c.id} style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",background:pHere?c.color+"22":"transparent"}}>{row.balances[c.id]!==undefined?<div><div style={{color:pHere?"#10b981":t.tx1,fontSize:10,fontWeight:pHere?700:400}}>{pHere?"✓ PAID":fmt$(row.balances[c.id])}</div><div style={{color:t.tx3,fontSize:9}}>pmt {fmt$(row.payments[c.id]||0)}</div></div>:<span style={{color:t.tx3,fontSize:10}}>—</span>}</td>); })}
-                        <td style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",color:t.tx1,fontWeight:600}}>{fmt$(tP)}</td>
+                        <td style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",color:t.tx1,fontWeight:600}}>{fmt$(tP+(row.lumpAmount||0))}</td>
                         <td style={{padding:"7px 11px",textAlign:"right",fontFamily:"monospace",color:"#f97316"}}>{fmt$(tI)}</td>
                       </tr>);
                     })}
