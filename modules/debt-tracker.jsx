@@ -223,6 +223,7 @@ function computeUnifiedSchedule(cards, loans, method, opts={}) {
       month:mo+1, date:moKey, rows:tableRows,
       totalBalance:balances.reduce((s,b)=>s+Math.max(0,b),0),
       moInterest, moPaid,
+      monthLump, lumpMode,
     });
   }
 
@@ -264,6 +265,24 @@ function overlayContainer(t, maxW=440) {
     box:{ background:t.panelBg, borderRadius:20, width:"100%", maxWidth:maxW,
       padding:24, boxShadow:"0 20px 60px rgba(0,0,0,.5)", maxHeight:"90vh", overflowY:"auto" },
   };
+}
+
+// ─── CopyButton ───────────────────────────────────────────────────────────────
+function CopyButton({ text, label, t, style }) {
+  const [copied, setCopied] = useState(false);
+  function handleCopy() {
+    navigator.clipboard.writeText(text).then(()=>{
+      setCopied(true);
+      setTimeout(()=>setCopied(false), 1500);
+    }).catch(()=>{});
+  }
+  return (
+    <button onClick={handleCopy} style={{background:"none",border:`1px solid ${t.border}`,
+      borderRadius:6,padding:"4px 10px",color:copied?COLOR.success:t.tx2,cursor:"pointer",
+      fontSize:11,fontWeight:600,transition:"all .2s",...style}}>
+      {copied?"✓ Copied!":label||"📋 Copy"}
+    </button>
+  );
 }
 
 // ─── InfoModal ────────────────────────────────────────────────────────────────
@@ -1155,21 +1174,44 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
       {schedule.debts?.length>0 && (
         <div style={panelSt(t)}>
           <div style={{fontWeight:700,fontSize:14,color:t.tx1,marginBottom:12}}>Payoff Order</div>
-          {schedule.debts.map((d,i)=>(
-            <div key={d.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",
-              borderBottom:i<schedule.debts.length-1?`1px solid ${t.border}`:"none"}}>
-              <div style={{width:22,height:22,borderRadius:"50%",background:COLOR.primary+"22",
-                color:COLOR.primary,fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                {i+1}
+          {schedule.debts.map((d,i)=>{
+            const basePmt = d.minPayment + toNum(localExtra);
+            const nextLump = lumps.length>0
+              ? [...lumps].sort((a,b)=>a.date<b.date?-1:1)[0]
+              : null;
+            const activeCount = schedule.debts.length;
+            let lumpLabel = null;
+            if (nextLump) {
+              if (lumpMode==="split") {
+                lumpLabel = `+${fmt$(toNum(nextLump.amount)/activeCount)} lump ${nextLump.date}`;
+              } else if (i===0) {
+                lumpLabel = `+${fmt$(toNum(nextLump.amount))} lump ${nextLump.date}`;
+              }
+            }
+            return (
+              <div key={d.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",
+                borderBottom:i<schedule.debts.length-1?`1px solid ${t.border}`:"none"}}>
+                <div style={{width:22,height:22,borderRadius:"50%",background:COLOR.primary+"22",
+                  color:COLOR.primary,fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {i+1}
+                </div>
+                <div style={{width:10,height:10,borderRadius:"50%",background:d.color}} />
+                <div style={{flex:1,fontSize:13,color:t.tx1,fontWeight:600}}>
+                  {d.name}
+                  {lumpLabel && (
+                    <span style={{fontSize:10,color:COLOR.warning,fontWeight:600,marginLeft:6}}>
+                      {lumpLabel}
+                    </span>
+                  )}
+                </div>
+                <div style={{fontSize:11,color:t.tx2}}>{fmtPct(d.rate*100)}</div>
+                <div style={{fontSize:11,color:t.tx2,fontFamily:"monospace"}}>{fmt$(basePmt)}/mo</div>
+                <div style={{fontSize:12,color:COLOR.success,fontWeight:600}}>
+                  {schedule.debtPayoffDates?.[d.id]||"—"}
+                </div>
               </div>
-              <div style={{width:10,height:10,borderRadius:"50%",background:d.color}} />
-              <div style={{flex:1,fontSize:13,color:t.tx1,fontWeight:600}}>{d.name}</div>
-              <div style={{fontSize:11,color:t.tx2}}>{fmtPct(d.rate*100)}</div>
-              <div style={{fontSize:12,color:COLOR.success,fontWeight:600}}>
-                {schedule.debtPayoffDates?.[d.id]||"—"}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1184,9 +1226,22 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
         </div>
         {aiError && <div style={{fontSize:12,color:COLOR.danger,marginBottom:8}}>{aiError}</div>}
         {aiResults?.scheduleAnalysis && (
-          <div style={{fontSize:13,color:t.tx1,lineHeight:1.7,whiteSpace:"pre-wrap",
-            background:t.surf,borderRadius:10,padding:"12px 14px"}}>
-            {aiResults.scheduleAnalysis}
+          <div>
+            <div style={{fontSize:13,color:t.tx1,lineHeight:1.7,whiteSpace:"pre-wrap",
+              background:t.surf,borderRadius:10,padding:"12px 14px",marginBottom:8}}>
+              {aiResults.scheduleAnalysis}
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <CopyButton text={aiResults.scheduleAnalysis} t={t} />
+              <button onClick={()=>{
+                const blob=new Blob([aiResults.scheduleAnalysis],{type:"text/plain"});
+                const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+                a.download="debt-schedule-analysis.txt"; a.click();
+              }} style={{background:"none",border:`1px solid ${t.border}`,borderRadius:6,
+                padding:"4px 10px",color:t.tx2,cursor:"pointer",fontSize:11,fontWeight:600}}>
+                ⬇ Download .txt
+              </button>
+            </div>
           </div>
         )}
         {!aiResults?.scheduleAnalysis && !aiLoading && (
@@ -1214,9 +1269,9 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
                 </tr>
               </thead>
               <tbody>
-                {schedule.months.slice(0,48).flatMap(mo=>
-                  mo.rows.map((row,ri)=>(
-                    <tr key={`${mo.month}-${ri}`} style={{background:ri%2===0?"transparent":t.surf+"44"}}>
+                {schedule.months.slice(0,48).flatMap(mo=>{
+                  const rows = mo.rows.map((row,ri)=>(
+                    <tr key={`${mo.month}-reg-${ri}`} style={{background:ri%2===0?"transparent":t.surf+"44"}}>
                       <td style={{padding:"4px 8px",color:t.tx2,fontFamily:"monospace"}}>{ri===0?mo.date:""}</td>
                       <td style={{padding:"4px 8px"}}>
                         <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -1229,8 +1284,30 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
                       <td style={{padding:"4px 8px",fontFamily:"monospace",color:COLOR.orange}}>{fmt$(row.interest)}</td>
                       <td style={{padding:"4px 8px",fontFamily:"monospace",color:t.tx1}}>{fmt$(row.balance)}</td>
                     </tr>
-                  ))
-                )}
+                  ));
+                  if (mo.monthLump>0) {
+                    const regTotal = mo.rows.reduce((s,r)=>s+r.payment,0);
+                    rows.push(
+                      <tr key={`${mo.month}-lump`} style={{background:COLOR.warning+"14",
+                        borderLeft:`3px solid ${COLOR.warning}`}}>
+                        <td style={{padding:"4px 8px",color:t.tx2,fontFamily:"monospace",fontSize:10}}></td>
+                        <td colSpan={1} style={{padding:"4px 8px"}}>
+                          <span style={{fontSize:11,fontWeight:700,color:COLOR.warning}}>
+                            💰 LUMP SUM — {mo.date}
+                            {mo.lumpMode==="split"?" (split evenly)":""}
+                          </span>
+                        </td>
+                        <td style={{padding:"4px 8px",fontFamily:"monospace",color:COLOR.warning,fontWeight:700}}>
+                          {fmt$(regTotal+mo.monthLump)}
+                        </td>
+                        <td style={{padding:"4px 8px",fontFamily:"monospace",color:COLOR.warning}}>{fmt$(mo.monthLump)}</td>
+                        <td style={{padding:"4px 8px",color:t.tx3}}>—</td>
+                        <td style={{padding:"4px 8px",color:t.tx3}}>—</td>
+                      </tr>
+                    );
+                  }
+                  return rows;
+                })}
                 {schedule.months.length>48 && (
                   <tr><td colSpan={6} style={{padding:"8px",color:t.tx3,fontSize:11,textAlign:"center"}}>
                     Showing first 48 months of {schedule.months.length} total
@@ -1322,8 +1399,9 @@ function SingleDebtTab({ cards, loans, t }) {
 
       {item && sched && (
         <>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12}}>
             {[
+              {label:"Current Balance",value:fmt$(item._type==="card"?toNum(item.balance):toNum(item.currentBalance)),color:COLOR.danger},
               {label:"Total Interest",value:fmt$(sched.totalInterest),color:COLOR.orange},
               {label:"Total Paid",value:fmt$(sched.totalPaid),color:COLOR.primary},
               {label:"Payoff Date",value:sched.payoffDate||"—",color:COLOR.success},
@@ -1383,7 +1461,24 @@ function SingleDebtTab({ cards, loans, t }) {
           </div>
 
           <div style={panelSt(t)}>
-            <div style={{fontWeight:700,fontSize:14,color:t.tx1,marginBottom:12}}>Amortization Schedule</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div style={{fontWeight:700,fontSize:14,color:t.tx1}}>Amortization Schedule</div>
+              <button onClick={()=>{
+                if (!sched||!item) return;
+                const rows=sched.months.slice(0,60).map(mo=>[
+                  mo.date,
+                  fmt$(mo.moPaid),
+                  fmt$(mo.rows.reduce((s,r)=>s+r.principal,0)),
+                  fmt$(mo.moInterest),
+                  fmt$(mo.totalBalance),
+                ]);
+                const csv=[["Date","Payment","Principal","Interest","Balance"],...rows]
+                  .map(r=>r.map(v=>`"${v}"`).join(",")).join("\n");
+                const blob=new Blob([csv],{type:"text/csv"});
+                const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+                a.download=`${item.name.replace(/\s+/g,"-")}-amortization.csv`; a.click();
+              }} style={btnGhost(t,{padding:"5px 12px",fontSize:12})}>⬇ CSV</button>
+            </div>
             <div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
@@ -1748,13 +1843,18 @@ function WhatIfTab({ cards, loans, apiKey, profileId, aiResults, onSaveAiResults
             </div>
           )}
           {messages.map((m,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+            <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",
+              alignItems:"flex-start",gap:6}}>
               <div style={{maxWidth:"80%",background:m.role==="user"?COLOR.primary:t.panelBg,
                 color:m.role==="user"?"#fff":t.tx1,borderRadius:12,
                 padding:"10px 14px",fontSize:13,lineHeight:1.6,
                 border:m.role==="assistant"?`1px solid ${t.border}`:"none"}}>
                 {m.content}
               </div>
+              {m.role==="assistant" && (
+                <CopyButton text={m.content} label="📋" t={t}
+                  style={{padding:"4px 7px",flexShrink:0,marginTop:2}} />
+              )}
             </div>
           ))}
           {loading && (
