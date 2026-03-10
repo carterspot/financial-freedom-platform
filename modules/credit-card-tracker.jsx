@@ -1076,6 +1076,22 @@ function StrategyTab({cards,avalanche,snowball,darkMode,apiKey,profileId,onApply
   );
 }
 
+// ─── Info Modal ───────────────────────────────────────────────────────────────
+function InfoModal({title,body,onClose,darkMode}){
+  const t=useTheme(darkMode);
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:t.panelBg,border:"1px solid #6366f155",borderRadius:16,maxWidth:480,width:"100%",boxShadow:"0 16px 60px rgba(0,0,0,.5)",overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontWeight:800,fontSize:14,color:"#fff"}}>{title}</div>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",borderRadius:8,padding:"5px 11px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14}}>✕</button>
+        </div>
+        <div style={{padding:"18px 20px",fontSize:13,color:t.tx1,lineHeight:1.65,whiteSpace:"pre-wrap"}}>{body}</div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Payoff Schedule Modal ────────────────────────────────────────────────────
 function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
   const t=useTheme(darkMode);
@@ -1096,12 +1112,14 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
   const [appliedStrategy,setAppliedStrategy]=useState(null);
   const [lumpMode,setLumpMode]=useState("priority");
   const [extraSaved,setExtraSaved]=useState(false);
+  const [showRecalcInfo,setShowRecalcInfo]=useState(false);
   const aiRef=useRef(null);
 
   const resultKey=`cc_ai_results_${profileId}`;
   const extraKey=`cc_planner_extra_${profileId}`;
   const lumpsKey=`cc_planner_lumps_${profileId}`;
   const lumpModeKey=`cc_planner_lump_mode_${profileId}`;
+  const recalcKey=`cc_planner_recalc_${profileId}`;
 
   // Determine initial tab — first-time users go to strategy, returning go to schedule
   // Also reload persisted planner state
@@ -1112,6 +1130,7 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
     storeGet(extraKey,true).then(v=>{ if(v!=null) setExtraBudget(parseFloat(v)||0); });
     storeGet(lumpsKey,true).then(v=>{ if(Array.isArray(v)) setLumpSums(v); });
     storeGet(lumpModeKey,true).then(v=>{ if(v) setLumpMode(v); });
+    storeGet(recalcKey,true).then(v=>{ if(v!=null) setDynamicMins(!!v); });
   },[profileId]);
 
   const validCards=cards.filter(c=>(parseFloat(c.balance)||0)>0);
@@ -1241,8 +1260,9 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
               </div>}
             </div>
             <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
-              <input type="checkbox" checked={dynamicMins} onChange={e=>setDynamicMins(e.target.checked)} style={{accentColor:"#6366f1"}}/>
+              <input type="checkbox" checked={dynamicMins} onChange={e=>{ const v=e.target.checked; setDynamicMins(v); storeSet(recalcKey,v,true); }} style={{accentColor:"#6366f1"}}/>
               <span style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>Recalculate minimums monthly</span>
+              <button onClick={e=>{ e.preventDefault(); setShowRecalcInfo(true); }} style={{background:"none",border:"none",color:"rgba(255,255,255,.5)",cursor:"pointer",fontSize:13,padding:0,lineHeight:1,display:"flex",alignItems:"center"}} title="Learn more">ℹ️</button>
             </label>
           </div>
         </div>
@@ -1395,6 +1415,7 @@ function PayoffScheduleModal({cards,logsKey,darkMode,apiKey,profileId,onClose}){
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       {showPrint&&<PrintOverlay avalanche={avalanche} snowball={snowball} onClose={()=>setShowPrint(false)}/>}
+      {showRecalcInfo&&<InfoModal darkMode={darkMode} onClose={()=>setShowRecalcInfo(false)} title="Recalculate Minimums Monthly" body={`As you pay down balances each month, your minimum payment technically gets smaller (minimum = interest + 1% of remaining balance).\n\n✅ Checked: The schedule recalculates a new, lower minimum each month as balances drop. More realistic, but your payoff takes longer because you're paying less over time.\n\n☐ Unchecked: Keeps your minimum payment fixed at the month 1 amount. You effectively pay a little extra each month as balances drop, paying off debt faster.\n\n💡 Most financial advisors recommend leaving this unchecked — keep paying the original amount even as minimums drop.`}/>}
     </div>
   );
 }
