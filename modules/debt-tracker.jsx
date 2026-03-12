@@ -30,6 +30,7 @@ const fmt$        = (n) => new Intl.NumberFormat("en-US",{style:"currency",curre
 const fmtPct      = (n) => `${(parseFloat(n)||0).toFixed(2)}%`;
 const fmtMonths   = (n) => n===1?"1 mo":`${n} mo`;
 const toNum       = (s) => parseFloat(s)||0;
+const getInitials = (n) => !n ? "?" : n.trim().split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 function useTheme(dm) {
@@ -2143,6 +2144,108 @@ function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey, onOpen
   );
 }
 
+// ─── First-Run Profile Setup ──────────────────────────────────────────────────
+function FirstRunSetup({ darkMode, setDarkMode, onSave }) {
+  const [name, setName]             = useState("");
+  const [pin, setPin]               = useState("");
+  const [avatarColor, setAvatarColor] = useState(AVATAR_COLORS[0]);
+  const [saving, setSaving]         = useState(false);
+  const t = useTheme(darkMode);
+
+  const iS = { width:"100%", background:t.surf, border:`1px solid ${t.border}`, borderRadius:8,
+    padding:"8px 12px", color:t.tx1, fontSize:13, boxSizing:"border-box" };
+  const lS = { fontSize:11, color:t.tx2, display:"block", marginBottom:4, fontWeight:600 };
+
+  async function handleCreate() {
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    const stableId = pin.trim()
+      ? "pin_" + pin.trim().toLowerCase().replace(/\s+/g, "_")
+      : generateId();
+    const profile = { id:stableId, name:name.trim(), avatarColor, pin:pin.trim(), createdAt:new Date().toISOString() };
+    await onSave(profile);
+    setSaving(false);
+  }
+
+  return (
+    <div style={{ minHeight:"100vh", background:t.bg, fontFamily:"'DM Sans','Segoe UI',sans-serif",
+      color:t.tx1, display:"flex", flexDirection:"column", alignItems:"center",
+      justifyContent:"center", padding:"40px 16px" }}>
+      <div style={{ width:"100%", maxWidth:440 }}>
+        <div style={{ textAlign:"center", marginBottom:32 }}>
+          <div style={{ fontSize:52, marginBottom:12 }}>💸</div>
+          <div style={{ fontWeight:800, fontSize:26, color:t.tx1, marginBottom:8 }}>Welcome to DebtTracker</div>
+          <div style={{ fontSize:14, color:t.tx2, lineHeight:1.6, maxWidth:340, margin:"0 auto" }}>
+            Track all your credit cards and loans in one place. Build a unified payoff plan and see exactly when you'll be debt-free.
+          </div>
+        </div>
+
+        <div style={{ background:t.panelBg, border:`1px solid ${t.border}`, borderRadius:20,
+          padding:24, boxShadow:"0 8px 32px rgba(0,0,0,.12)" }}>
+          <div style={{ background:"#6366f118", border:"1px solid #6366f133", borderRadius:12,
+            padding:"12px 14px", marginBottom:20 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:COLOR.primary, marginBottom:4 }}>
+              👋 Create your profile to get started
+            </div>
+            <div style={{ fontSize:11, color:t.tx2, lineHeight:1.6 }}>
+              Your debts and progress are saved to your profile. Set an optional PIN to recover your data on any device — even without a cloud account.
+            </div>
+          </div>
+
+          <div style={{ display:"flex", justifyContent:"center", marginBottom:20 }}>
+            <div style={{ width:64, height:64, borderRadius:"50%", background:avatarColor,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:22, fontWeight:800, color:"#fff",
+              boxShadow:`0 0 0 4px ${avatarColor}44` }}>
+              {getInitials(name)}
+            </div>
+          </div>
+
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            <div>
+              <label style={lS}>Display Name <span style={{ color:"#ef4444" }}>*</span></label>
+              <input style={iS} value={name} onChange={e => setName(e.target.value)}
+                placeholder="Your Name" />
+            </div>
+            <div>
+              <label style={lS}>Recovery PIN <span style={{ color:t.tx3, fontWeight:400 }}>(optional but recommended)</span></label>
+              <input style={iS} value={pin} onChange={e => setPin(e.target.value)}
+                placeholder="e.g. smithfamily or john2024" />
+              <div style={{ fontSize:10, color:t.tx3, marginTop:5, lineHeight:1.5 }}>
+                💡 Choose any memorable word or phrase. Enter the same PIN on a new device to recover all your data. <strong style={{ color:t.tx2 }}>Write it down somewhere safe.</strong>
+              </div>
+            </div>
+            <div>
+              <label style={lS}>Avatar Color</label>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                {AVATAR_COLORS.map(c => (
+                  <div key={c} onClick={() => setAvatarColor(c)}
+                    style={{ width:28, height:28, borderRadius:"50%", background:c, cursor:"pointer",
+                      border:avatarColor===c?"3px solid #fff":"2px solid transparent",
+                      boxShadow:avatarColor===c?`0 0 0 2px ${c}`:"none", transition:"all .15s" }} />
+                ))}
+              </div>
+            </div>
+            <button onClick={handleCreate} disabled={!name.trim()||saving}
+              style={{ background:name.trim()?avatarColor:t.surf, border:"none", borderRadius:10,
+                padding:"12px 0", color:name.trim()?"#fff":t.tx3, width:"100%",
+                cursor:name.trim()?"pointer":"default", fontWeight:700, fontSize:15,
+                marginTop:4, transition:"all .2s" }}>
+              {saving ? "Creating…" : "Create Profile & Continue"}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ textAlign:"center", marginTop:20 }}>
+          <button onClick={() => setDarkMode(d => !d)} style={btnGhost(t, { fontSize:12, padding:"6px 14px" })}>
+            {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [loading,setLoading]       = useState(true);
@@ -2228,6 +2331,14 @@ export default function App() {
     }
     init();
   },[]);
+
+  async function handleCreateFirstProfile(profile) {
+    const updated = [profile];
+    setProfiles(updated);
+    setActiveProfileId(profile.id);
+    await storeSet("cc_profiles", updated, true);
+    await storeSet("cc_active_profile", profile.id, true);
+  }
 
   async function switchProfile(id) {
     setActiveProfileId(id);
@@ -2385,25 +2496,7 @@ export default function App() {
   );
 
   if (!activeProfile && profiles.length===0) return (
-    <div style={{minHeight:"100vh",background:t.bg,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:t.tx1}}>
-      <div style={{maxWidth:440,margin:"0 auto",padding:"80px 20px",textAlign:"center"}}>
-        <div style={{fontSize:48,marginBottom:16}}>💸</div>
-        <div style={{fontWeight:800,fontSize:24,marginBottom:8}}>DebtTracker</div>
-        <div style={{fontSize:14,color:t.tx2,marginBottom:32}}>
-          No profile found. Create a profile in CardTracker or LoanTracker first, or use those modules to get started.
-        </div>
-        <div style={{...panelSt(t,{textAlign:"left",marginBottom:16})}}>
-          <div style={{fontSize:13,color:t.tx2,lineHeight:1.7}}>
-            DebtTracker uses the shared profile system from CardTracker. To get started:<br/>
-            1. Open CardTracker and create a profile<br/>
-            2. Return here — your profile will appear automatically
-          </div>
-        </div>
-        <button onClick={()=>setDarkMode(d=>!d)} style={btnGhost(t,{margin:"0 auto"})}>
-          {darkMode?"☀️ Light Mode":"🌙 Dark Mode"}
-        </button>
-      </div>
-    </div>
+    <FirstRunSetup darkMode={darkMode} setDarkMode={setDarkMode} onSave={handleCreateFirstProfile} />
   );
 
   return (
