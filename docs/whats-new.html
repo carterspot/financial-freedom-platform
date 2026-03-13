@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>What's New — Financial Freedom Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#020617;--panel:#0f172a;--surf:#1e293b;
+    --indigo:#6366f1;--emerald:#10b981;--amber:#f59e0b;
+    --pink:#ec4899;--orange:#f97316;--purple:#8b5cf6;
+    --blue:#3b82f6;
+    --tx1:#f1f5f9;--tx2:#94a3b8;--tx3:#475569;
+    --border:#1e293b;
+  }
+  body{
+    background:var(--bg);color:var(--tx1);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;padding:32px 24px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 10% 10%,rgba(99,102,241,.08) 0%,transparent 60%),
+      radial-gradient(ellipse 40% 30% at 90% 80%,rgba(139,92,246,.06) 0%,transparent 60%);
+  }
+  .page{max-width:860px;margin:0 auto}
+
+  /* Header */
+  .header{text-align:center;margin-bottom:48px}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:100px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--indigo);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
+  .header h1{font-size:clamp(26px,5vw,42px);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:10px}
+  .header h1 span{background:linear-gradient(135deg,#6366f1,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header p{font-size:14px;color:var(--tx2);max-width:480px;margin:0 auto;line-height:1.6}
+
+  /* Module section */
+  .module-section{margin-bottom:48px}
+  .module-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+  .module-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+  .module-name{font-size:20px;font-weight:800;letter-spacing:-.5px}
+  .module-version{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx3);margin-top:2px}
+  .module-date{margin-left:auto;font-size:11px;color:var(--tx3);white-space:nowrap}
+
+  /* Release block */
+  .release{margin-bottom:24px}
+  .release-tag{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;border-radius:6px;padding:3px 10px;margin-bottom:12px}
+  .tag-fix{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:var(--emerald)}
+  .tag-feature{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:var(--indigo)}
+  .tag-new{background:rgba(236,72,153,.1);border:1px solid rgba(236,72,153,.25);color:var(--pink)}
+
+  /* Change items */
+  .changes{display:flex;flex-direction:column;gap:8px}
+  .change{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+  .change-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+  .change-body h4{font-size:13px;font-weight:700;color:var(--tx1);margin-bottom:2px}
+  .change-body p{font-size:12px;color:var(--tx2);line-height:1.55}
+
+  /* Nav anchors */
+  .nav-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:40px}
+  .nav-pill{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:100px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--tx2);text-decoration:none;transition:all .15s}
+  .nav-pill:hover{color:var(--tx1);border-color:rgba(99,102,241,.4)}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  .module-section{animation:fadeUp .5s ease both}
+  .module-section:nth-child(1){animation-delay:.1s}
+  .module-section:nth-child(2){animation-delay:.2s}
+  .module-section:nth-child(3){animation-delay:.3s}
+
+  @media(max-width:600px){.module-date{display:none}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="badge">📋 Release Notes</div>
+    <h1>What's <span>New</span></h1>
+    <p>Latest updates across the Financial Freedom Platform. March 2026.</p>
+  </div>
+
+  <!-- Jump links -->
+  <div class="nav-pills">
+    <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.1</a>
+    <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
+    <a href="#loan-tracker" class="nav-pill">🏦 LoanTracker v1.2</a>
+  </div>
+
+  <!-- ── DebtTracker ── -->
+  <div class="module-section" id="debt-tracker">
+    <div class="module-header">
+      <div class="module-icon" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)">⚡</div>
+      <div>
+        <div class="module-name">DebtTracker</div>
+        <div class="module-version">v1.1</div>
+      </div>
+      <div class="module-date">March 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-fix">🔧 Bug Fixes — v1.1</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Standalone profile creation screen</h4>
+            <p>DebtTracker previously assumed a profile already existed from CardTracker or LoanTracker. New users now see a dedicated welcome screen to create their profile — name, avatar color, and Recovery PIN — before entering the app. Existing users are unaffected.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-new">✨ New Module — v1.0</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--pink)"></div>
+          <div class="change-body">
+            <h4>Unified credit card + loan debt tracker</h4>
+            <p>DebtTracker merges CardTracker and LoanTracker into one artifact. Every credit card and installment loan in a single view with one unified payoff schedule.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--pink)"></div>
+          <div class="change-body">
+            <h4>Cross-debt avalanche and snowball engine</h4>
+            <p>The payoff engine ranks all debts — cards and loans — together. Your extra dollars flow to the highest-priority debt regardless of type. True cross-debt optimization.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--pink)"></div>
+          <div class="change-body">
+            <h4>Five-tab planner: Schedule, Single Debt, Charts, What-If AI, Progress</h4>
+            <p>Full planner suite covering every angle of debt payoff — strategy, individual amortization, visual charts, AI chat, and payment tracking.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--pink)"></div>
+          <div class="change-body">
+            <h4>Strategy Builder folded into What-If AI tab</h4>
+            <p>The 5-question AI questionnaire lives inside the What-If tab as a collapsible "Build My Strategy" panel — keeps the tab bar clean without losing the feature.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--pink)"></div>
+          <div class="change-body">
+            <h4>Debt grouping toggle: by type or interleaved by APR</h4>
+            <p>Default view shows cards first, then loans. Toggle to interleaved mode to see all debts ranked purely by APR — useful for understanding true payoff priority.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--pink)"></div>
+          <div class="change-body">
+            <h4>One-click import from CardTracker and LoanTracker</h4>
+            <p>A banner on first load detects existing CardTracker or LoanTracker data and offers to import it. No re-entry required — your debts come with you.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--pink)"></div>
+          <div class="change-body">
+            <h4>Shared profile and API key system</h4>
+            <p>Uses the same cc_profiles and cc_apikey storage as CardTracker and LoanTracker. Set up your profile once — all three modules share it automatically.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CardTracker ── -->
+  <div class="module-section" id="card-tracker">
+    <div class="module-header">
+      <div class="module-icon" style="background:linear-gradient(135deg,#6366f1,#818cf8)">💳</div>
+      <div>
+        <div class="module-name">CardTracker</div>
+        <div class="module-version">v3.1</div>
+      </div>
+      <div class="module-date">March 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-fix">🔧 Bug Fixes</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Planner values now persist across open/close</h4>
+            <p>Extra/mo and lump sum amounts were resetting every time you closed and reopened the planner. Both now save automatically and reload exactly where you left them.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Apply button with "Saved ✓" confirmation</h4>
+            <p>The Extra/mo field now has an explicit Apply button. After saving you'll see a "Saved ✓" confirmation so you know your change took effect.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>PAID column correctly shows lump sum totals</h4>
+            <p>On LUMP rows in the payoff schedule, the PAID column now shows the correct combined amount: regular payment + lump sum. Previously it was only showing the regular payment.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Individual card payment sub-line reflects lump sums</h4>
+            <p>The per-card payment breakdown now correctly includes lump sum amounts in both Priority and Split Even distribution modes.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Recalculate minimums checkbox persists across sessions</h4>
+            <p>The "Recalculate minimums monthly" toggle now saves its state and reloads correctly on next session.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>ℹ️ tooltip uses proper InfoModal component</h4>
+            <p>The tooltip on the Recalculate minimums checkbox previously used window.alert() which was blocked in some browsers. Replaced with a proper inline modal — works everywhere.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LoanTracker ── -->
+  <div class="module-section" id="loan-tracker">
+    <div class="module-header">
+      <div class="module-icon" style="background:linear-gradient(135deg,#3b82f6,#06b6d4)">🏦</div>
+      <div>
+        <div class="module-name">LoanTracker</div>
+        <div class="module-version">v1.2</div>
+      </div>
+      <div class="module-date">March 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-fix">🔧 Bug Fixes</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Planner values persist in both Schedule and Single Loan tabs</h4>
+            <p>Extra/mo and lump sum amounts now save and reload correctly in both planner tabs — same fix as CardTracker, applied across both views.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Apply button with "Saved ✓" in both tabs</h4>
+            <p>The Extra/mo Apply button and saved confirmation now appear in both Schedule tab and Single Loan tab consistently.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>PAID column fixed for lump sum rows in both tabs</h4>
+            <p>Same lump sum display fix from CardTracker — LUMP rows now correctly show regularPayment + lumpAmount in both Schedule and Single Loan tabs.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Individual loan payment sub-lines reflect lump sums</h4>
+            <p>Per-loan payment breakdowns now correctly include lump sums in both Priority and Split Even modes.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Recalculate minimums checkbox persists</h4>
+            <p>The Schedule tab recalculate toggle now saves and reloads correctly across sessions.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>InfoModal replaces window.alert() on ℹ️ tooltip</h4>
+            <p>Same modal fix as CardTracker — tooltip now uses a proper in-app modal component instead of browser alert.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>Payoff Accelerator panel fully responsive on mobile</h4>
+            <p>The Single Loan tab's Payoff Accelerator panel now stacks and scales correctly on small screens. Previously some controls were cut off on phones.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:20px 0 8px;font-size:11px;color:var(--tx3)">
+    Financial Freedom Platform · Release Notes · March 2026 &nbsp;·&nbsp;
+    <a href="index.html" style="color:var(--indigo);text-decoration:none">← Back to Home</a>
+  </div>
+
+</div>
+</body>
+</html>
