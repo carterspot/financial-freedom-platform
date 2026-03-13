@@ -13,7 +13,7 @@ The platform is built as a collection of standalone Claude artifacts (React .jsx
 Financial Freedom Platform
 ├── 💳 CardTracker      (BUILT — v3.1 complete)
 ├── 🏦 LoanTracker      (BUILT — v1.2 complete)
-├── 🏦 DebtTracker      (BUILT — v1.1 complete)
+├── ⚡ DebtTracker      (BUILT — v1.1 complete)
 ├── 💰 Income Module    (PLANNED — income streams, stability)
 ├── 📊 Spending Module  (PLANNED — budget, categories, trends)
 ├── 🏦 Savings Module   (PLANNED — emergency fund, goals)
@@ -22,6 +22,22 @@ Financial Freedom Platform
 ```
 
 Each module is a self-contained React artifact. The AI Advisor is the capstone — it reads data from all modules and generates a unified financial freedom plan.
+
+---
+
+## Artifact URL Strategy
+
+Each module lives in a **dedicated Claude.ai chat**. Editing the artifact in that same chat preserves the URL — no config update needed. Creating a new artifact (new chat) generates a new URL and requires updating the `CONFIG` block in `docs/index.html`.
+
+**Workflow when Code ships an update:**
+1. Code updates the `.jsx` in GitHub
+2. Open the module's dedicated Claude.ai chat
+3. Paste the updated `.jsx` and ask CTO to update the artifact in place
+4. URL stays the same — no `index.html` change needed
+
+**If a new artifact is unavoidable:**
+1. Render in Claude.ai → share → copy URL
+2. Update the one-line `CONFIG` block in `docs/index.html` on GitHub
 
 ---
 
@@ -140,15 +156,6 @@ An installment loan tracker and payoff planner. Users enter auto loans, mortgage
 - **What-If AI** — multi-turn chat with loan context
 - **Progress** — milestone badges, actual vs planned payment log
 
-### v1.1 bug fixes
-- Profile ID now uses stable PIN-based format (`pin_smithfamily`) for cross-module recovery
-- Single Loan tab derives live data from validLoans on every render (stale snapshot fixed)
-- Charts tab no longer incorrectly applies lump sums to every individual loan chart
-- Interest Saved label now dynamically shows which method actually wins
-- Mobile backup button now visible on all screen sizes
-- Quick Pay auto-logs to Progress tab
-- Excluded loans warning banner in planner header
-
 ### v1.2 bug fixes (March 2026)
 - Extra/mo and lump sum values now persist across planner open/close (Schedule + Single Loan tabs)
 - Apply button added to Extra/mo field in both tabs with "Saved ✓" confirmation
@@ -201,33 +208,55 @@ lt_dark                          (local)  — dark mode boolean
 - `amortizeLoan(loan, extraMonthly, lumpSums)` — single-loan full amortization schedule
 - `computeMultiSchedule(loans, method, opts)` — multi-loan avalanche or snowball
 
-### Pinned for future upgrade
-- Mortgage equity panel (home value input → equity %, progress bar) — deferred, not in v1
-
 **Artifact:** `modules/loan-tracker.jsx`
 
 ---
 
-## Module 3: DebtTracker (IN PROGRESS)
+## Module 3: DebtTracker (COMPLETE — v1.1)
 
+### What it is
 Unified merge of CardTracker + LoanTracker. All debt types in one artifact with a unified avalanche/snowball planner across cards and loans.
 
-### Architecture approved (March 2026)
+### Key features built
+- Credit card and loan CRUD in a single view
+- Grouped by type (cards → loans) with toggle to interleave by APR
+- Unified avalanche/snowball payoff engine — revolving math for cards, amortization for loans, waterfall across both
+- Portfolio summary dashboard (total debt, monthly payments, estimated interest, payoff date)
+- Quick Pay (✓ Pay) for both cards and loans
+- Five-tab planner: Schedule / Single Debt / Charts / What-If AI / Progress
+- Strategy Builder folded into What-If AI tab as collapsible "Build My Strategy" panel
+- One-click import banner — detects existing cc_cards_* or lt_loans_* data on first load
+- Backup & Restore — JSON (full) + CSV (cards and loans separately)
+- Shared profile and API key system (cc_profiles, cc_apikey)
+- Standalone first-run profile creation screen — works without CardTracker/LoanTracker
+- Dark/light mode, cloud + localStorage fallback storage
+
+### v1.1 bug fixes (March 2026)
+- Added standalone profile creation screen (FirstRunSetup component) — DebtTracker no longer assumes cc_profiles exists from prior modules
+
+### Architecture decisions
 - Card and loan schemas stay separate in storage — no migration of existing data
-- Runtime normalizer function converts both types to `{ balance, rate, minPayment }` for the unified payoff engine — not persisted
+- Runtime normalizer `normalizeDebt()` converts both types to `{ balance, rate, minPayment }` for the unified payoff engine — not persisted
 - Unified schedule loop: revolving math for cards, amortization for loans, waterfall across both
 
-### Approved tab structure
-Schedule / Single Debt / Charts / Refinance AI / What-If AI (Strategy Builder folded in) / Progress
+### Storage keys (DebtTracker)
+```
+dt_cards_{profileId}             (shared) — card objects (same schema as CardTracker)
+dt_loans_{profileId}             (shared) — loan objects (same schema as LoanTracker)
+dt_logs_{profileId}              (shared) — unified payment log (new schema below)
+dt_ai_results_{profileId}        (shared) — { scheduleAnalysis, strategy }
+dt_planner_extra_{profileId}     (shared) — saved Extra/mo
+dt_planner_lumps_{profileId}     (shared) — saved lump sum entries
+dt_planner_lump_mode_{profileId} (shared) — "priority" or "split"
+dt_planner_recalc_{profileId}    (shared) — recalculate minimums toggle
+dt_import_dismissed_{profileId}  (shared) — import banner dismissed boolean
+cc_profiles                      (shared) — SHARED across all modules
+cc_active_profile                (shared) — SHARED across all modules
+cc_apikey                        (shared) — SHARED across all modules
+dt_dark                          (local)  — dark mode boolean
+```
 
-### Approved decisions
-- **Q1 Strategy Builder:** Folded into What-If AI tab as collapsible "Build My Strategy" panel
-- **Q2 Debt list ordering:** Grouped by default (cards then loans) with toggle to interleave by APR
-- **Q3 ICS calendar:** Preserved and extended to cover loan nextPaymentDay
-- **Q4 dt_ai_results structure:** `{ scheduleAnalysis, refinance: { [loanId]: "..." }, strategy }`
-- **Q5 Migration timing:** Banner on first load if cc_cards_* or lt_loans_* detected — dismissible and non-blocking
-
-### Unified log schema (new — dt_logs_{profileId})
+### Unified log schema
 ```json
 {
   "id": "...",
@@ -242,38 +271,16 @@ Schedule / Single Debt / Charts / Refinance AI / What-If AI (Strategy Builder fo
 }
 ```
 
-### Log migration (on first load)
-If `dt_logs_*` doesn't exist but `cc_logs_*` does, run one-time migration:
-- Convert `month` → `date` (reconstruct from month field)
-- Rename `cardId` → `debtId`, `cardName` → `debtName`, `cardColor` → `debtColor`
-- Add `_type: "card"`
-- Write to `dt_logs_{profileId}`, leave `cc_logs_*` untouched
-
-### Storage keys (DebtTracker)
-```
-dt_cards_{profileId}             (shared) — card objects (same schema as CardTracker)
-dt_loans_{profileId}             (shared) — loan objects (same schema as LoanTracker)
-dt_logs_{profileId}              (shared) — unified payment log (new schema above)
-dt_ai_results_{profileId}        (shared) — { scheduleAnalysis, refinance, strategy }
-dt_planner_extra_{profileId}     (shared) — saved Extra/mo
-dt_planner_lumps_{profileId}     (shared) — saved lump sum entries
-dt_planner_lump_mode_{profileId} (shared) — "priority" or "split"
-dt_planner_recalc_{profileId}    (shared) — recalculate minimums toggle
-cc_profiles                      (shared) — SHARED across all modules
-cc_active_profile                (shared) — SHARED across all modules
-cc_apikey                        (shared) — SHARED across all modules
-```
-
-**Planned artifact:** `modules/debt-tracker.jsx`
+**Artifact:** `modules/debt-tracker.jsx`
 
 ---
 
-## Module 4: Income Module (PLANNED)
+## Module 4: Income Module (PLANNED — NEXT)
 
 Track all income streams by type, stability, and frequency. Foundation for cash flow analysis.
 
 - Types: W2, self-employment, rental, dividends, side business, benefits, other
-- Fields: name, type, amount, frequency, stability rating, after-tax flag, start/end date
+- Fields: name, type, amount, frequency, stability rating, after-tax flag, start/end date, **categoryId** (category-aware from v1)
 - Storage prefix: `inc_`
 
 ---
@@ -282,13 +289,15 @@ Track all income streams by type, stability, and frequency. Foundation for cash 
 
 Budget tracking — category budgets vs actuals. Calculates money available for debt/savings.
 
+- Full categorization engine using shared `ffp_categories_{profileId}` and `ffp_cat_rules_{profileId}`
+- CSV import with AI batch categorization
 - Storage prefix: `sp_`
 
 ---
 
 ## Module 6: Savings Module (PLANNED)
 
-Emergency fund tracker and named savings goals with target dates and required monthly amounts.
+Emergency fund tracker and named savings goals ("sinking funds") with target dates and required monthly amounts.
 
 - Storage prefix: `sav_`
 
@@ -305,6 +314,71 @@ Retirement readiness — balances, contribution rates, employer match, projectio
 ## AI Advisor (PLANNED — capstone)
 
 Reads all modules, generates a holistic financial freedom plan with priority ranking, month-by-month action plan, and scenario modeling.
+
+---
+
+## Shared Platform Layer — Categories
+
+Categories are a shared platform layer, not owned by any single module. Every module that tracks transactions reads from the same category list.
+
+### Storage keys
+```
+ffp_categories_{profileId}   (shared) — master category list
+ffp_cat_rules_{profileId}    (shared) — auto-assignment rules
+```
+
+### Category schema
+```json
+{
+  "id": "cat_abc123",
+  "name": "Groceries",
+  "icon": "🛒",
+  "color": "#10b981",
+  "type": "income | expense | both",
+  "parentId": null,
+  "isDefault": true,
+  "hidden": false,
+  "alertEnabled": false,
+  "alertConfig": { "pct": 0.10, "orgName": "Church", "orgUrl": "https://..." },
+  "sortOrder": 3
+}
+```
+
+### Auto-assign rule schema
+```json
+{
+  "id": "rule_abc123",
+  "pattern": "walmart",
+  "matchType": "contains",
+  "categoryId": "cat_groceries",
+  "field": "name",
+  "caseSensitive": false,
+  "priority": 1,
+  "createdBy": "user | ai"
+}
+```
+
+### Auto-assign priority
+1. User manually sets → locked (`categoryLocked: true`), never overridden
+2. Rule match (merchant name pattern) → applied automatically
+3. AI suggestion → proposed, user confirms → auto-creates rule
+4. Fallback → "Uncategorized"
+
+### AI categorization
+- Batch on CSV import — one API call per file, not per item
+- AI flags cryptic entries, renames them, categorizes
+- User reviews "needs attention" list; confirmed assignments auto-create rules
+- Next month's import skips already-ruled items
+
+### Tithe / Charity
+- Implemented as a category (`exp_037`) with `alertEnabled: true`
+- `alertConfig` holds percentage threshold, org name, and donation URL
+- When income is entered, fires notification showing calculated amount + link
+
+### v1 constraints
+- Flat categories only — `parentId` reserved for v2 subcategories
+- Default category set ships standard (48 categories across 13 sections — see `docs/ffp-categories.xlsx`)
+- AI-personalized taxonomy (Spender vs Saver archetype) is a v2/premium feature
 
 ---
 
@@ -388,12 +462,14 @@ const hasCloudStorage = () => _cloudAvailable === true;
 - `sp_` — Spending Module
 - `sav_` — Savings Module
 - `ret_` — Retirement Module
-- `ffp_` — Shared/cross-module
+- `ffp_` — Shared/cross-module (categories, rules)
 
 **Keys shared across ALL modules:**
 - `cc_profiles` — profile list
 - `cc_active_profile` — active profile id
 - `cc_apikey` — Anthropic API key (set once, used everywhere)
+- `ffp_categories_{profileId}` — master category list
+- `ffp_cat_rules_{profileId}` — auto-assignment rules
 
 ---
 
@@ -448,16 +524,32 @@ These MUST be followed or the artifact crashes with `returnReact is not defined`
 6. Shared profile system — `cc_profiles` / `cc_active_profile` across all modules
 7. AI is enhancement, not requirement — everything works without an API key
 8. Dark mode everywhere — `useTheme(darkMode)` in every component
+9. Category-aware from v1 — every module that handles transactions includes `categoryId` on line items
 
 ---
 
-## Local Development
+## Repository & Local Development
 
 - **Repo:** `carterspot/financial-freedom-platform` (GitHub)
+- **GitHub Pages:** `carterspot.github.io/financial-freedom-platform`
 - **Preview server:** `cd preview && npm run dev` → localhost:5173
 - **Switch modules:** edit `preview/src/App.jsx` import line
 - **CLAUDE.md:** root of repo — read automatically by Claude Code each session
 - **Token limit:** set `CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000` before large builds
+
+### docs/ folder
+```
+docs/
+├── index.html            — GitHub Pages landing page (CONFIG block for artifact URLs)
+├── whats-new.html        — Release notes for all live modules
+├── user-quickstart.html  — CardTracker quick start guide
+├── loan-quickstart.html  — LoanTracker quick start guide (hosted as Claude artifact)
+├── debt-quickstart.html  — DebtTracker quick start guide
+├── ffp-categories.xlsx   — Default category set (48 categories, 13 sections)
+└── design-system.md      — Full component patterns and visual specs
+```
+
+**Updating artifact URLs:** Edit the `CONFIG` block at the top of `docs/index.html` directly on GitHub (pencil icon). One line per module. Takes 30 seconds.
 
 ---
 
@@ -467,21 +559,38 @@ These MUST be followed or the artifact crashes with `returnReact is not defined`
 - ✅ CardTracker v1 — core build
 - ✅ CardTracker v2 — responsive, ICS calendar, payment tracking
 - ✅ CardTracker v3 — Strategy Builder, AI persistence, Apply Strategy, Quick Pay
+- ✅ CardTracker v3.1 — planner persistence, lump sum display fixes, distribution toggle, recalc tooltip
 - ✅ LoanTracker v1 — amortization engine, 6-tab planner, refinance AI, what-if chat, shared profiles + API key
 - ✅ LoanTracker v1.1 — PIN profile fix, stale data fix, charts fix, mobile backup, Quick Pay auto-log, excluded loans warning
-- ✅ CardTracker v3.1 — planner persistence, lump sum display fixes, distribution toggle, recalc tooltip
 - ✅ LoanTracker v1.2 — same planner fixes as CardTracker, responsive Payoff Accelerator
+- ✅ DebtTracker v1 — unified cards + loans, 5-tab planner, strategy builder, import banner, shared profiles
+- ✅ DebtTracker v1.1 — standalone profile creation screen (FirstRunSetup)
 - ✅ CLAUDE.md — added to repo root for Claude Code context
 - ✅ Vite preview server — localhost:5173 for local JSX testing
-- ✅ DebtTracker architecture — approved, ready to build
+- ✅ GitHub Pages landing page — docs/index.html with module cards, artifact links, QS + What's New buttons
+- ✅ What's New page — docs/whats-new.html covering all three live modules
+- ✅ Quick start guides — user-quickstart.html (CardTracker), loan-quickstart.html (LoanTracker), debt-quickstart.html (DebtTracker)
+- ✅ Default category set — docs/ffp-categories.xlsx (48 categories, 13 sections, auto-assign rules)
+- ✅ Category system architecture — shared platform layer, schemas, auto-assign priority, AI batch categorization design
 
 ### Up Next
-- [ ] DebtTracker v1 — unified cards + loans module
-- [ ] Agent prompts — parallel builds of Income, Spending, Savings, Retirement modules
-- [ ] Platform dashboard — unified entry point linking all modules
+- [ ] Income Module v1 — category-aware from day one (inc_ prefix)
+- [ ] Spending Module v1 — full categorization engine, CSV import with AI batch categorization
+- [ ] Savings Module v1 — emergency fund + sinking fund goals
+- [ ] Retirement Module v1 — balances, contributions, projections
+- [ ] AI Advisor — holistic cross-module planning (capstone)
+- [ ] Platform Dashboard — unified entry point linking all modules
 - [ ] Graduation — Next.js + Supabase hosted app
 - [ ] React Native / Expo — iOS + Android
 - [ ] Monetization — freemium, Pro tier, family plan
+
+### Backlog (logged, not scheduled)
+- Spender vs Saver archetype — AI Advisor persona system, ties into category taxonomy
+- Extra principal payment tracking for LoanTracker
+- Mortgage equity panel (home value → equity %, progress bar)
+- Plaid / bank import — Phase 4
+- CC Rewards tracker
+- AI-personalized category taxonomy (v2/premium)
 
 ---
 
@@ -492,5 +601,5 @@ These MUST be followed or the artifact crashes with `returnReact is not defined`
 3. Attach or paste the current `.jsx` file when making changes
 4. Always run the Critical JSX Rules checklist before finalizing any artifact
 5. Export a backup before any significant rebuild session
-6. `design-system.md` has full component patterns and visual specs
+6. `docs/design-system.md` has full component patterns and visual specs
 7. Update this file every time a module ships or architecture is approved
