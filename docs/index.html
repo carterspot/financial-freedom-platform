@@ -345,8 +345,8 @@ const CONFIG = {
       version: "v3.1",
       status: "live",  // live | next | soon | capstone
       artifactUrl: "https://claude.ai/public/artifacts/0c563457-16e1-4b25-a7c9-973c2601b604",
-      quickstartUrl: "docs/user-quickstart.html",
-      whatsNewUrl: ""
+      quickstartUrl: "user-quickstart.html",
+      whatsNewUrl: "whats-new.html#card-tracker"
     },
     {
       id: "loan-tracker",
@@ -356,9 +356,9 @@ const CONFIG = {
       desc: "Amortize auto loans, mortgages, and student debt. Run refinance what-ifs, accelerate payoff with extra payments, and track real progress.",
       version: "v1.2",
       status: "live",
-      artifactUrl: "https://claude.ai/public/artifacts/010f8adf-6d27-41eb-9be8-302802be2457",
-      quickstartUrl: "",
-      whatsNewUrl: ""
+      artifactUrl: "PASTE_LOAN_TRACKER_URL_HERE",
+      quickstartUrl: "https://claude.ai/public/artifacts/010f8adf-6d27-41eb-9be8-302802be2457",
+      whatsNewUrl: "whats-new.html#loan-tracker"
     },
     {
       id: "debt-tracker",
@@ -369,8 +369,8 @@ const CONFIG = {
       version: "v1.1",
       status: "live",
       artifactUrl: "https://claude.ai/public/artifacts/474012b1-a591-4f54-99d5-62a198569daf98ffc37",
-      quickstartUrl: "",
-      whatsNewUrl: ""
+      quickstartUrl: "debt-quickstart.html",
+      whatsNewUrl: "whats-new.html#debt-tracker"
     },
     {
       id: "income",
@@ -460,6 +460,11 @@ function renderCard(mod) {
     ? `<a href="${mod.quickstartUrl}" target="_blank" class="btn btn-ghost">📖 Quick Start</a>`
     : "";
 
+  const hasWhatsNew = mod.whatsNewUrl;
+  const whatsNewBtn = hasWhatsNew
+    ? `<a href="${mod.whatsNewUrl}" target="_blank" class="btn btn-ghost">📋 What's New</a>`
+    : "";
+
   return `
     <div class="module-card${isLive ? "" : " coming-soon"}">
       <div class="card-top">
@@ -474,6 +479,7 @@ function renderCard(mod) {
       <div class="card-actions">
         ${launchBtn}
         ${quickstartBtn}
+        ${whatsNewBtn}
       </div>
     </div>`;
 }
