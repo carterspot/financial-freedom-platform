@@ -275,17 +275,69 @@ dt_dark                          (local)  — dark mode boolean
 
 ---
 
-## Module 4: Income Module (PLANNED — NEXT)
+## Module 4: IncomeTracker (COMPLETE — v1.0)
 
-Track all income streams by type, stability, and frequency. Foundation for cash flow analysis.
+### What it is
+Tracks all income streams by type, stability, and frequency. Data-entry only at v1 — no AI tab, no planner. Seeds the shared FFP category system on first run.
 
-- Types: W2, self-employment, rental, dividends, side business, benefits, other
-- Fields: name, type, amount, frequency, stability rating, after-tax flag, start/end date, **categoryId** (category-aware from v1)
-- Storage prefix: `inc_`
+### Key features built
+- Income stream CRUD (add, edit, delete) with color coding
+- 7 income types: W2, Self-Employment, Rental, Dividends, Side Business, Benefits, Other
+- 7 frequencies: Weekly, Bi-Weekly, Semi-Monthly, Monthly, Quarterly, Annual, One-Time
+- 4 stability ratings: Stable, Mostly Stable, Variable, Irregular (color-coded pill badges)
+- After-tax flag, start/end dates, notes, categoryId per stream
+- Summary dashboard — total monthly income (normalized), annual total, breakdown by type, stream count
+- Frequency → monthly normalization (One-Time excluded from recurring total, shown separately)
+- Seeds `ffp_categories_{profileId}` on first run with `DEFAULT_CATEGORIES` constant (56 categories across 13 sections) if empty
+- Category picker filtered to `type: "income"` or `type: "both"` from shared category list
+- Export JSON + CSV, Import JSON (replace or merge)
+- Shared profile + API key system (cc_profiles, cc_apikey)
+- Dark/light mode, cloud + localStorage fallback storage
+
+### Frequency multipliers
+```
+Weekly:       × 4.333
+Bi-Weekly:    × 2.167
+Semi-Monthly: × 2
+Monthly:      × 1
+Quarterly:    × 0.333
+Annual:       × 0.0833
+One-Time:     × 0 (shown separately)
+```
+
+### Storage keys (IncomeTracker)
+```
+inc_streams_{profileId}    (shared) — array of income stream objects
+inc_dark                   (local)  — dark mode boolean
+cc_profiles                (shared) — SHARED across all modules
+cc_active_profile          (shared) — SHARED across all modules
+cc_apikey                  (shared) — SHARED across all modules
+ffp_categories_{profileId} (shared) — seeded on first run if empty
+```
+
+### Income stream schema
+```json
+{
+  "id": "generated",
+  "name": "Salary",
+  "type": "W2",
+  "amount": "5000",
+  "frequency": "Monthly",
+  "stabilityRating": "Stable",
+  "afterTax": true,
+  "startDate": "2024-01-01",
+  "endDate": "",
+  "notes": "",
+  "categoryId": "inc_001",
+  "color": "#6366f1"
+}
+```
+
+**Artifact:** `modules/income.jsx`
 
 ---
 
-## Module 5: Spending Module (PLANNED)
+## Module 5: Spending Module (PLANNED — NEXT)
 
 Budget tracking — category budgets vs actuals. Calculates money available for debt/savings.
 
@@ -377,7 +429,7 @@ ffp_cat_rules_{profileId}    (shared) — auto-assignment rules
 
 ### v1 constraints
 - Flat categories only — `parentId` reserved for v2 subcategories
-- Default category set ships standard (48 categories across 13 sections — see `docs/ffp-categories.xlsx`)
+- Default category set ships standard (56 categories across 13 sections — hardcoded in `DEFAULT_CATEGORIES` constant in `income.jsx`, also in `docs/ffp-categories.xlsx`)
 - AI-personalized taxonomy (Spender vs Saver archetype) is a v2/premium feature
 
 ---
@@ -565,17 +617,18 @@ docs/
 - ✅ LoanTracker v1.2 — same planner fixes as CardTracker, responsive Payoff Accelerator
 - ✅ DebtTracker v1 — unified cards + loans, 5-tab planner, strategy builder, import banner, shared profiles
 - ✅ DebtTracker v1.1 — standalone profile creation screen (FirstRunSetup)
+- ✅ IncomeTracker v1.0 — income stream CRUD, frequency normalization, stability ratings, category seeding
 - ✅ CLAUDE.md — added to repo root for Claude Code context
 - ✅ Vite preview server — localhost:5173 for local JSX testing
 - ✅ GitHub Pages landing page — docs/index.html with module cards, artifact links, QS + What's New buttons
-- ✅ What's New page — docs/whats-new.html covering all three live modules
-- ✅ Quick start guides — user-quickstart.html (CardTracker), loan-quickstart.html (LoanTracker), debt-quickstart.html (DebtTracker)
-- ✅ Default category set — docs/ffp-categories.xlsx (48 categories, 13 sections, auto-assign rules)
+- ✅ What's New page — docs/whats-new.html covering all four live modules
+- ✅ Quick start guides — user-quickstart.html (CardTracker), loan-quickstart.html (LoanTracker), debt-quickstart.html (DebtTracker), income-quickstart.html (IncomeTracker)
+- ✅ Default category set — docs/ffp-categories.xlsx (56 categories, 13 sections); hardcoded in income.jsx DEFAULT_CATEGORIES constant
 - ✅ Category system architecture — shared platform layer, schemas, auto-assign priority, AI batch categorization design
 
 ### Up Next
-- [ ] Income Module v1 — category-aware from day one (inc_ prefix)
 - [ ] Spending Module v1 — full categorization engine, CSV import with AI batch categorization
+- [ ] Family migration from CardTracker/LoanTracker → DebtTracker, then deprecate legacy modules from landing page
 - [ ] Savings Module v1 — emergency fund + sinking fund goals
 - [ ] Retirement Module v1 — balances, contributions, projections
 - [ ] AI Advisor — holistic cross-module planning (capstone)
