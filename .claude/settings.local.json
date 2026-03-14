@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -NoProfile -Command \"Get-ChildItem ''C:\\\\temp\\\\xlsx_cats2'' -Recurse | ForEach-Object { Write-Host $_FullName }\")"
+    ]
+  }
+}
