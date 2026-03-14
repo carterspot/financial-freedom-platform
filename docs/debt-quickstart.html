@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DebtTracker — Quick Start Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#020617;--panel:#0f172a;--surf:#1e293b;
+    --indigo:#6366f1;--emerald:#10b981;--amber:#f59e0b;
+    --pink:#ec4899;--orange:#f97316;--purple:#8b5cf6;
+    --tx1:#f1f5f9;--tx2:#94a3b8;--tx3:#475569;
+    --border:#1e293b;
+  }
+  body{
+    background:var(--bg);color:var(--tx1);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;padding:32px 24px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 20% 10%,rgba(139,92,246,.12) 0%,transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 80%,rgba(236,72,153,.08) 0%,transparent 60%);
+  }
+  .page{max-width:960px;margin:0 auto}
+
+  .header{text-align:center;margin-bottom:40px}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:100px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--purple);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
+  .header h1{font-size:clamp(28px,5vw,48px);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:10px}
+  .header h1 span{background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header p{font-size:15px;color:var(--tx2);max-width:520px;margin:0 auto;line-height:1.6}
+
+  .grid{display:grid;gap:16px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr 1fr}
+  .grid-4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:700px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden}
+  .card-accent{border-left:3px solid var(--purple)}
+
+  .step-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+  .section-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .section-label::after{content:"";flex:1;height:1px;background:var(--border)}
+
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .step-body h3{font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:4px}
+  .step-body p{font-size:12px;color:var(--tx2);line-height:1.6}
+  .step-body code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surf);padding:1px 6px;border-radius:4px;color:var(--purple)}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+  .feat{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+  .feat:last-child{border:none;padding-bottom:0}
+  .feat-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;margin-top:1px}
+  .feat-body h4{font-size:13px;font-weight:700;color:var(--tx1);margin-bottom:2px}
+  .feat-body p{font-size:11px;color:var(--tx2);line-height:1.5}
+
+  .tip{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--tx2);line-height:1.6}
+  .tip strong{color:var(--purple)}
+
+  .flow{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .flow-step{background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--tx1)}
+  .flow-arrow{color:var(--tx3);font-size:14px}
+
+  .method{background:var(--surf);border-radius:10px;padding:12px 14px;flex:1}
+  .method h4{font-size:12px;font-weight:800;margin-bottom:4px}
+  .method p{font-size:11px;color:var(--tx2);line-height:1.5}
+  .method .tag{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-top:4px}
+
+  kbd{background:var(--surf);border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx1)}
+
+  .unified-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--purple);margin:4px 4px 4px 0}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .card{animation:fadeUp .5s ease both}
+  .card:nth-child(1){animation-delay:.05s}
+  .card:nth-child(2){animation-delay:.1s}
+  .card:nth-child(3){animation-delay:.15s}
+  .card:nth-child(4){animation-delay:.2s}
+
+  .hero-card{background:linear-gradient(135deg,#2e1065,#4c1d95,#701a75);border:none}
+  .hero-card *{border-color:rgba(255,255,255,.1)!important}
+
+  @media print{
+    body{background:#fff;color:#111;padding:16px}
+    .card{background:#f8fafc;border:1px solid #e2e8f0;break-inside:avoid}
+    :root{--tx1:#0f172a;--tx2:#475569;--tx3:#94a3b8;--border:#e2e8f0;--surf:#f1f5f9;--panel:#fff}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="badge">⚡ Quick Start Guide · v1.1</div>
+    <h1>Get started with<br/><span>DebtTracker</span></h1>
+    <p>Your unified debt command center — every credit card and loan in one AI-powered payoff planner.</p>
+  </div>
+
+  <!-- What makes it different -->
+  <div class="card hero-card" style="margin-bottom:16px;padding:24px">
+    <div style="font-size:13px;font-weight:800;color:rgba(255,255,255,.9);margin-bottom:12px">⚡ What makes DebtTracker different</div>
+    <p style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:16px">DebtTracker combines CardTracker and LoanTracker into one unified planner. Your avalanche or snowball strategy runs across <strong style="color:#fff">all your debt simultaneously</strong> — credit cards and loans compete for your extra dollars together, not separately.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="unified-badge">💳 Credit Cards</span>
+      <span class="unified-badge">🏦 Auto Loans</span>
+      <span class="unified-badge">🎓 Student Loans</span>
+      <span class="unified-badge">🏠 Mortgage</span>
+      <span class="unified-badge">💼 Personal Loans</span>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="section-label" style="color:var(--purple)">Getting Started</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(139,92,246,.2);color:var(--purple)">1</div>
+        <div class="step-body">
+          <h3>Create Your Profile</h3>
+          <p>Enter your name and set a <strong style="color:var(--tx1)">Recovery PIN</strong> — a memorable word like <code>smithfamily</code>. This syncs your data across every device and every FFP module. One PIN, one family.</p>
+          <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+            <span class="pill" style="background:rgba(16,185,129,.15);color:var(--emerald)">☁ Cloud Sync</span>
+            <span class="pill" style="background:rgba(245,158,11,.15);color:var(--amber)">💾 Local Backup</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent" style="border-left-color:var(--pink)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(236,72,153,.2);color:var(--pink)">2</div>
+        <div class="step-body">
+          <h3>Add Your Debts</h3>
+          <p>Tap <strong style="color:var(--tx1)">+ Add Card</strong> or <strong style="color:var(--tx1)">+ Add Loan</strong>. Cards need balance, APR, limit, and due date. Loans need balance, rate, and term. Mix and match freely.</p>
+          <div style="margin-top:10px;font-size:11px;color:var(--tx3)">Already use CardTracker or LoanTracker? Your data imports via JSON backup.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent" style="border-left-color:var(--amber)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(245,158,11,.2);color:var(--amber)">3</div>
+        <div class="step-body">
+          <h3>Add Your API Key</h3>
+          <p>Tap <kbd>🔑</kbd> in the top bar. Paste your Anthropic API key once — it's shared across all FFP modules automatically. This unlocks AI Analysis, Strategy Builder, and What-If chat.</p>
+          <div style="margin-top:8px;font-size:11px;color:var(--tx2)">Already set it in CardTracker or LoanTracker? It's already here.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent" style="border-left-color:var(--emerald)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(16,185,129,.2);color:var(--emerald)">4</div>
+        <div class="step-body">
+          <h3>Run the Unified Planner</h3>
+          <p>Open the <strong style="color:var(--tx1)">Payoff Planner</strong> (📊 button). Choose Avalanche or Snowball — the engine optimizes across cards AND loans together. Add extra budget to see months shaved off your payoff.</p>
+          <div class="flow" style="margin-top:10px">
+            <span class="flow-step">All Debts</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">One Plan</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">Debt Free ✅</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unified planner explained -->
+  <div class="card hero-card" style="margin-bottom:16px">
+    <div class="section-label" style="color:rgba(255,255,255,.4)">How the Unified Planner Works</div>
+    <div class="grid grid-2" style="gap:12px">
+      <div class="method" style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.2)">
+        <h4 style="color:#f97316">🔥 Avalanche — Save the most money</h4>
+        <p style="color:rgba(255,255,255,.6)">Ranks ALL debts — cards and loans — by APR. Your 24% credit card beats your 7% auto loan. Extra dollars always go to the highest-rate debt regardless of type.</p>
+        <div class="tag" style="color:#f97316">Highest APR first across all debt types</div>
+      </div>
+      <div class="method" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2)">
+        <h4 style="color:#3b82f6">❄️ Snowball — Stay motivated</h4>
+        <p style="color:rgba(255,255,255,.6)">Ranks ALL debts by balance. That $800 medical bill gets crushed first even if your student loan rate is higher. Quick wins across any debt type.</p>
+        <div class="tag" style="color:#3b82f6">Smallest balance first across all debt types</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.4);text-align:center">Use the grouping toggle to view debts by type (cards then loans) or interleaved by APR.</div>
+  </div>
+
+  <!-- Planner tabs -->
+  <div class="section-label" style="color:var(--emerald)">Planner Tabs</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <div class="card" style="border-left:3px solid var(--purple)">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">📊 Six Tabs in the Planner</div>
+      <div class="feat">
+        <div class="feat-icon">📅</div>
+        <div class="feat-body"><h4>Schedule</h4><p>Full avalanche/snowball schedule across all debt. Add extra budget and lump sums. AI analysis included.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🎯</div>
+        <div class="feat-body"><h4>Single Debt</h4><p>Isolate one card or loan. See its full amortization, export CSV, run independent what-ifs.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📈</div>
+        <div class="feat-body"><h4>Charts</h4><p>Balance curves for every debt over time. See which ones cross zero first.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🔄</div>
+        <div class="feat-body"><h4>Refinance AI</h4><p>Enter a new rate and term for any loan. Instant savings preview + AI recommendation.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">💬</div>
+        <div class="feat-body"><h4>What-If AI</h4><p>Chat with full debt context. Strategy Builder questionnaire lives here too.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📊</div>
+        <div class="feat-body"><h4>Progress</h4><p>Unified payment log — cards and loans together. Milestone badges. Actual vs planned.</p></div>
+      </div>
+    </div>
+
+    <div class="card" style="border-left:3px solid var(--emerald)">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">✓ Logging a Payment</div>
+      <div class="feat">
+        <div class="feat-icon">1</div>
+        <div class="feat-body"><h4>Tap ✓ Pay on any debt</h4><p>Works the same whether it's a credit card or a loan. Finds it on the main list.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">2</div>
+        <div class="feat-body"><h4>Confirm the amount</h4><p>Pre-filled with your expected payment. Edit freely — over or under both log correctly.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">3</div>
+        <div class="feat-body"><h4>Balance updates instantly</h4><p>Card balance reduces. Loan remaining months recalculate. Progress tab auto-logs the entry.</p></div>
+      </div>
+      <div class="tip" style="margin-top:12px">
+        <strong>Migrating from CardTracker or LoanTracker?</strong> Export JSON from each → import here via 📦. Your data merges into the unified view without re-entry.
+      </div>
+    </div>
+  </div>
+
+  <!-- Features grid -->
+  <div class="section-label" style="color:var(--orange)">Features at a Glance</div>
+  <div class="grid grid-4" style="margin-bottom:16px">
+    <div class="card" style="text-align:center;padding:16px 12px">
+      <div style="font-size:28px;margin-bottom:8px">📅</div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:4px">Calendar Export</div>
+      <div style="font-size:11px;color:var(--tx2);line-height:1.5">All payment due dates and loan payments in one .ics export for any calendar app</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px 12px">
+      <div style="font-size:28px;margin-bottom:8px">📦</div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:4px">Backup & Restore</div>
+      <div style="font-size:11px;color:var(--tx2);line-height:1.5">JSON full backup and CSV export. Import from CardTracker or LoanTracker directly.</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px 12px">
+      <div style="font-size:28px;margin-bottom:8px">🧠</div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:4px">Strategy Builder</div>
+      <div style="font-size:11px;color:var(--tx2);line-height:1.5">5-question questionnaire in the What-If tab → AI builds your personalized debt plan</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px 12px">
+      <div style="font-size:28px;margin-bottom:8px">🌙</div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx1);margin-bottom:4px">Dark / Light Mode</div>
+      <div style="font-size:11px;color:var(--tx2);line-height:1.5">Toggle with ☀️/🌙 in the nav bar. Saved per device.</div>
+    </div>
+  </div>
+
+  <!-- Tips & Recovery -->
+  <div class="grid grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">💡 Pro Tips</div>
+      <div class="feat">
+        <div class="feat-icon">⚡</div>
+        <div class="feat-body"><h4>Use the grouping toggle</h4><p>Default view groups cards then loans. Switch to interleaved-by-APR to see your true payoff priority across all debt types.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">💰</div>
+        <div class="feat-body"><h4>Extra budget is the multiplier</h4><p>Even $100/month extra across a mixed debt portfolio can eliminate years. Try it in the Schedule tab — the math is eye-opening.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🔄</div>
+        <div class="feat-body"><h4>Check Refinance AI on loans</h4><p>If rates have dropped since you took a loan, run the Refinance AI tab. It shows exact savings and whether closing costs are worth it.</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">🔑 Data & Recovery</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2)">
+          <span style="font-size:18px">☁</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--emerald)">Cloud Sync Active</div>
+            <div style="font-size:11px;color:var(--tx2)">Data synced across all devices sharing this artifact URL</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2)">
+          <span style="font-size:18px">💾</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--amber)">Local Only</div>
+            <div style="font-size:11px;color:var(--tx2)">Data stays on this device. Export JSON to back up or move.</div>
+          </div>
+        </div>
+        <div class="tip" style="margin-top:4px">
+          <strong>Lost your data?</strong> Create a profile with your original <strong>Recovery PIN</strong> on any device. Your cards and loans load automatically.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:20px 0 8px;font-size:11px;color:var(--tx3)">
+    DebtTracker · Financial Freedom Platform · v1.1 · March 2026
+  </div>
+
+</div>
+</body>
+</html>

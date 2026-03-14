@@ -337,16 +337,43 @@
 const CONFIG = {
   modules: [
     {
-            id: "debt-tracker",
+      id: "income",
+      name: "IncomeTracker",
+      icon: "💰",
+      iconBg: "linear-gradient(135deg,#10b981,#6366f1)",
+      desc: "Track every income stream by type, stability, and frequency. Seeds the shared category system for the whole platform.",
+      version: "v1.0",
+      status: "live",
+      group: "primary",
+      artifactUrl: "https://claude.ai/public/artifacts/2f3c6e2f-6e59-4dd1-bde8-93b7af3dc04b",
+      quickstartUrl: "income-quickstart.html",
+      whatsNewUrl: "whats-new.html#income-tracker"
+    },
+    {
+      id: "debt-tracker",
       name: "DebtTracker",
       icon: "⚡",
       iconBg: "linear-gradient(135deg,#8b5cf6,#ec4899)",
       desc: "Unified debt command center — every credit card and loan in one avalanche/snowball planner. Your complete debt-free roadmap.",
       version: "v1.1",
       status: "live",
+      group: "primary",
       artifactUrl: "https://claude.ai/public/artifacts/474012b1-a591-4f54-99d5-62a198569daf",
       quickstartUrl: "debt-quickstart.html",
-      whatsNewUrl: "whats-new.html#debt-tracker"      
+      whatsNewUrl: "whats-new.html#debt-tracker"
+    },
+    {
+      id: "card-tracker",
+      name: "CardTracker",
+      icon: "💳",
+      iconBg: "linear-gradient(135deg,#6366f1,#818cf8)",
+      desc: "Track your credit cards, run avalanche and snowball payoff simulations, and get a personalized AI debt elimination strategy.",
+      version: "v3.1",
+      status: "live",
+      group: "legacy",
+      artifactUrl: "https://claude.ai/public/artifacts/67fac319-a7d6-442b-bed6-c8b6c4579ac3",
+      quickstartUrl: "user-quickstart.html",
+      whatsNewUrl: "whats-new.html#card-tracker"
     },
     {
       id: "loan-tracker",
@@ -356,33 +383,10 @@ const CONFIG = {
       desc: "Amortize auto loans, mortgages, and student debt. Run refinance what-ifs, accelerate payoff with extra payments, and track real progress.",
       version: "v1.2",
       status: "live",
+      group: "legacy",
       artifactUrl: "https://claude.ai/public/artifacts/b299eb32-cd52-4668-b3e9-f130d0fe5d27",
       quickstartUrl: "loantracker-quickstart.html",
       whatsNewUrl: "whats-new.html#loan-tracker"
-    },
-    {
-      id: "card-tracker",
-      name: "CardTracker",
-      icon: "💳",
-      iconBg: "linear-gradient(135deg,#6366f1,#818cf8)",
-      desc: "Track your credit cards, run avalanche and snowball payoff simulations, and get a personalized AI debt elimination strategy.",
-      version: "v3.1",
-      status: "live",  // live | next | soon | capstone
-      artifactUrl: "https://claude.ai/public/artifacts/67fac319-a7d6-442b-bed6-c8b6c4579ac3",
-      quickstartUrl: "user-quickstart.html",
-      whatsNewUrl: "whats-new.html#card-tracker"
-    },
-    {
-      id: "income",
-      name: "Income Module",
-      icon: "💰",
-      iconBg: "linear-gradient(135deg,#10b981,#06b6d4)",
-      desc: "Track all income streams by type, stability, and frequency. The foundation for knowing exactly how much you can throw at debt.",
-      version: null,
-      status: "next",
-      artifactUrl: "",
-      quickstartUrl: "",
-      whatsNewUrl: ""
     },
     {
       id: "spending",
@@ -485,10 +489,19 @@ function renderCard(mod) {
 }
 
 function render() {
-  const live = CONFIG.modules.filter(m => m.status === "live");
-  const soon = CONFIG.modules.filter(m => m.status !== "live");
+  const live    = CONFIG.modules.filter(m => m.status === "live");
+  const soon    = CONFIG.modules.filter(m => m.status !== "live");
+  const primary = live.filter(m => m.group !== "legacy");
+  const legacy  = live.filter(m => m.group === "legacy");
 
-  document.getElementById("live-grid").innerHTML  = live.map(renderCard).join("");
+  const separator = legacy.length ? `
+    <div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;margin:8px 0">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx3)">Also Available</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>` : "";
+
+  document.getElementById("live-grid").innerHTML  = primary.map(renderCard).join("") + separator + legacy.map(renderCard).join("");
   document.getElementById("soon-grid").innerHTML  = soon.map(renderCard).join("");
   document.getElementById("stat-modules").textContent = live.length;
 }

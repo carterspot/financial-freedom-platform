@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>IncomeTracker — Quick Start Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#020617;--panel:#0f172a;--surf:#1e293b;
+    --indigo:#6366f1;--emerald:#10b981;--amber:#f59e0b;
+    --pink:#ec4899;--orange:#f97316;--purple:#8b5cf6;
+    --teal:#06b6d4;
+    --tx1:#f1f5f9;--tx2:#94a3b8;--tx3:#475569;
+    --border:#1e293b;
+  }
+  body{
+    background:var(--bg);color:var(--tx1);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;padding:32px 24px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 20% 10%,rgba(16,185,129,.10) 0%,transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 80%,rgba(99,102,241,.07) 0%,transparent 60%);
+  }
+  .page{max-width:960px;margin:0 auto}
+
+  .header{text-align:center;margin-bottom:40px}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:100px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--emerald);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
+  .header h1{font-size:clamp(28px,5vw,48px);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:10px}
+  .header h1 span{background:linear-gradient(135deg,#10b981,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header p{font-size:15px;color:var(--tx2);max-width:480px;margin:0 auto;line-height:1.6}
+
+  .grid{display:grid;gap:16px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr 1fr}
+  .grid-4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:700px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden}
+  .card-accent{border-left:3px solid var(--emerald)}
+
+  .step-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+  .section-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .section-label::after{content:"";flex:1;height:1px;background:var(--border)}
+
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .step-body h3{font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:4px}
+  .step-body p{font-size:12px;color:var(--tx2);line-height:1.6}
+  .step-body code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surf);padding:1px 6px;border-radius:4px;color:var(--emerald)}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+  .feat{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+  .feat:last-child{border:none;padding-bottom:0}
+  .feat-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;margin-top:1px}
+  .feat-body h4{font-size:13px;font-weight:700;color:var(--tx1);margin-bottom:2px}
+  .feat-body p{font-size:11px;color:var(--tx2);line-height:1.5}
+
+  .tip{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--tx2);line-height:1.6}
+  .tip strong{color:var(--emerald)}
+
+  .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .flow-step{background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--tx1)}
+  .flow-arrow{color:var(--tx3);font-size:14px}
+
+  .type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:10px}
+  .type-pill{display:flex;align-items:center;gap:6px;background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--tx1)}
+
+  .stability-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .stab{border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700}
+
+  .freq-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+  .freq-table th{text-align:left;padding:5px 8px;color:var(--tx3);font-weight:600;border-bottom:1px solid var(--border)}
+  .freq-table td{padding:5px 8px;color:var(--tx2);border-bottom:1px solid var(--border)}
+  .freq-table td:last-child{color:var(--emerald);font-family:'JetBrains Mono',monospace;font-weight:700}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .card{animation:fadeUp .5s ease both}
+  .card:nth-child(1){animation-delay:.05s}
+  .card:nth-child(2){animation-delay:.1s}
+  .card:nth-child(3){animation-delay:.15s}
+  .card:nth-child(4){animation-delay:.2s}
+
+  @media print{
+    body{background:#fff;color:#111;padding:16px}
+    .card{background:#f8fafc;border:1px solid #e2e8f0;break-inside:avoid}
+    :root{--tx1:#0f172a;--tx2:#475569;--tx3:#94a3b8;--border:#e2e8f0;--surf:#f1f5f9;--panel:#fff}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="badge">💰 Quick Start Guide · v1.0</div>
+    <h1>Get started with<br/><span>IncomeTracker</span></h1>
+    <p>Track every income stream in one place. Know exactly what comes in, how stable it is, and what your real monthly picture looks like.</p>
+  </div>
+
+  <!-- Getting Started -->
+  <div class="section-label" style="color:var(--emerald)">Getting Started</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(16,185,129,.2);color:var(--emerald)">1</div>
+        <div class="step-body">
+          <h3>Select Your Profile</h3>
+          <p>IncomeTracker shares your profile from the other FFP modules. If you've already set up a profile in DebtTracker or CardTracker, your name and avatar are already here. Tap the avatar in the top-right to switch profiles.</p>
+          <div style="margin-top:8px;font-size:11px;color:var(--tx3)">No profile yet? You'll be prompted to create one on first launch.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent" style="border-left-color:var(--indigo)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(99,102,241,.2);color:var(--indigo)">2</div>
+        <div class="step-body">
+          <h3>Add Your Income Streams</h3>
+          <p>Tap <strong style="color:var(--tx1)">+ Add Income</strong> for each source. Give it a name, pick a type, enter the amount and frequency. That's the minimum — the rest is optional but helpful.</p>
+          <div class="flow">
+            <span class="flow-step">Name</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">Type</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">Amount + Frequency</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">Save ✅</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent" style="border-left-color:var(--amber)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(245,158,11,.2);color:var(--amber)">3</div>
+        <div class="step-body">
+          <h3>Set Stability Ratings</h3>
+          <p>For each stream, mark how reliable it is. This powers the stability indicator in the dashboard and will feed into the AI Advisor when it launches.</p>
+          <div class="stability-row">
+            <span class="stab" style="background:rgba(16,185,129,.15);color:var(--emerald)">✅ Stable</span>
+            <span class="stab" style="background:rgba(6,182,212,.15);color:var(--teal)">〜 Mostly Stable</span>
+            <span class="stab" style="background:rgba(245,158,11,.15);color:var(--amber)">⚡ Variable</span>
+            <span class="stab" style="background:rgba(239,68,68,.15);color:#ef4444">⚠️ Irregular</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent" style="border-left-color:var(--purple)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(139,92,246,.2);color:var(--purple)">4</div>
+        <div class="step-body">
+          <h3>Review Your Dashboard</h3>
+          <p>The summary at the top shows your <strong style="color:var(--tx1)">total monthly income</strong>, <strong style="color:var(--tx1)">annual total</strong>, a breakdown by income type, and a stability overview. All values update instantly as you add or edit streams.</p>
+          <div style="margin-top:8px;font-size:11px;color:var(--tx3)">One-Time income is shown separately — it's excluded from the monthly recurring total.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Income Types -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="section-label" style="color:var(--tx3)">Income Types</div>
+    <div class="type-grid">
+      <div class="type-pill">💼 W2</div>
+      <div class="type-pill">🧾 Self-Employment</div>
+      <div class="type-pill">🏠 Rental</div>
+      <div class="type-pill">📈 Dividends</div>
+      <div class="type-pill">🏪 Side Business</div>
+      <div class="type-pill">🏛️ Benefits</div>
+      <div class="type-pill">💰 Other</div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--tx2)">Each type has its own color coding and icon in the dashboard breakdown. Use the type that best fits — you can always edit later.</div>
+  </div>
+
+  <!-- Frequency -->
+  <div class="grid grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">📅 Frequency → Monthly Conversion</div>
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:10px">All amounts are normalized to monthly for the dashboard total. Enter your actual pay amount — the conversion happens automatically.</p>
+      <table class="freq-table">
+        <thead><tr><th>Frequency</th><th>Monthly ×</th></tr></thead>
+        <tbody>
+          <tr><td>Weekly</td><td>× 4.333</td></tr>
+          <tr><td>Bi-Weekly</td><td>× 2.167</td></tr>
+          <tr><td>Semi-Monthly</td><td>× 2</td></tr>
+          <tr><td>Monthly</td><td>× 1</td></tr>
+          <tr><td>Quarterly</td><td>× 0.333</td></tr>
+          <tr><td>Annual</td><td>× 0.083</td></tr>
+          <tr><td>One-Time</td><td>shown separately</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">💡 Tips for Accuracy</div>
+      <div class="feat">
+        <div class="feat-icon">✅</div>
+        <div class="feat-body"><h4>Use after-tax amounts</h4><p>Toggle "After Tax" on each stream for your take-home pay. This gives you a realistic cash flow picture — especially important once the Spending Module launches.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📅</div>
+        <div class="feat-body"><h4>Set start and end dates</h4><p>Useful for contract work, seasonal income, or anything with a known end. End-dated streams are still shown but flagged as expiring.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🏷️</div>
+        <div class="feat-body"><h4>Assign a category</h4><p>Pick from the shared category list. This seeds the platform-wide category system used by Spending and the AI Advisor.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🎨</div>
+        <div class="feat-body"><h4>Color code your streams</h4><p>Each stream has a color picker. Color-coding by source or type makes the dashboard easier to read at a glance.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup -->
+  <div class="grid grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">📦 Backup & Restore</div>
+      <div class="feat">
+        <div class="feat-icon">⬇</div>
+        <div class="feat-body"><h4>Export JSON</h4><p>Full backup of all income streams. Use this before making major changes or when setting up a new device.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📋</div>
+        <div class="feat-body"><h4>Export CSV</h4><p>Spreadsheet-friendly export of all streams. Open in Excel or Google Sheets for your own analysis.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📥</div>
+        <div class="feat-body"><h4>Import JSON</h4><p>Restore from a backup. Choose Replace All (overwrites) or Merge (adds new streams, skips duplicates).</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">☁ Data & Storage</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2)">
+          <span style="font-size:18px">☁</span>
+          <div>
+            <div style="color:var(--emerald)">Cloud Sync Active</div>
+            <div style="font-size:11px;color:var(--tx2)">Income data synced across all devices sharing this artifact URL</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2)">
+          <span style="font-size:18px">💾</span>
+          <div>
+            <div style="color:var(--amber)">Local Only</div>
+            <div style="font-size:11px;color:var(--tx2)">Data stays on this device. Export JSON to back up or move.</div>
+          </div>
+        </div>
+        <div class="tip" style="margin-top:4px">
+          <strong>Category system:</strong> IncomeTracker seeds the shared FFP category list on first run. Every other module (Spending, AI Advisor) reads from the same list.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:20px 0 8px;font-size:11px;color:var(--tx3)">
+    IncomeTracker · Financial Freedom Platform · v1.0 · March 2026
+    &nbsp;·&nbsp; Part of the Financial Freedom Platform
+  </div>
+
+</div>
+</body>
+</html>
