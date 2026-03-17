@@ -1,5 +1,5 @@
-import LoanTracker from "../../modules/debt-tracker.jsx";
+import SpendingModule from "../../modules/spending.jsx";
 
 export default function App() {
-  return <LoanTracker />;
+  return <SpendingModule />;
 }
