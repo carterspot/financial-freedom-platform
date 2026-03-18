@@ -79,7 +79,7 @@
 
   <!-- Jump links -->
   <div class="nav-pills">
-    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.0</a>
+    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.1</a>
     <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.0</a>
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.1</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
@@ -92,13 +92,47 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#f97316,#f59e0b)">📊</div>
       <div>
         <div class="module-name">SpendingTracker</div>
-        <div class="module-version">v1.0 — Initial Release</div>
+        <div class="module-version">v1.1</div>
       </div>
       <div class="module-date">March 2026</div>
     </div>
 
     <div class="release">
-      <div class="release-tag tag-new">✨ New Module</div>
+      <div class="release-tag tag-fix">🔧 Bug Fixes — v1.1</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Profile switcher now works</h4>
+            <p>The nav bar avatar button was not opening the profile dropdown. A new ProfileDropdown component now shows all profiles with an active checkmark. Switching profiles reloads all data — accounts, transactions, categories, and rules — for the selected profile.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>JSON and CSV export now working</h4>
+            <p>Both export buttons were silently failing. The download anchor was detached from the DOM before it could fire. Fixed by appending the anchor to the document body before clicking and removing it after. Downloads now work reliably across all browsers.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Flagged transactions now clearly surfaced</h4>
+            <p>After import, low-confidence AI assignments now show an amber left border and a REVIEW badge on each flagged transaction row. A dismissible amber banner in the Transactions tab shows the total count of unreviewed items so nothing slips through.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Rules now apply retroactively</h4>
+            <p>Creating or editing a rule now immediately re-runs against all existing unlocked transactions. A confirmation shows how many transactions were updated. Confirming a Needs Review item also auto-creates a rule and applies it retroactively — next month's import will be faster automatically.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-new">✨ New Module — v1.0</div>
       <div class="changes">
         <div class="change">
           <div class="change-dot" style="background:var(--orange)"></div>

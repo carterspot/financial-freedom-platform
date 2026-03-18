@@ -366,6 +366,13 @@ Tracks spending transactions via CSV import from any bank or credit card stateme
 - No budget targets at v1 — rolling average IS the implied budget
 - Transaction objects carry `isSinkingFundCandidate` and `recurrencePattern` fields for future Savings Module handoff
 - localStorage safe for alpha (1–2 accounts, 6–12 months); Supabase trigger at 3+ accounts or 6+ months
+- Export downloads use `document.body.appendChild(a)` before `a.click()` and `document.body.removeChild(a)` after — detached anchors never trigger downloads. **Apply this pattern to all modules.**
+
+### v1.1 bug fixes (March 2026)
+- Profile switcher — added `ProfileDropdown` top-level component with active checkmark; `handleSwitchProfile` reloads all profile data on switch
+- JSON + CSV export silently failing — both export functions now use `appendChild/removeChild` anchor pattern; downloads work reliably
+- Needs Review not surfaced — `needsReview: true` flag now set on low/medium-confidence AI assignments and "skip" path; amber left border + REVIEW badge on transaction rows; dismissible amber banner in Transactions tab showing flagged count
+- Rules not retroactive — `applyRulesRetroactive()` runs after every rule save/edit, updating all `categoryLocked: false` transactions; shows "✓ Rule applied — X transactions updated" confirmation (auto-clears 4s); confirming a Needs Review item auto-creates a rule and applies retroactively
 
 ### Storage keys (SpendingTracker)
 ```
@@ -731,6 +738,7 @@ docs/
 - ✅ DebtTracker v1.1 — standalone profile creation screen (FirstRunSetup)
 - ✅ IncomeTracker v1.0 — income stream CRUD, frequency normalization, stability ratings, category seeding
 - ✅ SpendingTracker v1.0 — CSV import, column mapper, AI batch categorization, rules engine, actuals + rolling average
+- ✅ SpendingTracker v1.1 — profile switcher fix, export anchor fix, needs review surfacing, retroactive rule apply
 - ✅ CLAUDE.md — trimmed for token efficiency, added to repo root
 - ✅ Vite preview server — localhost:5173 for local JSX testing
 - ✅ GitHub Pages landing page — docs/index.html with module cards, artifact links, QS + What's New buttons
@@ -760,6 +768,7 @@ docs/
 - SpendingTracker v1.1 — add `recurrenceType` field UI to transactions (annual/biannual/quarterly/monthly/one-time); feeds Savings Module sinking fund suggestions
 - SpendingTracker v1.1 — user flag for recurring expenses with frequency, surfaces in Savings as goal candidates
 - Savings Module — alert system when sinking fund due date approaches and fund is underfunded
+- All modules — apply `appendChild/removeChild` export anchor fix to CardTracker, LoanTracker, DebtTracker, IncomeTracker on next touch (same silent export bug)
 
 ---
 
