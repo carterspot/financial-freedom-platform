@@ -79,10 +79,85 @@
 
   <!-- Jump links -->
   <div class="nav-pills">
+    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.0</a>
     <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.0</a>
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.1</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
     <a href="#loan-tracker" class="nav-pill">🏦 LoanTracker v1.2</a>
+  </div>
+
+  <!-- ── SpendingTracker ── -->
+  <div class="module-section" id="spending-tracker">
+    <div class="module-header">
+      <div class="module-icon" style="background:linear-gradient(135deg,#f97316,#f59e0b)">📊</div>
+      <div>
+        <div class="module-name">SpendingTracker</div>
+        <div class="module-version">v1.0 — Initial Release</div>
+      </div>
+      <div class="module-date">March 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-new">✨ New Module</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>CSV import from any bank or credit card statement</h4>
+            <p>Import spending data from Chase, Bank of America, Amex, or any institution. The column mapper lets you match your CSV's columns to the required fields — and remembers your setup for every future import from that account.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>Sign-flip toggle per account</h4>
+            <p>Credit card statements show purchases as positive — bank statements show them as debits. A per-account flip toggle normalizes everything automatically and is remembered for every future import.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>AI batch categorization on import</h4>
+            <p>After rules run, all uncategorized transactions are sent to AI in a single API call. High-confidence matches are assigned silently. Low-confidence ones go to a Needs Review queue — confirm them and rules are auto-created for next time.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>Rules engine — full CRUD + AI suggest</h4>
+            <p>SpendingTracker owns the shared platform rules engine. Create rules manually, create them from any transaction row, or let AI suggest rules for your unruled merchants. Rules run before AI on every future import.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>Actuals view with 3-month rolling average</h4>
+            <p>The Summary tab shows what you actually spent per category this month alongside a 3-month rolling average. Delta is color-coded — green means under average, amber is 10–25% over, red is 25%+ over. No manual budget entry required.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>Three-tab layout: Transactions / Summary / Rules</h4>
+            <p>Transactions shows your full monthly list with search and category filter. Summary shows category-level actuals vs rolling average. Rules is the full rules management interface.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Deduplication on import</h4>
+            <p>Before importing, the module checks for existing transactions with matching date, description, and amount. Duplicates are flagged so you can choose to skip or overwrite — safe to re-import the same statement without doubling entries.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Category seeding fallback</h4>
+            <p>If IncomeTracker hasn't been run yet, SpendingTracker seeds the shared FFP category list (56 categories, 13 sections) automatically on first run. The category system is always ready regardless of module order.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ── IncomeTracker ── -->

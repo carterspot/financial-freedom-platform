@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SpendingTracker — Quick Start Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#020617;--panel:#0f172a;--surf:#1e293b;
+    --indigo:#6366f1;--emerald:#10b981;--amber:#f59e0b;
+    --pink:#ec4899;--orange:#f97316;--purple:#8b5cf6;
+    --teal:#06b6d4;
+    --tx1:#f1f5f9;--tx2:#94a3b8;--tx3:#475569;
+    --border:#1e293b;
+  }
+  body{
+    background:var(--bg);color:var(--tx1);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;padding:32px 24px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 20% 10%,rgba(249,115,22,.10) 0%,transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 80%,rgba(245,158,11,.07) 0%,transparent 60%);
+  }
+  .page{max-width:960px;margin:0 auto}
+
+  .header{text-align:center;margin-bottom:40px}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3);border-radius:100px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--orange);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
+  .header h1{font-size:clamp(28px,5vw,48px);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:10px}
+  .header h1 span{background:linear-gradient(135deg,#f97316,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header p{font-size:15px;color:var(--tx2);max-width:520px;margin:0 auto;line-height:1.6}
+
+  .grid{display:grid;gap:16px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:700px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden}
+  .card-accent{border-left:3px solid var(--orange)}
+
+  .step-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+  .section-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .section-label::after{content:"";flex:1;height:1px;background:var(--border)}
+
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .step-body h3{font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:4px}
+  .step-body p{font-size:12px;color:var(--tx2);line-height:1.6}
+  .step-body code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surf);padding:1px 6px;border-radius:4px;color:var(--orange)}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+  .feat{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+  .feat:last-child{border:none;padding-bottom:0}
+  .feat-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;margin-top:1px}
+  .feat-body h4{font-size:13px;font-weight:700;color:var(--tx1);margin-bottom:2px}
+  .feat-body p{font-size:11px;color:var(--tx2);line-height:1.5}
+
+  .tip{background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--tx2);line-height:1.6}
+  .tip strong{color:var(--orange)}
+
+  .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .flow-step{background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--tx1)}
+  .flow-arrow{color:var(--tx3);font-size:14px}
+
+  .delta-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+  .delta-row:last-child{border:none}
+  .delta-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .card{animation:fadeUp .5s ease both}
+  .card:nth-child(1){animation-delay:.05s}
+  .card:nth-child(2){animation-delay:.1s}
+  .card:nth-child(3){animation-delay:.15s}
+  .card:nth-child(4){animation-delay:.2s}
+
+  @media print{
+    body{background:#fff;color:#111;padding:16px}
+    .card{background:#f8fafc;border:1px solid #e2e8f0;break-inside:avoid}
+    :root{--tx1:#0f172a;--tx2:#475569;--tx3:#94a3b8;--border:#e2e8f0;--surf:#f1f5f9;--panel:#fff}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="badge">📊 Quick Start Guide · v1.0</div>
+    <h1>Get started with<br/><span>SpendingTracker</span></h1>
+    <p>Import your bank and credit card statements, let AI categorize your spending, and see exactly where your money goes every month.</p>
+  </div>
+
+  <!-- Getting Started -->
+  <div class="section-label" style="color:var(--orange)">First Import</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(249,115,22,.2);color:var(--orange)">1</div>
+        <div class="step-body">
+          <h3>Export a Statement from Your Bank</h3>
+          <p>Log into your bank or credit card and download a CSV statement for the current month. Most institutions have an "Export" or "Download" option in the transaction history. <strong style="color:var(--tx1)">Chase, BoA, Amex, Wells Fargo</strong> — all work.</p>
+          <div style="margin-top:8px;font-size:11px;color:var(--tx3)">CSV format required. Any column order is fine — you'll map them in step 3.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent" style="border-left-color:var(--indigo)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(99,102,241,.2);color:var(--indigo)">2</div>
+        <div class="step-body">
+          <h3>Tap Import CSV</h3>
+          <p>Click <strong style="color:var(--tx1)">Import CSV</strong> in the top-right of the Transactions tab. Create a new account — give it a nickname like <code>Chase Checking</code> or <code>Amex Blue</code> and pick the account type.</p>
+          <div style="margin-top:8px;font-size:11px;color:var(--tx3)">The nickname is how SpendingTracker remembers your column mapping for next time.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent" style="border-left-color:var(--teal)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(6,182,212,.2);color:var(--teal)">3</div>
+        <div class="step-body">
+          <h3>Map Your Columns</h3>
+          <p>The column mapper shows your CSV's column headers. Match them to the required fields: <strong style="color:var(--tx1)">Date</strong>, <strong style="color:var(--tx1)">Description</strong>, and <strong style="color:var(--tx1)">Amount</strong>. Optional: Type field and their category column.</p>
+          <div class="tip" style="margin-top:10px">
+            <strong>Credit card?</strong> Toggle <strong>Flip amount sign</strong> — CC statements show purchases as positive, but we store expenses as negative. Toggle is remembered for every future import from this account.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent" style="border-left-color:var(--purple)">
+      <div class="step">
+        <div class="step-num" style="background:rgba(139,92,246,.2);color:var(--purple)">4</div>
+        <div class="step-body">
+          <h3>AI Categorizes Everything</h3>
+          <p>After mapping, AI reviews all uncategorized transactions in one pass. Confident matches are assigned automatically. Anything uncertain goes to a <strong style="color:var(--tx1)">Needs Review</strong> queue for you to confirm.</p>
+          <div class="flow" style="margin-top:10px">
+            <span class="flow-step">Rules run first</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">AI handles rest</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">Review queue</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">Rules auto-created ✅</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three tabs -->
+  <div class="section-label" style="color:var(--indigo)">The Three Tabs</div>
+  <div class="grid grid-3" style="margin-bottom:16px">
+
+    <div class="card">
+      <div style="font-size:22px;margin-bottom:10px">📋</div>
+      <div style="font-size:14px;font-weight:800;color:var(--tx1);margin-bottom:8px">Transactions</div>
+      <div class="feat">
+        <div class="feat-body"><h4>Monthly transaction list</h4><p>All transactions for the selected month. Use the month selector arrows to move between months.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-body"><h4>Search + filter</h4><p>Search by merchant name or filter by category to find exactly what you're looking for.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-body"><h4>Edit any transaction</h4><p>Click the edit icon to change category, add notes, or lock the category so AI never overrides it.</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:22px;margin-bottom:10px">📊</div>
+      <div style="font-size:14px;font-weight:800;color:var(--tx1);margin-bottom:8px">Summary</div>
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:12px;line-height:1.6">Category-level view of this month's spending vs your 3-month rolling average.</p>
+      <div class="delta-row">
+        <div class="delta-dot" style="background:var(--emerald)"></div>
+        <span style="color:var(--tx2)">Under average — you're spending less than usual</span>
+      </div>
+      <div class="delta-row">
+        <div class="delta-dot" style="background:var(--amber)"></div>
+        <span style="color:var(--tx2)">10–25% over average — worth watching</span>
+      </div>
+      <div class="delta-row">
+        <div class="delta-dot" style="background:#ef4444"></div>
+        <span style="color:var(--tx2)">25%+ over average — significant spike</span>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--tx3)">The rolling average is your implied budget. No manual entry required.</div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:22px;margin-bottom:10px">⚙️</div>
+      <div style="font-size:14px;font-weight:800;color:var(--tx1);margin-bottom:8px">Rules</div>
+      <div class="feat">
+        <div class="feat-body"><h4>View all rules</h4><p>See every auto-assignment rule — pattern, category, and whether it was created by you or AI.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-body"><h4>Add rules manually</h4><p>Create a rule: if description contains "WALMART" → Groceries. Contains, starts with, or exact match.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-body"><h4>AI Suggest Rules</h4><p>Let AI analyze your unruled transactions and propose rules. Review and confirm in one click.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="grid grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">💡 Pro Tips</div>
+      <div class="feat">
+        <div class="feat-icon">🔒</div>
+        <div class="feat-body"><h4>Lock categories you've manually set</h4><p>Click the lock icon on any transaction to prevent AI or rules from ever changing that category. Good for transactions that AI consistently miscategorizes.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📅</div>
+        <div class="feat-body"><h4>Import each account monthly</h4><p>Re-importing the same account is safe — the deduplication check skips transactions already in the system. You won't get doubles.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">⚡</div>
+        <div class="feat-body"><h4>Rules get smarter over time</h4><p>Every confirmed review item auto-creates a rule. After 2–3 months your imports will be nearly fully automatic — minimal review queue.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🏷️</div>
+        <div class="feat-body"><h4>Use "Create rule from this"</h4><p>On any transaction row, the edit menu has a "Create rule from this" option. Fastest way to add a rule for a specific merchant.</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:800;color:var(--tx1);margin-bottom:12px">📦 Backup & Accounts</div>
+      <div class="feat">
+        <div class="feat-icon">➕</div>
+        <div class="feat-body"><h4>Multiple accounts</h4><p>Add as many accounts as you need — checking, savings, credit cards. Each has its own column mapping and sign-flip setting. All transactions appear together in the monthly view.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">⬇</div>
+        <div class="feat-body"><h4>Export JSON backup</h4><p>Export a full JSON backup before making major changes. Includes all transactions, accounts, and rules.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📋</div>
+        <div class="feat-body"><h4>Export CSV</h4><p>Spreadsheet-friendly export of all transactions. Open in Excel for your own analysis.</p></div>
+      </div>
+      <div class="tip" style="margin-top:12px">
+        <strong>Storage note:</strong> SpendingTracker is optimized for 1–2 accounts and up to 6–12 months of history in local mode. Cloud sync extends this across devices.
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:20px 0 8px;font-size:11px;color:var(--tx3)">
+    SpendingTracker · Financial Freedom Platform · v1.0 · March 2026
+    &nbsp;·&nbsp; Part of the Financial Freedom Platform
+  </div>
+
+</div>
+</body>
+</html>

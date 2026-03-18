@@ -14,8 +14,8 @@ Financial Freedom Platform
 ├── 💳 CardTracker      (BUILT — v3.1 complete)
 ├── 🏦 LoanTracker      (BUILT — v1.2 complete)
 ├── ⚡ DebtTracker      (BUILT — v1.1 complete)
-├── 💰 Income Module    (PLANNED — income streams, stability)
-├── 📊 Spending Module  (PLANNED — budget, categories, trends)
+├── 💰 IncomeTracker    (BUILT — v1.0 complete)
+├── 📊 SpendingTracker  (BUILT — v1.0 complete)
 ├── 🏦 Savings Module   (PLANNED — emergency fund, goals)
 ├── 📈 Retirement Module(PLANNED — 401k, IRA, projections)
 └── 🧠 AI Advisor       (PLANNED — holistic cross-module planning)
@@ -337,13 +337,88 @@ ffp_categories_{profileId} (shared) — seeded on first run if empty
 
 ---
 
-## Module 5: Spending Module (PLANNED — NEXT)
+## Module 5: SpendingTracker (COMPLETE — v1.0)
 
-Budget tracking — category budgets vs actuals. Calculates money available for debt/savings.
+### What it is
+Tracks spending transactions via CSV import from any bank or credit card statement. Owns the shared rules engine (`ffp_cat_rules_`) and is the first module to provide full category management UI. AI batch categorization on import, actuals view with 3-month rolling average, and a full rules CRUD interface.
 
-- Full categorization engine using shared `ffp_categories_{profileId}` and `ffp_cat_rules_{profileId}`
-- CSV import with AI batch categorization
-- Storage prefix: `sp_`
+### Key features built
+- CSV import — bank statements + credit card statements (any format)
+- Column mapper with memory per account — maps source columns to required fields, saved per account nickname
+- Sign-flip toggle per account — CC statements flip positive→negative, remembered per account
+- Deduplication on import — match by date + description + amount, user chooses skip or overwrite
+- AI batch categorization — one API call per import; high-confidence auto-assigns silently, low-confidence → Needs Review queue
+- Confirmed review items auto-create rules for next import
+- Rules engine — full CRUD for `ffp_cat_rules_{profileId}` (Spending owns this UI)
+- AI Suggest Rules — sends unruled transaction descriptions to AI, returns rule suggestions for one-click confirm
+- Three-tab layout: Transactions / Summary / Rules
+- Transactions tab — monthly view, search by description, filter by category, all on screen
+- Summary tab — actuals by category with 3-month rolling average delta (green/amber/red)
+- Month selector — prev/next arrows, all views respect selected month
+- Category seeding fallback — seeds `ffp_categories_` if Income hasn't run yet
+- Export JSON + CSV, Import JSON (replace or merge)
+- Shared profile + API key system (cc_profiles, cc_apikey)
+- Dark/light mode, cloud + localStorage fallback storage
+
+### Architecture decisions
+- Rules run before AI on every import — rule matches auto-assigned, skipped by AI
+- Rolling 3-month average computed at display time from stored transactions — never pre-aggregated
+- No budget targets at v1 — rolling average IS the implied budget
+- Transaction objects carry `isSinkingFundCandidate` and `recurrencePattern` fields for future Savings Module handoff
+- localStorage safe for alpha (1–2 accounts, 6–12 months); Supabase trigger at 3+ accounts or 6+ months
+
+### Storage keys (SpendingTracker)
+```
+sp_transactions_{profileId}    (shared) — array of transaction objects
+sp_accounts_{profileId}        (shared) — array of account objects
+sp_selected_month_{profileId}  (shared) — currently selected month YYYY-MM
+sp_dark                        (local)  — dark mode boolean
+cc_profiles                    (shared) — SHARED across all modules
+cc_active_profile              (shared) — SHARED across all modules
+cc_apikey                      (shared) — SHARED across all modules
+ffp_categories_{profileId}     (shared) — SHARED, seed if empty
+ffp_cat_rules_{profileId}      (shared) — SHARED, Spending owns CRUD
+ffp_import_maps_{profileId}    (shared) — column mapper settings per account
+```
+
+### Transaction schema
+```json
+{
+  "id": "generated",
+  "accountId": "acc_abc123",
+  "date": "2026-03-15",
+  "description": "WALMART SUPERCENTER",
+  "amount": -84.32,
+  "categoryId": "exp_012",
+  "categoryLocked": false,
+  "ruleId": "rule_abc123",
+  "theirCategory": "GROCERIES",
+  "notes": "",
+  "isSinkingFundCandidate": false,
+  "recurrencePattern": "",
+  "importedAt": "2026-03-17T00:00:00.000Z"
+}
+```
+
+### Account schema
+```json
+{
+  "id": "acc_abc123",
+  "nickname": "Chase Checking",
+  "type": "checking",
+  "color": "#3b82f6",
+  "flipSign": false,
+  "columnMap": {
+    "date": "Transaction Date",
+    "description": "Description",
+    "amount": "Amount",
+    "type": "Type",
+    "theirCategory": "Category"
+  }
+}
+```
+
+**Artifact:** `modules/spending.jsx`
 
 ---
 
@@ -592,13 +667,15 @@ These MUST be followed or the artifact crashes with `returnReact is not defined`
 ### docs/ folder
 ```
 docs/
-├── index.html            — GitHub Pages landing page (CONFIG block for artifact URLs)
-├── whats-new.html        — Release notes for all live modules
-├── user-quickstart.html  — CardTracker quick start guide
-├── loan-quickstart.html  — LoanTracker quick start guide (hosted as Claude artifact)
-├── debt-quickstart.html  — DebtTracker quick start guide
-├── ffp-categories.xlsx   — Default category set (48 categories, 13 sections)
-└── design-system.md      — Full component patterns and visual specs
+├── index.html              — GitHub Pages landing page (CONFIG block for artifact URLs)
+├── whats-new.html          — Release notes for all live modules
+├── user-quickstart.html    — CardTracker quick start guide
+├── loan-quickstart.html    — LoanTracker quick start guide (hosted as Claude artifact)
+├── debt-quickstart.html    — DebtTracker quick start guide
+├── income-quickstart.html  — IncomeTracker quick start guide
+├── spending-quickstart.html— SpendingTracker quick start guide
+├── ffp-categories.xlsx     — Default category set (56 categories, 13 sections)
+└── design-system.md        — Full component patterns and visual specs
 ```
 
 **Updating artifact URLs:** Edit the `CONFIG` block at the top of `docs/index.html` directly on GitHub (pencil icon). One line per module. Takes 30 seconds.
@@ -618,16 +695,17 @@ docs/
 - ✅ DebtTracker v1 — unified cards + loans, 5-tab planner, strategy builder, import banner, shared profiles
 - ✅ DebtTracker v1.1 — standalone profile creation screen (FirstRunSetup)
 - ✅ IncomeTracker v1.0 — income stream CRUD, frequency normalization, stability ratings, category seeding
-- ✅ CLAUDE.md — added to repo root for Claude Code context
+- ✅ SpendingTracker v1.0 — CSV import, column mapper, AI batch categorization, rules engine, actuals + rolling average
+- ✅ CLAUDE.md — trimmed for token efficiency, added to repo root
 - ✅ Vite preview server — localhost:5173 for local JSX testing
 - ✅ GitHub Pages landing page — docs/index.html with module cards, artifact links, QS + What's New buttons
-- ✅ What's New page — docs/whats-new.html covering all four live modules
-- ✅ Quick start guides — user-quickstart.html (CardTracker), loan-quickstart.html (LoanTracker), debt-quickstart.html (DebtTracker), income-quickstart.html (IncomeTracker)
+- ✅ What's New page — docs/whats-new.html covering all five live modules
+- ✅ Quick start guides — all five live modules have quickstart guides in docs/
 - ✅ Default category set — docs/ffp-categories.xlsx (56 categories, 13 sections); hardcoded in income.jsx DEFAULT_CATEGORIES constant
 - ✅ Category system architecture — shared platform layer, schemas, auto-assign priority, AI batch categorization design
+- ✅ context-mode installed — MCP context virtualization layer, ~98% context savings in Code sessions
 
 ### Up Next
-- [ ] Spending Module v1 — full categorization engine, CSV import with AI batch categorization
 - [ ] Family migration from CardTracker/LoanTracker → DebtTracker, then deprecate legacy modules from landing page
 - [ ] Savings Module v1 — emergency fund + sinking fund goals
 - [ ] Retirement Module v1 — balances, contributions, projections

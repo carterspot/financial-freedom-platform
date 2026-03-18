@@ -337,6 +337,19 @@
 const CONFIG = {
   modules: [
     {
+      id: "spending",
+      name: "SpendingTracker",
+      icon: "📊",
+      iconBg: "linear-gradient(135deg,#f97316,#f59e0b)",
+      desc: "Import bank + CC statements, AI-categorizes your spending, and shows you actuals vs your rolling average. The platform's category engine lives here.",
+      version: "v1.0",
+      status: "live",
+      group: "primary",
+      artifactUrl: "https://claude.ai/public/artifacts/d3a50010-65a2-4c63-99ef-6f2668c03660",
+      quickstartUrl: "spending-quickstart.html",
+      whatsNewUrl: "whats-new.html#spending-tracker"
+    },
+    {
       id: "income",
       name: "IncomeTracker",
       icon: "💰",
@@ -387,18 +400,6 @@ const CONFIG = {
       artifactUrl: "https://claude.ai/public/artifacts/b299eb32-cd52-4668-b3e9-f130d0fe5d27",
       quickstartUrl: "loantracker-quickstart.html",
       whatsNewUrl: "whats-new.html#loan-tracker"
-    },
-    {
-      id: "spending",
-      name: "Spending Module",
-      icon: "📊",
-      iconBg: "linear-gradient(135deg,#f97316,#f59e0b)",
-      desc: "Budget by category and track actuals. Know your real monthly number so the AI can give you real payoff advice.",
-      version: null,
-      status: "soon",
-      artifactUrl: "",
-      quickstartUrl: "",
-      whatsNewUrl: ""
     },
     {
       id: "savings",
