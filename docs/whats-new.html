@@ -79,7 +79,7 @@
 
   <!-- Jump links -->
   <div class="nav-pills">
-    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.1</a>
+    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.2</a>
     <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.0</a>
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.1</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
@@ -92,9 +92,64 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#f97316,#f59e0b)">📊</div>
       <div>
         <div class="module-name">SpendingTracker</div>
-        <div class="module-version">v1.1</div>
+        <div class="module-version">v1.2</div>
       </div>
       <div class="module-date">March 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-feature">⚡ Features — v1.2</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Summary tab is now first</h4>
+            <p>Tab order is now Summary / Transactions / Rules with Summary as the default. Your spending overview is the first thing you see when you open the module.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Category bar charts with budget average overlay</h4>
+            <p>Each category now shows a horizontal bar sized as a percentage of your monthly income. Income categories appear at the top, expenses sorted highest to lowest. A dash marks your 3-month rolling average — your visual budget gauge. Delta labels show green, amber, or red depending on how far you're over or under.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Click category → jump to filtered transactions</h4>
+            <p>Clicking any category row in the Summary tab switches to Transactions and pre-filters to that category automatically. No manual filter setup needed.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Debit / Credit toggle + multi-category filter</h4>
+            <p>The Transactions tab now has an All / Debit / Credit toggle and a multi-category selector. Pick one or more categories at once — both filters work together with AND logic. Selected category count shows as a badge.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Create rule or new category from Edit Transaction</h4>
+            <p>"+ Create Rule from This" pre-fills a new rule with the transaction description and applies it retroactively on save. "+ New Category" opens an inline form to create a custom category — name, icon, type, color — and immediately assigns it to the transaction.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Transfer category added</h4>
+            <p>A Transfer category (↔️) is now in the default category set for tracking account-to-account transfers. Automatically seeded into existing profiles on next load.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Dark mode contrast fixes</h4>
+            <p>Account nicknames, Rules tab headers, and empty-state text were using near-invisible grey in dark mode. All upgraded to the correct text color tokens.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">

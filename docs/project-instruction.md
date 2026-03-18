@@ -374,6 +374,14 @@ Tracks spending transactions via CSV import from any bank or credit card stateme
 - Needs Review not surfaced — `needsReview: true` flag now set on low/medium-confidence AI assignments and "skip" path; amber left border + REVIEW badge on transaction rows; dismissible amber banner in Transactions tab showing flagged count
 - Rules not retroactive — `applyRulesRetroactive()` runs after every rule save/edit, updating all `categoryLocked: false` transactions; shows "✓ Rule applied — X transactions updated" confirmation (auto-clears 4s); confirming a Needs Review item auto-creates a rule and applies retroactively
 
+### v1.2 features (March 2026)
+- Summary tab moved before Transactions — new order: Summary / Transactions / Rules, Summary is default active tab
+- Summary charts — income categories at top, expenses sorted high→low, horizontal bars as % of monthly income, budget average dash overlay at 3-month rolling average, delta labels color-coded, click category → switches to Transactions tab with filter applied
+- Transactions — Debit/Credit toggle (All/Debit/Credit), multi-category filter (`CategoryMultiSelect` with badge count + click-outside close), AND logic between both filters
+- Dark mode contrast pass — account nickname, RulesTab headers, empty-state placeholders upgraded from `tx3` → `tx2`
+- Edit Transaction modal — "+ Create Rule from This" pre-fills RuleModal and applies retroactively on save; "+ New Category" (`NewCategoryModal`: name/icon/type/color) immediately selects new category and saves to `ffp_categories_`
+- Transfer category `trn_001` added to `DEFAULT_CATEGORIES` — seeded on init and profile switch if missing
+
 ### Storage keys (SpendingTracker)
 ```
 sp_transactions_{profileId}    (shared) — array of transaction objects
@@ -739,6 +747,7 @@ docs/
 - ✅ IncomeTracker v1.0 — income stream CRUD, frequency normalization, stability ratings, category seeding
 - ✅ SpendingTracker v1.0 — CSV import, column mapper, AI batch categorization, rules engine, actuals + rolling average
 - ✅ SpendingTracker v1.1 — profile switcher fix, export anchor fix, needs review surfacing, retroactive rule apply
+- ✅ SpendingTracker v1.2 — Summary tab first, category bar charts, debit/credit filter, multi-category filter, dark mode contrast, create rule/category from edit modal, transfer category
 - ✅ CLAUDE.md — trimmed for token efficiency, added to repo root
 - ✅ Vite preview server — localhost:5173 for local JSX testing
 - ✅ GitHub Pages landing page — docs/index.html with module cards, artifact links, QS + What's New buttons
@@ -765,8 +774,8 @@ docs/
 - Plaid / bank import — Phase 4
 - CC Rewards tracker
 - AI-personalized category taxonomy (v2/premium)
-- SpendingTracker v1.1 — add `recurrenceType` field UI to transactions (annual/biannual/quarterly/monthly/one-time); feeds Savings Module sinking fund suggestions
-- SpendingTracker v1.1 — user flag for recurring expenses with frequency, surfaces in Savings as goal candidates
+- SpendingTracker v1.3 — add `recurrenceType` field UI to transactions (annual/biannual/quarterly/monthly/one-time); feeds Savings Module sinking fund suggestions
+- SpendingTracker v1.3 — user flag for recurring expenses with frequency, surfaces in Savings as goal candidates
 - Savings Module — alert system when sinking fund due date approaches and fund is underfunded
 - All modules — apply `appendChild/removeChild` export anchor fix to CardTracker, LoanTracker, DebtTracker, IncomeTracker on next touch (same silent export bug)
 

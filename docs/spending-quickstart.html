@@ -84,7 +84,7 @@
 <div class="page">
 
   <div class="header">
-    <div class="badge">📊 Quick Start Guide · v1.0</div>
+    <div class="badge">📊 Quick Start Guide · v1.2</div>
     <h1>Get started with<br/><span>SpendingTracker</span></h1>
     <p>Import your bank and credit card statements, let AI categorize your spending, and see exactly where your money goes every month.</p>
   </div>
@@ -153,36 +153,34 @@
   <div class="grid grid-3" style="margin-bottom:16px">
 
     <div class="card">
+      <div style="font-size:22px;margin-bottom:10px">📊</div>
+      <div style="font-size:14px;font-weight:800;color:var(--tx1);margin-bottom:8px">Summary <span style="font-size:10px;color:var(--emerald);font-weight:700;background:rgba(16,185,129,.15);border-radius:4px;padding:2px 6px;margin-left:4px">DEFAULT</span></div>
+      <div class="feat">
+        <div class="feat-body"><h4>Category bar charts</h4><p>Income categories at top, expenses sorted highest to lowest. Bars show spend as % of monthly income. A dash marks your 3-month rolling average — your visual budget line.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-body"><h4>Delta color coding</h4><p>Green = under average. Amber = 10–25% over. Red = 25%+ over. See at a glance where you're surging this month.</p></div>
+      </div>
+      <div class="feat">
+        <div class="feat-body"><h4>Click to filter</h4><p>Click any category row to jump to the Transactions tab pre-filtered to that category. No manual setup needed.</p></div>
+      </div>
+    </div>
+
+    <div class="card">
       <div style="font-size:22px;margin-bottom:10px">📋</div>
       <div style="font-size:14px;font-weight:800;color:var(--tx1);margin-bottom:8px">Transactions</div>
       <div class="feat">
         <div class="feat-body"><h4>Monthly transaction list</h4><p>All transactions for the selected month. Use the month selector arrows to move between months.</p></div>
       </div>
       <div class="feat">
-        <div class="feat-body"><h4>Search + filter</h4><p>Search by merchant name or filter by category to find exactly what you're looking for.</p></div>
+        <div class="feat-body"><h4>Debit / Credit toggle</h4><p>Filter to All, Debit only, or Credit only. Useful for seeing just expenses or just income credits.</p></div>
       </div>
       <div class="feat">
-        <div class="feat-body"><h4>Edit any transaction</h4><p>Click the edit icon to change category, add notes, or lock the category so AI never overrides it.</p></div>
+        <div class="feat-body"><h4>Multi-category filter</h4><p>Select one or more categories at once. Badge shows how many are active. Works together with the Debit/Credit toggle.</p></div>
       </div>
-    </div>
-
-    <div class="card">
-      <div style="font-size:22px;margin-bottom:10px">📊</div>
-      <div style="font-size:14px;font-weight:800;color:var(--tx1);margin-bottom:8px">Summary</div>
-      <p style="font-size:12px;color:var(--tx2);margin-bottom:12px;line-height:1.6">Category-level view of this month's spending vs your 3-month rolling average.</p>
-      <div class="delta-row">
-        <div class="delta-dot" style="background:var(--emerald)"></div>
-        <span style="color:var(--tx2)">Under average — you're spending less than usual</span>
+      <div class="feat">
+        <div class="feat-body"><h4>Edit any transaction</h4><p>Click edit to change category, add notes, lock the category, create a rule from the transaction, or add a new custom category on the spot.</p></div>
       </div>
-      <div class="delta-row">
-        <div class="delta-dot" style="background:var(--amber)"></div>
-        <span style="color:var(--tx2)">10–25% over average — worth watching</span>
-      </div>
-      <div class="delta-row">
-        <div class="delta-dot" style="background:#ef4444"></div>
-        <span style="color:var(--tx2)">25%+ over average — significant spike</span>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--tx3)">The rolling average is your implied budget. No manual entry required.</div>
     </div>
 
     <div class="card">
@@ -192,7 +190,7 @@
         <div class="feat-body"><h4>View all rules</h4><p>See every auto-assignment rule — pattern, category, and whether it was created by you or AI.</p></div>
       </div>
       <div class="feat">
-        <div class="feat-body"><h4>Add rules manually</h4><p>Create a rule: if description contains "WALMART" → Groceries. Contains, starts with, or exact match.</p></div>
+        <div class="feat-body"><h4>Add rules manually</h4><p>Create a rule: if description contains "WALMART" → Groceries. Contains, starts with, or exact match. Applies to existing transactions immediately.</p></div>
       </div>
       <div class="feat">
         <div class="feat-body"><h4>AI Suggest Rules</h4><p>Let AI analyze your unruled transactions and propose rules. Review and confirm in one click.</p></div>
@@ -243,7 +241,7 @@
   </div>
 
   <div style="text-align:center;padding:20px 0 8px;font-size:11px;color:var(--tx3)">
-    SpendingTracker · Financial Freedom Platform · v1.0 · March 2026
+    SpendingTracker · Financial Freedom Platform · v1.2 · March 2026
     &nbsp;·&nbsp; Part of the Financial Freedom Platform
   </div>
 
