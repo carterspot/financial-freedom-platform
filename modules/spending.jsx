@@ -284,6 +284,30 @@ async function callClaude(apiKey, body) {
   return res;
 }
 
+// ─── ProfileDropdown ──────────────────────────────────────────────────────────
+function ProfileDropdown({ t, profiles, activeProfile, onSwitch, onClose }) {
+  return (
+    <div style={{ position:"absolute",top:"calc(100% + 6px)",right:0,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,.3)",minWidth:200,zIndex:300,overflow:"hidden" }}>
+      <div style={{ padding:"8px 14px 6px",borderBottom:`1px solid ${t.border}` }}>
+        <span style={{ fontSize:11,fontWeight:600,color:t.tx3 }}>SWITCH PROFILE</span>
+      </div>
+      {profiles.map(p => (
+        <div key={p.id} onClick={() => onSwitch(p)}
+          style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",background:p.id===activeProfile?.id?COLOR.primary+"18":"transparent",borderBottom:`1px solid ${t.border}`,transition:"background .15s" }}>
+          <div style={{ width:28,height:28,borderRadius:"50%",background:p.color||COLOR.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0 }}>
+            {(p.name||"?").charAt(0).toUpperCase()}
+          </div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:700,fontSize:13,color:t.tx1 }}>{p.name}</div>
+            {p.id===activeProfile?.id && <div style={{ fontSize:10,color:COLOR.primary,fontWeight:600 }}>Active</div>}
+          </div>
+          {p.id===activeProfile?.id && <span style={{ fontSize:14,color:COLOR.primary }}>✓</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── ConfirmModal ─────────────────────────────────────────────────────────────
 function ConfirmModal({ t, message, onConfirm, onCancel }) {
   return (
@@ -332,7 +356,8 @@ function BackupModal({ t, transactions, accounts, categories, onClose }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = `spending-backup-${currentYYYYMM()}.json`;
-    a.click(); URL.revokeObjectURL(url);
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
   function exportCSV() {
     const catMap = Object.fromEntries((categories||[]).map(c => [c.id, c.name]));
@@ -346,7 +371,8 @@ function BackupModal({ t, transactions, accounts, categories, onClose }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = `spending-transactions-${currentYYYYMM()}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
   return (
     <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
@@ -495,7 +521,7 @@ function TransactionModal({ t, transaction, accounts, categories, onSave, onClos
   function handleSave() {
     const amt = parseAmount(amount);
     if (!date || !description.trim() || amt === null) return;
-    onSave({ ...(transaction||{}), id: transaction?.id||generateId(), date, description:description.trim(), amount:amt, accountId, categoryId, notes, categoryLocked:true, importedAt: transaction?.importedAt||new Date().toISOString() });
+    onSave({ ...(transaction||{}), id: transaction?.id||generateId(), date, description:description.trim(), amount:amt, accountId, categoryId, notes, categoryLocked:true, needsReview:false, importedAt: transaction?.importedAt||new Date().toISOString() });
   }
 
   const inp = { width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box" };
@@ -776,15 +802,16 @@ Confidence: "high" (obvious), "medium" (likely), "low" (guess).`;
       const next = pending.map((tx,i) => {
         const hit = parsed.find(p => p.index === i);
         if (hit && hit.categoryId && categories.find(c => c.id === hit.categoryId)) {
-          return { ...tx, categoryId: hit.categoryId, categoryLocked: hit.confidence === "high" };
+          const locked = hit.confidence === "high";
+          return { ...tx, categoryId: hit.categoryId, categoryLocked: locked, needsReview: !locked };
         }
-        return { ...tx, categoryId: "exp_057", categoryLocked: false };
+        return { ...tx, categoryId: "exp_057", categoryLocked: false, needsReview: true };
       });
       setAssignments(next);
-      setNeedsReview(next.filter(tx => !tx.categoryLocked).map(tx => tx.id));
+      setNeedsReview(next.filter(tx => tx.needsReview).map(tx => tx.id));
     } catch (e) {
       setError("AI failed: " + e.message);
-      setAssignments(pending.map(tx => ({ ...tx, categoryId:"exp_057", categoryLocked:false })));
+      setAssignments(pending.map(tx => ({ ...tx, categoryId:"exp_057", categoryLocked:false, needsReview:true })));
       setNeedsReview(pending.map(tx => tx.id));
     }
     setAiLoading(false);
@@ -792,7 +819,7 @@ Confidence: "high" (obvious), "medium" (likely), "low" (guess).`;
   }
 
   function changeCategory(id, categoryId) {
-    setAssignments(prev => prev.map(tx => tx.id === id ? { ...tx, categoryId, categoryLocked:true } : tx));
+    setAssignments(prev => prev.map(tx => tx.id === id ? { ...tx, categoryId, categoryLocked:true, needsReview:false } : tx));
     setNeedsReview(prev => prev.filter(rid => rid !== id));
   }
 
@@ -1063,15 +1090,17 @@ function FirstRunSetup({ t, onComplete }) {
 
 // ─── TransactionRow ───────────────────────────────────────────────────────────
 function TransactionRow({ t, transaction, account, category, onEdit, onDelete }) {
+  const flagged = transaction.needsReview === true;
   return (
-    <div style={{ display:"grid",gridTemplateColumns:"90px 1fr 100px",gap:8,padding:"10px 0",borderBottom:`1px solid ${t.border}`,alignItems:"center" }}>
+    <div style={{ display:"grid",gridTemplateColumns:"90px 1fr 100px",gap:8,padding:"10px 0",paddingLeft: flagged ? 10 : 0,borderBottom:`1px solid ${t.border}`,borderLeft: flagged ? `3px solid ${COLOR.warning}` : "none",alignItems:"center" }}>
       <div>
         <div style={{ fontSize:12,color:t.tx2,fontFamily:"monospace" }}>{transaction.date}</div>
         {account && <div style={{ fontSize:10,color:t.tx3,marginTop:2 }}>{account.nickname}</div>}
       </div>
       <div style={{ minWidth:0 }}>
-        <div style={{ fontSize:13,color:t.tx1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3 }}>
-          {transaction.description}
+        <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:3 }}>
+          <span style={{ fontSize:13,color:t.tx1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{transaction.description}</span>
+          {flagged && <span style={{ fontSize:9,fontWeight:700,color:COLOR.warning,background:COLOR.warning+"22",border:`1px solid ${COLOR.warning}55`,borderRadius:4,padding:"1px 5px",whiteSpace:"nowrap",flexShrink:0 }}>REVIEW</span>}
         </div>
         <CategoryPill category={category} />
         {transaction.notes && <div style={{ fontSize:11,color:t.tx3,marginTop:2 }}>{transaction.notes}</div>}
@@ -1090,17 +1119,20 @@ function TransactionRow({ t, transaction, account, category, onEdit, onDelete })
 }
 
 // ─── TransactionsTab ──────────────────────────────────────────────────────────
-function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey, onUpdateTransactions, onUpdateAccounts }) {
-  const [month,       setMonth]       = useState(currentYYYYMM());
-  const [search,      setSearch]      = useState("");
-  const [filterAccId, setFilterAccId] = useState("all");
-  const [filterCatId, setFilterCatId] = useState("all");
-  const [editTx,      setEditTx]      = useState(null);
-  const [showImport,  setShowImport]  = useState(false);
-  const [confirmId,   setConfirmId]   = useState(null);
+function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey, onUpdateTransactions, onUpdateAccounts, onUpdateRules }) {
+  const [month,           setMonth]           = useState(currentYYYYMM());
+  const [search,          setSearch]          = useState("");
+  const [filterAccId,     setFilterAccId]     = useState("all");
+  const [filterCatId,     setFilterCatId]     = useState("all");
+  const [editTx,          setEditTx]          = useState(null);
+  const [showImport,      setShowImport]      = useState(false);
+  const [confirmId,       setConfirmId]       = useState(null);
+  const [reviewDismissed, setReviewDismissed] = useState(false);
 
   const catMap = Object.fromEntries(categories.map(c => [c.id,c]));
   const accMap = Object.fromEntries(accounts.map(a => [a.id,a]));
+
+  const needsReviewCount = transactions.filter(tx => tx.date && tx.date.startsWith(month) && tx.needsReview === true).length;
 
   const filtered = transactions.filter(tx => {
     if (!tx.date.startsWith(month)) return false;
@@ -1114,11 +1146,32 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
   const totalExpense = filtered.filter(tx => tx.amount < 0).reduce((s,tx) => s+Math.abs(tx.amount), 0);
 
   function handleSaveTx(tx) {
-    if (transactions.find(t2 => t2.id === tx.id)) {
-      onUpdateTransactions(transactions.map(t2 => t2.id === tx.id ? tx : t2));
-    } else {
-      onUpdateTransactions([...transactions, tx]);
+    const orig = transactions.find(t2 => t2.id === tx.id);
+    const wasNeedsReview = orig?.needsReview === true;
+    const saved = { ...tx, needsReview: false };
+
+    let nextTxns = transactions.find(t2 => t2.id === saved.id)
+      ? transactions.map(t2 => t2.id === saved.id ? saved : t2)
+      : [...transactions, saved];
+
+    // Confirm a Needs Review item → auto-create rule + retroactive apply
+    if (wasNeedsReview && saved.description && saved.categoryId && saved.categoryId !== "exp_057") {
+      const kw = saved.description.toLowerCase();
+      const alreadyExists = rules.find(r => r.keyword.toLowerCase() === kw);
+      if (!alreadyExists) {
+        const newRule = { id: generateId(), keyword: saved.description, matchType: "contains", categoryId: saved.categoryId, priority: 10 };
+        const nextRules = [...rules, newRule];
+        onUpdateRules(nextRules);
+        nextTxns = nextTxns.map(t2 => {
+          if (t2.id === saved.id || t2.categoryLocked) return t2;
+          const matched = applyRules(t2.description, nextRules);
+          if (matched) return { ...t2, categoryId: matched.categoryId, ruleId: matched.id, needsReview: false };
+          return t2;
+        });
+      }
     }
+
+    onUpdateTransactions(nextTxns);
     setEditTx(null);
   }
 
@@ -1139,6 +1192,7 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
       else merged.push(tx);
     }
     onUpdateTransactions(merged);
+    if (newTxns.some(tx => tx.needsReview)) setReviewDismissed(false);
     setShowImport(false);
   }
 
@@ -1156,6 +1210,17 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
           <button onClick={() => setEditTx({})} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"7px 14px",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>+ Add</button>
         </div>
       </div>
+
+      {/* Needs Review banner */}
+      {needsReviewCount > 0 && !reviewDismissed && (
+        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",background:COLOR.warning+"18",border:`1px solid ${COLOR.warning}55`,borderRadius:10,padding:"10px 14px",marginBottom:12 }}>
+          <div>
+            <span style={{ fontWeight:700,fontSize:13,color:COLOR.warning }}>⚠ {needsReviewCount} transaction{needsReviewCount>1?"s":""} need review</span>
+            <span style={{ fontSize:12,color:t.tx2,marginLeft:8 }}>AI low-confidence — click Edit on flagged rows to confirm</span>
+          </div>
+          <button onClick={() => setReviewDismissed(true)} style={{ background:"transparent",border:"none",color:t.tx3,cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 4px" }}>×</button>
+        </div>
+      )}
 
       {/* Summary pills */}
       <div style={{ display:"flex",gap:10,marginBottom:16,flexWrap:"wrap" }}>
@@ -1323,11 +1388,12 @@ function SummaryTab({ t, transactions, categories }) {
 }
 
 // ─── RulesTab ─────────────────────────────────────────────────────────────────
-function RulesTab({ t, rules, categories, transactions, apiKey, onUpdateRules }) {
-  const [editRule,  setEditRule]  = useState(null);
-  const [confirmId, setConfirmId] = useState(null);
-  const [suggesting,setSuggesting]= useState(false);
-  const [suggestErr,setSuggestErr]= useState(null);
+function RulesTab({ t, rules, categories, transactions, apiKey, onUpdateRules, onUpdateTransactions }) {
+  const [editRule,     setEditRule]     = useState(null);
+  const [confirmId,    setConfirmId]    = useState(null);
+  const [suggesting,   setSuggesting]   = useState(false);
+  const [suggestErr,   setSuggestErr]   = useState(null);
+  const [applyMsg,     setApplyMsg]     = useState(null);
 
   const catMap = Object.fromEntries(categories.map(c => [c.id,c]));
 
@@ -1382,14 +1448,35 @@ Only suggest rules you're confident about.`;
     setSuggesting(false);
   }
 
+  function applyRulesRetroactive(updatedRules) {
+    let count = 0;
+    const next = transactions.map(tx => {
+      if (tx.categoryLocked) return tx;
+      const matched = applyRules(tx.description, updatedRules);
+      if (matched && matched.categoryId !== tx.categoryId) {
+        count++;
+        return { ...tx, categoryId: matched.categoryId, ruleId: matched.id, needsReview: false };
+      }
+      return tx;
+    });
+    if (count > 0) {
+      onUpdateTransactions(next);
+      setApplyMsg(`Rule applied — ${count} transaction${count > 1 ? "s" : ""} updated`);
+      setTimeout(() => setApplyMsg(null), 4000);
+    }
+  }
+
   function handleSaveRule(rule) {
+    let nextRules;
     const idx = rules.findIndex(r => r.id === rule.id);
     if (idx >= 0) {
-      const next = [...rules]; next[idx] = rule; onUpdateRules(next);
+      nextRules = [...rules]; nextRules[idx] = rule;
     } else {
-      onUpdateRules([...rules, rule]);
+      nextRules = [...rules, rule];
     }
+    onUpdateRules(nextRules);
     setEditRule(null);
+    applyRulesRetroactive(nextRules);
   }
 
   function doDelete(id) {
@@ -1411,6 +1498,9 @@ Only suggest rules you're confident about.`;
       </div>
       {suggestErr && (
         <div style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",fontSize:13,color:t.tx2,marginBottom:12 }}>{suggestErr}</div>
+      )}
+      {applyMsg && (
+        <div style={{ background:COLOR.success+"18",border:`1px solid ${COLOR.success}44`,borderRadius:8,padding:"8px 12px",fontSize:13,color:COLOR.success,fontWeight:600,marginBottom:12 }}>✓ {applyMsg}</div>
       )}
       <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,overflow:"hidden" }}>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 80px 1fr 50px 80px",padding:"8px 16px",borderBottom:`1px solid ${t.border}`,gap:8 }}>
@@ -1454,9 +1544,10 @@ export default function App() {
   const [categories,   setCategories]   = useState([]);
   const [rules,        setRules]        = useState([]);
   const [tab,          setTab]          = useState("transactions");
-  const [showApiKey,   setShowApiKey]   = useState(false);
-  const [showBackup,   setShowBackup]   = useState(false);
-  const [showAccounts, setShowAccounts] = useState(false);
+  const [showApiKey,     setShowApiKey]     = useState(false);
+  const [showBackup,     setShowBackup]     = useState(false);
+  const [showAccounts,   setShowAccounts]   = useState(false);
+  const [showProfileMenu,setShowProfileMenu]= useState(false);
 
   const t = useTheme(darkMode);
 
@@ -1532,6 +1623,24 @@ export default function App() {
     setTransactions([]);
   }
 
+  async function handleSwitchProfile(profile) {
+    setActiveProfile(profile);
+    setShowProfileMenu(false);
+    await storeSet("cc_active_profile", profile.id, true);
+    const accs = await storeGet(`${MODULE_PREFIX}accounts_${profile.id}`) || [];
+    setAccounts(accs);
+    const txns = await storeGet(`${MODULE_PREFIX}transactions_${profile.id}`) || [];
+    setTransactions(txns);
+    let cats = await storeGet(`ffp_categories_${profile.id}`, true);
+    if (!cats || cats.length === 0) {
+      cats = DEFAULT_CATEGORIES;
+      await storeSet(`ffp_categories_${profile.id}`, cats, true);
+    }
+    setCategories(cats);
+    const rs = await storeGet(`ffp_cat_rules_${profile.id}`, true) || [];
+    setRules(rs);
+  }
+
   if (loading) return (
     <div style={{ minHeight:"100vh",background:t.bg,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16,padding:20 }}>
       <div style={{ width:40,height:40,border:"3px solid #6366f1",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite" }} />
@@ -1573,8 +1682,13 @@ export default function App() {
           <button onClick={() => setShowAccounts(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:13,fontWeight:600 }}>🏦 Accounts</button>
           <button onClick={() => setShowBackup(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:13 }}>💾</button>
           <button onClick={() => setShowApiKey(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:13 }}>🔑</button>
-          <div style={{ width:32,height:32,borderRadius:"50%",background:activeProfile.color||COLOR.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",cursor:"pointer" }}>
-            {(activeProfile.name||"?").charAt(0).toUpperCase()}
+          <div style={{ position:"relative" }}>
+            <div onClick={() => setShowProfileMenu(m => !m)} style={{ width:32,height:32,borderRadius:"50%",background:activeProfile.color||COLOR.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",cursor:"pointer",userSelect:"none" }}>
+              {(activeProfile.name||"?").charAt(0).toUpperCase()}
+            </div>
+            {showProfileMenu && (
+              <ProfileDropdown t={t} profiles={profiles} activeProfile={activeProfile} onSwitch={handleSwitchProfile} onClose={() => setShowProfileMenu(false)} />
+            )}
           </div>
           <button onClick={() => setDarkMode(d => !d)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:14 }}>
             {darkMode ? "☀️" : "🌙"}
@@ -1597,6 +1711,7 @@ export default function App() {
             categories={categories} rules={rules} apiKey={apiKey}
             onUpdateTransactions={saveTransactions}
             onUpdateAccounts={saveAccounts}
+            onUpdateRules={saveRules}
           />
         )}
         {tab === "summary" && (
@@ -1604,7 +1719,7 @@ export default function App() {
         )}
         {tab === "rules" && (
           <RulesTab t={t} rules={rules} categories={categories} transactions={transactions}
-            apiKey={apiKey} onUpdateRules={saveRules} />
+            apiKey={apiKey} onUpdateRules={saveRules} onUpdateTransactions={saveTransactions} />
         )}
       </div>
 
