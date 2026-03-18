@@ -98,6 +98,7 @@ const DEFAULT_CATEGORIES = [
   { id:"exp_056", name:"Software / Tools",     section:"Business",      icon:"🛠", color:"#8b5cf6" },
   // Misc
   { id:"exp_057", name:"Uncategorized",        section:"Misc",          icon:"❓", color:"#94a3b8" },
+  { id:"trn_001", name:"Transfer",             section:"Transfer",      icon:"↔️", color:"#94a3b8", type:"both", parentId:null, isDefault:true, hidden:false, alertEnabled:false, alertConfig:{}, sortOrder:57 },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -228,6 +229,20 @@ function computeRollingAvg(transactions, categoryId, selectedMonth, months) {
   }
   const sum = totals.reduce((a,b) => a+b, 0);
   return sum / months;
+}
+
+function computeRollingAvgIncome(transactions, categoryId, selectedMonth, months) {
+  months = months || 3;
+  let totals = [];
+  let cur = selectedMonth;
+  for (let i = 0; i < months; i++) {
+    cur = prevMonth(cur);
+    const total = transactions
+      .filter(t => t.categoryId === categoryId && t.date && t.date.startsWith(cur) && t.amount > 0)
+      .reduce((s, t) => s + t.amount, 0);
+    totals.push(total);
+  }
+  return totals.reduce((a, b) => a + b, 0) / months;
 }
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
@@ -413,6 +428,81 @@ function MonthSelector({ t, month, onChange }) {
   );
 }
 
+// ─── CategoryMultiSelect ──────────────────────────────────────────────────────
+function CategoryMultiSelect({ t, categories, selectedIds, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    function handleOut(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handleOut);
+    return () => document.removeEventListener("mousedown", handleOut);
+  }, []);
+  const count = selectedIds.length;
+  const label = count === 0 ? "All categories" : `${count} categor${count===1?"y":"ies"}`;
+  function toggle(id) {
+    onChange(selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]);
+  }
+  return (
+    <div ref={ref} style={{ position:"relative" }}>
+      <button onClick={() => setOpen(o => !o)} style={{ background:t.surf,border:`1px solid ${count>0?COLOR.primary:t.border}`,borderRadius:8,padding:"7px 10px",color:count>0?COLOR.primary:t.tx1,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap" }}>
+        {label}
+        {count > 0 && <span style={{ background:COLOR.primary,color:"#fff",borderRadius:10,padding:"0 6px",fontSize:10,fontWeight:700 }}>{count}</span>}
+        <span style={{ fontSize:10,color:t.tx3 }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ position:"absolute",top:"calc(100% + 4px)",left:0,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,boxShadow:"0 8px 24px rgba(0,0,0,.25)",zIndex:200,minWidth:220,maxHeight:280,overflowY:"auto" }}>
+          <div onClick={() => { onChange([]); setOpen(false); }} style={{ padding:"8px 12px",borderBottom:`1px solid ${t.border}`,fontSize:12,color:count===0?COLOR.primary:t.tx2,cursor:"pointer",fontWeight:600 }}>
+            ✓ All categories
+          </div>
+          {categories.map(c => (
+            <div key={c.id} onClick={() => toggle(c.id)} style={{ display:"flex",alignItems:"center",gap:8,padding:"7px 12px",cursor:"pointer",background:selectedIds.includes(c.id)?COLOR.primary+"15":"transparent",borderBottom:`1px solid ${t.border}` }}>
+              <input type="checkbox" readOnly checked={selectedIds.includes(c.id)} style={{ accentColor:COLOR.primary,width:13,height:13,flexShrink:0,pointerEvents:"none" }} />
+              <span style={{ fontSize:12,color:t.tx1 }}>{c.icon} {c.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CategoryBarRow ───────────────────────────────────────────────────────────
+function CategoryBarRow({ t, cat, value, avg, barBase, isIncome, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const barColor = cat?.color || (isIncome ? COLOR.success : COLOR.danger);
+  const fillPct  = barBase > 0 ? Math.min((value / barBase) * 100, 100) : 0;
+  const avgPct   = barBase > 0 ? Math.min((avg   / barBase) * 100, 100) : 0;
+  let deltaColor = COLOR.success;
+  let deltaLabel = "—";
+  if (avg > 0) {
+    const delta = (value - avg) / avg;
+    if (!isIncome) {
+      if (delta > 0.25) deltaColor = COLOR.danger;
+      else if (delta > 0) deltaColor = COLOR.warning;
+      else deltaColor = COLOR.success;
+    } else {
+      deltaColor = delta >= 0 ? COLOR.success : COLOR.warning;
+    }
+    deltaLabel = (delta >= 0 ? "+" : "") + Math.round(delta * 100) + "%";
+  }
+  return (
+    <div onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{ display:"flex",alignItems:"center",gap:10,padding:"8px 16px",borderBottom:`1px solid ${t.border}`,cursor:"pointer",background:hovered?t.surf:"transparent",transition:"background .12s" }}>
+      <div style={{ width:155,flexShrink:0 }}><CategoryPill category={cat} /></div>
+      <div style={{ flex:1,position:"relative",height:14,background:t.border,borderRadius:3 }}>
+        <div style={{ position:"absolute",left:0,top:0,height:"100%",width:`${fillPct}%`,background:barColor+"bb",borderRadius:3 }} />
+        {avg > 0 && (
+          <div style={{ position:"absolute",top:-3,height:"calc(100% + 6px)",width:2.5,background:COLOR.primary,left:`${Math.min(avgPct,100)}%`,transform:"translateX(-50%)",borderRadius:1,zIndex:2 }} />
+        )}
+      </div>
+      <div style={{ width:100,textAlign:"right",flexShrink:0 }}>
+        <div style={{ fontFamily:"monospace",fontSize:13,fontWeight:700,color:isIncome?COLOR.success:COLOR.danger }}>{fmt$(value)}</div>
+        <div style={{ fontSize:10,fontWeight:700,color:deltaColor }}>{deltaLabel}</div>
+      </div>
+    </div>
+  );
+}
+
 // ─── AccountModal ─────────────────────────────────────────────────────────────
 function AccountModal({ t, account, onSave, onClose }) {
   const [nickname, setNickname] = useState(account?.nickname||"");
@@ -484,7 +574,7 @@ function AccountsModal({ t, accounts, onSave, onClose }) {
           <button onClick={() => setEditing({})} style={{ background:COLOR.primary,border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13 }}>+ Add</button>
         </div>
         {accounts.length === 0 && (
-          <div style={{ textAlign:"center",padding:"20px 0",color:t.tx3,fontSize:13 }}>No accounts yet. Add one to get started.</div>
+          <div style={{ textAlign:"center",padding:"20px 0",color:t.tx2,fontSize:13 }}>No accounts yet. Add one to get started.</div>
         )}
         <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:16 }}>
           {accounts.map(a => (
@@ -509,20 +599,65 @@ function AccountsModal({ t, accounts, onSave, onClose }) {
   );
 }
 
+// ─── NewCategoryModal ─────────────────────────────────────────────────────────
+function NewCategoryModal({ t, onSave, onClose }) {
+  const [name,  setName]  = useState("");
+  const [icon,  setIcon]  = useState("💡");
+  const [color, setColor] = useState(AVATAR_COLORS[0]);
+  const [type,  setType]  = useState("expense");
+  const inp = { width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box" };
+  const lbl = { fontSize:11,color:t.tx2,display:"block",marginBottom:4,fontWeight:600 };
+  function handleSave() {
+    if (!name.trim()) return;
+    onSave({ id:"cat_"+generateId(),name:name.trim(),icon:icon.trim()||"💡",color,type,parentId:null,isDefault:false,hidden:false,alertEnabled:false,alertConfig:{},sortOrder:99,section:"Custom" });
+  }
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:2200,display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
+      <div style={{ background:t.panelBg,borderRadius:20,width:"100%",maxWidth:360,padding:24,boxShadow:"0 20px 60px rgba(0,0,0,.5)" }}>
+        <div style={{ fontWeight:800,fontSize:17,color:t.tx1,marginBottom:16 }}>New Category</div>
+        <label style={lbl}>NAME</label>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Pet Care" style={{ ...inp,marginBottom:12 }} />
+        <label style={lbl}>ICON (emoji)</label>
+        <input value={icon} onChange={e => setIcon(e.target.value)} placeholder="🐾" style={{ ...inp,marginBottom:12,fontSize:18 }} />
+        <label style={lbl}>TYPE</label>
+        <select value={type} onChange={e => setType(e.target.value)} style={{ ...inp,marginBottom:12 }}>
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+          <option value="both">Both</option>
+        </select>
+        <label style={{ fontSize:11,color:t.tx2,display:"block",marginBottom:8,fontWeight:600 }}>COLOR</label>
+        <div style={{ display:"flex",gap:8,marginBottom:16,flexWrap:"wrap" }}>
+          {AVATAR_COLORS.map(c => (
+            <div key={c} onClick={() => setColor(c)} style={{ width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",border:color===c?"3px solid #fff":"2px solid transparent",boxSizing:"border-box" }} />
+          ))}
+        </div>
+        <div style={{ display:"flex",gap:10 }}>
+          <button onClick={onClose} style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"9px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Cancel</button>
+          <button onClick={handleSave} disabled={!name.trim()} style={{ flex:1,background:name.trim()?COLOR.primary:t.surf,border:"none",borderRadius:10,padding:"9px 0",color:name.trim()?"#fff":t.tx3,cursor:name.trim()?"pointer":"default",fontWeight:700,fontSize:14 }}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── TransactionModal ─────────────────────────────────────────────────────────
-function TransactionModal({ t, transaction, accounts, categories, onSave, onClose }) {
-  const [date,        setDate]        = useState(transaction?.date||currentYYYYMM()+"-01");
-  const [description, setDescription] = useState(transaction?.description||"");
-  const [amount,      setAmount]      = useState(transaction ? String(transaction.amount) : "");
-  const [accountId,   setAccountId]   = useState(transaction?.accountId||accounts[0]?.id||"");
-  const [categoryId,  setCategoryId]  = useState(transaction?.categoryId||"exp_057");
-  const [notes,       setNotes]       = useState(transaction?.notes||"");
+function TransactionModal({ t, transaction, accounts, categories, rules, onSave, onSaveRule, onSaveCategory, onClose }) {
+  const [date,         setDate]         = useState(transaction?.date||currentYYYYMM()+"-01");
+  const [description,  setDescription]  = useState(transaction?.description||"");
+  const [amount,       setAmount]       = useState(transaction ? String(transaction.amount) : "");
+  const [accountId,    setAccountId]    = useState(transaction?.accountId||accounts[0]?.id||"");
+  const [categoryId,   setCategoryId]   = useState(transaction?.categoryId||"exp_057");
+  const [notes,        setNotes]        = useState(transaction?.notes||"");
+  const [showRuleForm, setShowRuleForm] = useState(false);
+  const [showNewCat,   setShowNewCat]   = useState(false);
 
   function handleSave() {
     const amt = parseAmount(amount);
     if (!date || !description.trim() || amt === null) return;
-    onSave({ ...(transaction||{}), id: transaction?.id||generateId(), date, description:description.trim(), amount:amt, accountId, categoryId, notes, categoryLocked:true, needsReview:false, importedAt: transaction?.importedAt||new Date().toISOString() });
+    onSave({ ...(transaction||{}), id:transaction?.id||generateId(), date, description:description.trim(), amount:amt, accountId, categoryId, notes, categoryLocked:true, needsReview:false, importedAt:transaction?.importedAt||new Date().toISOString() });
   }
+  function handleSaveRuleLocal(rule) { onSaveRule && onSaveRule(rule); setShowRuleForm(false); }
+  function handleSaveNewCategory(newCat) { onSaveCategory && onSaveCategory(newCat); setCategoryId(newCat.id); setShowNewCat(false); }
 
   const inp = { width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box" };
   const lbl = { fontSize:11,color:t.tx2,display:"block",marginBottom:4,fontWeight:600 };
@@ -542,23 +677,31 @@ function TransactionModal({ t, transaction, accounts, categories, onSave, onClos
           </div>
         </div>
         <label style={lbl}>DESCRIPTION</label>
-        <input value={description} onChange={e => setDescription(e.target.value)} placeholder="AMAZON.COM" style={{ ...inp, marginBottom:12 }} />
+        <input value={description} onChange={e => setDescription(e.target.value)} placeholder="AMAZON.COM" style={{ ...inp,marginBottom:12 }} />
         <label style={lbl}>ACCOUNT</label>
-        <select value={accountId} onChange={e => setAccountId(e.target.value)} style={{ ...inp, marginBottom:12 }}>
+        <select value={accountId} onChange={e => setAccountId(e.target.value)} style={{ ...inp,marginBottom:12 }}>
           {accounts.map(a => <option key={a.id} value={a.id}>{a.nickname}</option>)}
           {accounts.length === 0 && <option value="">No accounts</option>}
         </select>
-        <label style={lbl}>CATEGORY</label>
-        <select value={categoryId} onChange={e => setCategoryId(e.target.value)} style={{ ...inp, marginBottom:12 }}>
+        <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:4 }}>
+          <label style={{ ...lbl,marginBottom:0,flex:1 }}>CATEGORY</label>
+          <button onClick={() => setShowNewCat(true)} style={{ background:"transparent",border:"none",color:COLOR.primary,cursor:"pointer",fontSize:11,fontWeight:700,padding:"2px 4px" }}>+ New Category</button>
+        </div>
+        <select value={categoryId} onChange={e => setCategoryId(e.target.value)} style={{ ...inp,marginBottom:8 }}>
           {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
         </select>
+        <button onClick={() => setShowRuleForm(true)} style={{ width:"100%",background:"transparent",border:`1px solid ${t.border}`,borderRadius:7,padding:"5px 10px",color:t.tx2,cursor:"pointer",fontSize:11,fontWeight:600,marginBottom:12 }}>
+          + Create Rule from This
+        </button>
         <label style={lbl}>NOTES</label>
-        <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional note..." style={{ ...inp, marginBottom:16 }} />
+        <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional note..." style={{ ...inp,marginBottom:16 }} />
         <div style={{ display:"flex",gap:10 }}>
           <button onClick={onClose} style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"9px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Cancel</button>
           <button onClick={handleSave} style={{ flex:1,background:COLOR.primary,border:"none",borderRadius:10,padding:"9px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14 }}>Save</button>
         </div>
       </div>
+      {showRuleForm && <RuleModal t={t} rule={{ id:null,keyword:description,matchType:"contains",categoryId,priority:10 }} categories={categories} onSave={handleSaveRuleLocal} onClose={() => setShowRuleForm(false)} />}
+      {showNewCat && <NewCategoryModal t={t} onSave={handleSaveNewCategory} onClose={() => setShowNewCat(false)} />}
     </div>
   );
 }
@@ -1095,7 +1238,7 @@ function TransactionRow({ t, transaction, account, category, onEdit, onDelete })
     <div style={{ display:"grid",gridTemplateColumns:"90px 1fr 100px",gap:8,padding:"10px 0",paddingLeft: flagged ? 10 : 0,borderBottom:`1px solid ${t.border}`,borderLeft: flagged ? `3px solid ${COLOR.warning}` : "none",alignItems:"center" }}>
       <div>
         <div style={{ fontSize:12,color:t.tx2,fontFamily:"monospace" }}>{transaction.date}</div>
-        {account && <div style={{ fontSize:10,color:t.tx3,marginTop:2 }}>{account.nickname}</div>}
+        {account && <div style={{ fontSize:10,color:t.tx2,marginTop:2 }}>{account.nickname}</div>}
       </div>
       <div style={{ minWidth:0 }}>
         <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:3 }}>
@@ -1119,11 +1262,12 @@ function TransactionRow({ t, transaction, account, category, onEdit, onDelete })
 }
 
 // ─── TransactionsTab ──────────────────────────────────────────────────────────
-function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey, onUpdateTransactions, onUpdateAccounts, onUpdateRules }) {
+function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey, presetCatId, onUpdateTransactions, onUpdateAccounts, onUpdateRules, onUpdateCategories }) {
   const [month,           setMonth]           = useState(currentYYYYMM());
   const [search,          setSearch]          = useState("");
   const [filterAccId,     setFilterAccId]     = useState("all");
-  const [filterCatId,     setFilterCatId]     = useState("all");
+  const [filterCatIds,    setFilterCatIds]    = useState(() => presetCatId ? [presetCatId] : []);
+  const [dcFilter,        setDcFilter]        = useState("all"); // "all" | "debit" | "credit"
   const [editTx,          setEditTx]          = useState(null);
   const [showImport,      setShowImport]      = useState(false);
   const [confirmId,       setConfirmId]       = useState(null);
@@ -1137,7 +1281,9 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
   const filtered = transactions.filter(tx => {
     if (!tx.date.startsWith(month)) return false;
     if (filterAccId !== "all" && tx.accountId !== filterAccId) return false;
-    if (filterCatId !== "all" && tx.categoryId !== filterCatId) return false;
+    if (filterCatIds.length > 0 && !filterCatIds.includes(tx.categoryId)) return false;
+    if (dcFilter === "debit"  && tx.amount >= 0) return false;
+    if (dcFilter === "credit" && tx.amount <= 0) return false;
     if (search && !tx.description.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   }).sort((a,b) => b.date.localeCompare(a.date));
@@ -1149,12 +1295,9 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
     const orig = transactions.find(t2 => t2.id === tx.id);
     const wasNeedsReview = orig?.needsReview === true;
     const saved = { ...tx, needsReview: false };
-
     let nextTxns = transactions.find(t2 => t2.id === saved.id)
       ? transactions.map(t2 => t2.id === saved.id ? saved : t2)
       : [...transactions, saved];
-
-    // Confirm a Needs Review item → auto-create rule + retroactive apply
     if (wasNeedsReview && saved.description && saved.categoryId && saved.categoryId !== "exp_057") {
       const kw = saved.description.toLowerCase();
       const alreadyExists = rules.find(r => r.keyword.toLowerCase() === kw);
@@ -1170,19 +1313,29 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
         });
       }
     }
-
     onUpdateTransactions(nextTxns);
     setEditTx(null);
   }
 
-  function handleDelete(id) {
-    setConfirmId(id);
+  function handleSaveRuleFromModal(rule) {
+    const nextRules = rules.find(r => r.id === rule.id)
+      ? rules.map(r => r.id === rule.id ? rule : r)
+      : [...rules, { ...rule, id: rule.id || generateId() }];
+    onUpdateRules(nextRules);
+    let count = 0;
+    const nextTxns = transactions.map(tx => {
+      if (tx.categoryLocked) return tx;
+      const matched = applyRules(tx.description, nextRules);
+      if (matched && matched.categoryId !== tx.categoryId) { count++; return { ...tx, categoryId: matched.categoryId, ruleId: matched.id, needsReview: false }; }
+      return tx;
+    });
+    if (count > 0) onUpdateTransactions(nextTxns);
   }
 
-  function doDelete(id) {
-    onUpdateTransactions(transactions.filter(t2 => t2.id !== id));
-    setConfirmId(null);
-  }
+  function handleSaveCategoryFromModal(newCat) { onUpdateCategories([...categories, newCat]); }
+
+  function handleDelete(id) { setConfirmId(id); }
+  function doDelete(id) { onUpdateTransactions(transactions.filter(t2 => t2.id !== id)); setConfirmId(null); }
 
   function handleImportComplete(newTxns) {
     const merged = [...transactions];
@@ -1196,13 +1349,17 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
     setShowImport(false);
   }
 
-  function handleNewAccountFromImport(acc) {
-    onUpdateAccounts([...accounts, acc]);
-  }
+  function handleNewAccountFromImport(acc) { onUpdateAccounts([...accounts, acc]); }
+
+  const dcBtnStyle = (active) => ({
+    background: active ? COLOR.primary : t.surf,
+    color: active ? "#fff" : t.tx2,
+    border: `1px solid ${active ? COLOR.primary : t.border}`,
+    borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontWeight: 600, fontSize: 12,
+  });
 
   return (
     <div>
-      {/* Header row */}
       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8 }}>
         <MonthSelector t={t} month={month} onChange={setMonth} />
         <div style={{ display:"flex",gap:8 }}>
@@ -1211,7 +1368,6 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
         </div>
       </div>
 
-      {/* Needs Review banner */}
       {needsReviewCount > 0 && !reviewDismissed && (
         <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",background:COLOR.warning+"18",border:`1px solid ${COLOR.warning}55`,borderRadius:10,padding:"10px 14px",marginBottom:12 }}>
           <div>
@@ -1222,7 +1378,6 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
         </div>
       )}
 
-      {/* Summary pills */}
       <div style={{ display:"flex",gap:10,marginBottom:16,flexWrap:"wrap" }}>
         <div style={{ background:COLOR.success+"18",border:`1px solid ${COLOR.success}33`,borderRadius:10,padding:"8px 16px" }}>
           <div style={{ fontSize:11,color:COLOR.success,fontWeight:600 }}>INCOME</div>
@@ -1234,30 +1389,30 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
         </div>
         <div style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"8px 16px" }}>
           <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>NET</div>
-          <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:16,color: totalIncome-totalExpense>=0?COLOR.success:COLOR.danger }}>{fmt$(totalIncome-totalExpense)}</div>
+          <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:16,color:totalIncome-totalExpense>=0?COLOR.success:COLOR.danger }}>{fmt$(totalIncome-totalExpense)}</div>
         </div>
       </div>
 
       {/* Filters */}
-      <div style={{ display:"flex",gap:8,marginBottom:12,flexWrap:"wrap" }}>
+      <div style={{ display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
-          style={{ flex:1,minWidth:140,background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"7px 12px",color:t.tx1,fontSize:13 }} />
+          style={{ flex:1,minWidth:120,background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"7px 12px",color:t.tx1,fontSize:13 }} />
         <select value={filterAccId} onChange={e => setFilterAccId(e.target.value)}
           style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"7px 10px",color:t.tx1,fontSize:13 }}>
           <option value="all">All accounts</option>
           {accounts.map(a => <option key={a.id} value={a.id}>{a.nickname}</option>)}
         </select>
-        <select value={filterCatId} onChange={e => setFilterCatId(e.target.value)}
-          style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"7px 10px",color:t.tx1,fontSize:13 }}>
-          <option value="all">All categories</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-        </select>
+        <CategoryMultiSelect t={t} categories={categories} selectedIds={filterCatIds} onChange={setFilterCatIds} />
+        <div style={{ display:"flex",gap:4 }}>
+          <button style={dcBtnStyle(dcFilter==="all")}    onClick={() => setDcFilter("all")}>All</button>
+          <button style={dcBtnStyle(dcFilter==="debit")}  onClick={() => setDcFilter("debit")}>Debit</button>
+          <button style={dcBtnStyle(dcFilter==="credit")} onClick={() => setDcFilter("credit")}>Credit</button>
+        </div>
       </div>
 
-      {/* Transaction list */}
       <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,padding:"0 16px" }}>
         {filtered.length === 0 && (
-          <div style={{ textAlign:"center",padding:"32px 0",color:t.tx3,fontSize:13 }}>No transactions found.</div>
+          <div style={{ textAlign:"center",padding:"32px 0",color:t.tx2,fontSize:13 }}>No transactions found.</div>
         )}
         {filtered.map(tx => (
           <TransactionRow key={tx.id} t={t} transaction={tx} account={accMap[tx.accountId]} category={catMap[tx.categoryId]}
@@ -1265,7 +1420,11 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
         ))}
       </div>
 
-      {editTx !== null && <TransactionModal t={t} transaction={editTx.id ? editTx : null} accounts={accounts} categories={categories} onSave={handleSaveTx} onClose={() => setEditTx(null)} />}
+      {editTx !== null && (
+        <TransactionModal t={t} transaction={editTx.id ? editTx : null} accounts={accounts} categories={categories}
+          rules={rules} onSave={handleSaveTx} onSaveRule={handleSaveRuleFromModal}
+          onSaveCategory={handleSaveCategoryFromModal} onClose={() => setEditTx(null)} />
+      )}
       {showImport && <ImportWizard t={t} accounts={accounts} categories={categories} rules={rules} transactions={transactions} apiKey={apiKey} onComplete={handleImportComplete} onClose={() => setShowImport(false)} onNewAccount={handleNewAccountFromImport} />}
       {confirmId && <ConfirmModal t={t} message="Delete this transaction?" onConfirm={() => doDelete(confirmId)} onCancel={() => setConfirmId(null)} />}
     </div>
@@ -1273,115 +1432,87 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
 }
 
 // ─── SummaryTab ───────────────────────────────────────────────────────────────
-function SummaryTab({ t, transactions, categories }) {
+function SummaryTab({ t, transactions, categories, onNavigateToCategory }) {
   const [month, setMonth] = useState(currentYYYYMM());
 
   const catMap = Object.fromEntries(categories.map(c => [c.id,c]));
 
-  // Spending by category this month (expenses only)
-  const monthlySpend = {};
+  const incomeBycat = {};
+  const expBycat = {};
   for (const tx of transactions) {
-    if (!tx.date.startsWith(month) || tx.amount >= 0) continue;
+    if (!tx.date.startsWith(month)) continue;
     const cid = tx.categoryId || "exp_057";
-    monthlySpend[cid] = (monthlySpend[cid]||0) + Math.abs(tx.amount);
+    if (tx.amount > 0) incomeBycat[cid] = (incomeBycat[cid]||0) + tx.amount;
+    else if (tx.amount < 0) expBycat[cid] = (expBycat[cid]||0) + Math.abs(tx.amount);
   }
 
-  const rows = Object.entries(monthlySpend)
-    .map(([catId, spent]) => {
-      const avg = computeRollingAvg(transactions, catId, month, 3);
-      const delta = avg > 0 ? (spent - avg) / avg : 0;
-      const pct = delta;
-      let deltaColor = COLOR.success;
-      if (pct > 0.25) deltaColor = COLOR.danger;
-      else if (pct > 0) deltaColor = COLOR.warning;
-      return { catId, spent, avg, delta, deltaColor };
-    })
+  const totalMonthlyIncome  = Object.values(incomeBycat).reduce((s,v) => s+v, 0);
+  const totalMonthlyExpense = Object.values(expBycat).reduce((s,v) => s+v, 0);
+  const barBase = totalMonthlyIncome > 0 ? totalMonthlyIncome : totalMonthlyExpense;
+
+  const incomeRows = Object.entries(incomeBycat)
+    .map(([catId, amount]) => ({ catId, amount, avg: computeRollingAvgIncome(transactions, catId, month, 3) }))
+    .sort((a,b) => b.amount - a.amount);
+
+  const expenseRows = Object.entries(expBycat)
+    .map(([catId, spent]) => ({ catId, spent, avg: computeRollingAvg(transactions, catId, month, 3) }))
     .sort((a,b) => b.spent - a.spent);
 
-  const totalSpend = rows.reduce((s,r) => s+r.spent, 0);
-  const totalAvg   = rows.reduce((s,r) => s+r.avg, 0);
-
-  // Section grouping for chart
-  const sections = {};
-  for (const r of rows) {
-    const cat = catMap[r.catId];
-    const sec = cat?.section || "Other";
-    sections[sec] = (sections[sec]||0) + r.spent;
-  }
-  const sectionEntries = Object.entries(sections).sort((a,b) => b[1]-a[1]).slice(0,8);
-
-  // SVG bar chart
-  const W=600, H=200, PL=10, PR=10, PT=10, PB=30;
-  const cW = W - PL - PR;
-  const cH = H - PT - PB;
-  const maxVal = Math.max(...sectionEntries.map(s => s[1]), 1);
-  const barW = sectionEntries.length ? (cW / sectionEntries.length) * 0.7 : 30;
-  const barGap = sectionEntries.length ? cW / sectionEntries.length : 60;
-  const secColors = [COLOR.primary,COLOR.pink,COLOR.orange,COLOR.teal,COLOR.purple,COLOR.blue,COLOR.warning,COLOR.danger];
+  const totalExpense    = expenseRows.reduce((s,r) => s+r.spent, 0);
+  const totalExpenseAvg = expenseRows.reduce((s,r) => s+r.avg, 0);
 
   return (
     <div>
       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8 }}>
         <MonthSelector t={t} month={month} onChange={setMonth} />
-        <div style={{ fontSize:12,color:t.tx3 }}>vs. 3-month rolling avg</div>
+        <div style={{ fontSize:12,color:t.tx2 }}>— avg marker · click category to filter transactions</div>
       </div>
 
-      {/* Chart */}
-      {sectionEntries.length > 0 && (
-        <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,padding:"16px 16px 8px",marginBottom:16,overflowX:"auto" }}>
-          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width:"100%",height:160 }}>
-            {sectionEntries.map(([sec,val],i) => {
-              const bh = (val/maxVal)*cH;
-              const x = PL + i*barGap + (barGap-barW)/2;
-              const y = PT + cH - bh;
-              const lbl = sec.length > 8 ? sec.slice(0,7)+"…" : sec;
-              return (
-                <g key={sec}>
-                  <rect x={x} y={y} width={barW} height={bh} rx={4} fill={secColors[i%secColors.length]+"cc"} />
-                  <text x={x+barW/2} y={H-PB+14} textAnchor="middle" fill={t.tx3} fontSize={9}>{lbl}</text>
-                </g>
-              );
-            })}
-          </svg>
+      {/* Totals */}
+      <div style={{ display:"flex",gap:10,marginBottom:16,flexWrap:"wrap" }}>
+        <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
+          <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>INCOME</div>
+          <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:COLOR.success }}>{fmt$(totalMonthlyIncome)}</div>
+        </div>
+        <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
+          <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>EXPENSES</div>
+          <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:COLOR.danger }}>{fmt$(totalExpense)}</div>
+        </div>
+        <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
+          <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>3-MO AVG EXP</div>
+          <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:t.tx1 }}>{fmt$(totalExpenseAvg)}</div>
+        </div>
+      </div>
+
+      {/* Income section */}
+      {incomeRows.length > 0 && (
+        <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,overflow:"hidden",marginBottom:16 }}>
+          <div style={{ display:"flex",alignItems:"center",padding:"8px 16px",borderBottom:`1px solid ${t.border}`,background:COLOR.success+"12" }}>
+            <span style={{ fontSize:11,color:COLOR.success,fontWeight:700 }}>INCOME CATEGORIES</span>
+            <div style={{ flex:1 }} />
+            <span style={{ fontSize:10,color:t.tx2 }}>— avg</span>
+          </div>
+          {incomeRows.map(r => (
+            <CategoryBarRow key={r.catId} t={t} cat={catMap[r.catId]} value={r.amount} avg={r.avg} barBase={barBase} isIncome={true}
+              onClick={() => onNavigateToCategory && onNavigateToCategory(r.catId)} />
+          ))}
         </div>
       )}
 
-      {/* Summary totals */}
-      <div style={{ display:"flex",gap:10,marginBottom:16 }}>
-        <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
-          <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>THIS MONTH</div>
-          <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:COLOR.danger }}>{fmt$(totalSpend)}</div>
-        </div>
-        <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
-          <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>3-MO AVG</div>
-          <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:t.tx1 }}>{fmt$(totalAvg)}</div>
-        </div>
-      </div>
-
-      {/* Per-category table */}
+      {/* Expense section */}
       <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,overflow:"hidden" }}>
-        <div style={{ display:"grid",gridTemplateColumns:"1fr 90px 90px 70px",padding:"8px 16px",borderBottom:`1px solid ${t.border}`,gap:8 }}>
-          <span style={{ fontSize:11,color:t.tx3,fontWeight:600 }}>CATEGORY</span>
-          <span style={{ fontSize:11,color:t.tx3,fontWeight:600,textAlign:"right" }}>THIS MO.</span>
-          <span style={{ fontSize:11,color:t.tx3,fontWeight:600,textAlign:"right" }}>3-MO AVG</span>
-          <span style={{ fontSize:11,color:t.tx3,fontWeight:600,textAlign:"right" }}>DELTA</span>
+        <div style={{ display:"flex",alignItems:"center",padding:"8px 16px",borderBottom:`1px solid ${t.border}`,background:COLOR.danger+"12" }}>
+          <span style={{ fontSize:11,color:COLOR.danger,fontWeight:700 }}>EXPENSE CATEGORIES</span>
+          <div style={{ flex:1 }} />
+          <span style={{ fontSize:10,color:t.tx2 }}>— avg</span>
         </div>
-        {rows.length === 0 && (
-          <div style={{ textAlign:"center",padding:"24px 0",color:t.tx3,fontSize:13 }}>No spending this month.</div>
+        {expenseRows.length === 0 && (
+          <div style={{ textAlign:"center",padding:"24px 0",color:t.tx2,fontSize:13 }}>No spending this month.</div>
         )}
-        {rows.map(r => {
-          const cat = catMap[r.catId];
-          return (
-            <div key={r.catId} style={{ display:"grid",gridTemplateColumns:"1fr 90px 90px 70px",padding:"10px 16px",borderBottom:`1px solid ${t.border}`,gap:8,alignItems:"center" }}>
-              <CategoryPill category={cat} />
-              <span style={{ fontFamily:"monospace",fontSize:13,fontWeight:700,color:COLOR.danger,textAlign:"right" }}>{fmt$(r.spent)}</span>
-              <span style={{ fontFamily:"monospace",fontSize:13,color:t.tx2,textAlign:"right" }}>{r.avg > 0 ? fmt$(r.avg) : "—"}</span>
-              <span style={{ fontFamily:"monospace",fontSize:12,fontWeight:700,color:r.deltaColor,textAlign:"right" }}>
-                {r.avg > 0 ? (r.delta >= 0 ? "+" : "") + Math.round(r.delta*100) + "%" : "—"}
-              </span>
-            </div>
-          );
-        })}
+        {expenseRows.map(r => (
+          <CategoryBarRow key={r.catId} t={t} cat={catMap[r.catId]} value={r.spent} avg={r.avg} barBase={barBase} isIncome={false}
+            onClick={() => onNavigateToCategory && onNavigateToCategory(r.catId)} />
+        ))}
       </div>
     </div>
   );
@@ -1504,14 +1635,14 @@ Only suggest rules you're confident about.`;
       )}
       <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,overflow:"hidden" }}>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 80px 1fr 50px 80px",padding:"8px 16px",borderBottom:`1px solid ${t.border}`,gap:8 }}>
-          <span style={{ fontSize:11,color:t.tx3,fontWeight:600 }}>KEYWORD</span>
-          <span style={{ fontSize:11,color:t.tx3,fontWeight:600 }}>MATCH</span>
-          <span style={{ fontSize:11,color:t.tx3,fontWeight:600 }}>CATEGORY</span>
-          <span style={{ fontSize:11,color:t.tx3,fontWeight:600 }}>PRI</span>
-          <span style={{ fontSize:11,color:t.tx3,fontWeight:600 }}></span>
+          <span style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>KEYWORD</span>
+          <span style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>MATCH</span>
+          <span style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>CATEGORY</span>
+          <span style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>PRI</span>
+          <span style={{ fontSize:11,color:t.tx2,fontWeight:600 }}></span>
         </div>
         {rules.length === 0 && (
-          <div style={{ textAlign:"center",padding:"24px 0",color:t.tx3,fontSize:13 }}>No rules yet. Add one or use AI Suggest.</div>
+          <div style={{ textAlign:"center",padding:"24px 0",color:t.tx2,fontSize:13 }}>No rules yet. Add one or use AI Suggest.</div>
         )}
         {[...rules].sort((a,b) => (a.priority||0)-(b.priority||0)).map(rule => (
           <div key={rule.id} style={{ display:"grid",gridTemplateColumns:"1fr 80px 1fr 50px 80px",padding:"10px 16px",borderBottom:`1px solid ${t.border}`,gap:8,alignItems:"center" }}>
@@ -1543,7 +1674,8 @@ export default function App() {
   const [transactions, setTransactions] = useState([]);
   const [categories,   setCategories]   = useState([]);
   const [rules,        setRules]        = useState([]);
-  const [tab,          setTab]          = useState("transactions");
+  const [tab,          setTab]          = useState("summary");
+  const [txPresetCat,  setTxPresetCat]  = useState(null);
   const [showApiKey,     setShowApiKey]     = useState(false);
   const [showBackup,     setShowBackup]     = useState(false);
   const [showAccounts,   setShowAccounts]   = useState(false);
@@ -1576,6 +1708,9 @@ export default function App() {
         if (!cats || cats.length === 0) {
           cats = DEFAULT_CATEGORIES;
           await storeSet(`ffp_categories_${profile.id}`, cats, true);
+        } else if (!cats.find(c => c.id === "trn_001")) {
+          const trnCat = DEFAULT_CATEGORIES.find(c => c.id === "trn_001");
+          if (trnCat) { cats = [...cats, trnCat]; await storeSet(`ffp_categories_${profile.id}`, cats, true); }
         }
         setCategories(cats);
 
@@ -1601,6 +1736,11 @@ export default function App() {
   const saveRules = useCallback(async (next) => {
     setRules(next);
     if (activeProfile) await storeSet(`ffp_cat_rules_${activeProfile.id}`, next, true);
+  }, [activeProfile]);
+
+  const saveCategories = useCallback(async (next) => {
+    setCategories(next);
+    if (activeProfile) await storeSet(`ffp_categories_${activeProfile.id}`, next, true);
   }, [activeProfile]);
 
   async function handleSaveApiKey(key) {
@@ -1635,6 +1775,9 @@ export default function App() {
     if (!cats || cats.length === 0) {
       cats = DEFAULT_CATEGORIES;
       await storeSet(`ffp_categories_${profile.id}`, cats, true);
+    } else if (!cats.find(c => c.id === "trn_001")) {
+      const trnCat = DEFAULT_CATEGORIES.find(c => c.id === "trn_001");
+      if (trnCat) { cats = [...cats, trnCat]; await storeSet(`ffp_categories_${profile.id}`, cats, true); }
     }
     setCategories(cats);
     const rs = await storeGet(`ffp_cat_rules_${profile.id}`, true) || [];
@@ -1700,22 +1843,25 @@ export default function App() {
       <div style={{ maxWidth:1100,margin:"0 auto",padding:"20px 16px" }}>
         {/* Tabs */}
         <div style={{ display:"flex",gap:8,marginBottom:20 }}>
-          <button style={tabStyle(tab==="transactions")} onClick={() => setTab("transactions")}>Transactions</button>
           <button style={tabStyle(tab==="summary")} onClick={() => setTab("summary")}>Summary</button>
+          <button style={tabStyle(tab==="transactions")} onClick={() => { setTxPresetCat(null); setTab("transactions"); }}>Transactions</button>
           <button style={tabStyle(tab==="rules")} onClick={() => setTab("rules")}>Rules</button>
         </div>
 
+        {tab === "summary" && (
+          <SummaryTab t={t} transactions={transactions} categories={categories}
+            onNavigateToCategory={catId => { setTxPresetCat(catId); setTab("transactions"); }} />
+        )}
         {tab === "transactions" && (
           <TransactionsTab
             t={t} transactions={transactions} accounts={accounts}
             categories={categories} rules={rules} apiKey={apiKey}
+            presetCatId={txPresetCat}
             onUpdateTransactions={saveTransactions}
             onUpdateAccounts={saveAccounts}
             onUpdateRules={saveRules}
+            onUpdateCategories={saveCategories}
           />
-        )}
-        {tab === "summary" && (
-          <SummaryTab t={t} transactions={transactions} categories={categories} />
         )}
         {tab === "rules" && (
           <RulesTab t={t} rules={rules} categories={categories} transactions={transactions}
