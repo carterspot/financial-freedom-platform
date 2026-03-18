@@ -396,8 +396,14 @@ ffp_import_maps_{profileId}    (shared) — column mapper settings per account
   "notes": "",
   "isSinkingFundCandidate": false,
   "recurrencePattern": "",
+  "recurrenceType": null,
   "importedAt": "2026-03-17T00:00:00.000Z"
 }
+```
+
+**`recurrenceType` values:** `"monthly" | "annual" | "biannual" | "quarterly" | "one-time" | null`
+
+Note: `recurrenceType` is a **v1.1 addition** — transaction-level (not category-level) because a category like "Insurance" can contain both monthly and annual transactions. Spending v1 carries the field as `null`; v1.1 adds UI to set it. Savings Module reads it to surface sinking fund goal suggestions.
 ```
 
 ### Account schema
@@ -426,7 +432,36 @@ ffp_import_maps_{profileId}    (shared) — column mapper settings per account
 
 Emergency fund tracker and named savings goals ("sinking funds") with target dates and required monthly amounts.
 
-- Storage prefix: `sav_`
+### Architecture decisions (pre-scoping)
+
+**Two goal types, one schema:**
+- **Accumulation goals** — user manually contributes toward a target (emergency fund, vacation, down payment). No spending connection. User inputs deposits, app tracks progress.
+- **Sinking fund goals** — tied to a known recurring expense. App suggests monthly contribution based on amount + due date. Spending module feeds these via `isSinkingFundCandidate` flag.
+
+Both use the same schema with a `goalType` field. UI surfaces them differently.
+
+**Fund + goal two-layer model:**
+- **Fund** — represents a physical savings account (e.g. "Sinking Fund Account"). User names it, assigns a color. App tracks running balance.
+- **Goals inside a fund** — individual line items allocated within that account (Car Registration $200, Home Insurance $1,400, etc.). Each has target amount, due date, required monthly contribution.
+- Fund balance sheet shows total fund balance vs sum of goal allocations.
+
+**Alert system:**
+- Due date within 30 days + fund balance covers it → green "Ready to pay [Goal Name]"
+- Due date within 30 days + underfunded → amber alert with shortfall amount
+- Display logic only — no new storage keys needed
+
+**Spending → Savings handoff:**
+- Savings reads `sp_transactions_{profileId}` filtered by `isSinkingFundCandidate: true`
+- Groups by `recurrencePattern` to surface goal suggestions on first run
+- When a sinking fund bill hits in Spending, app prompts "this looks like your [Goal Name] — mark as paid?" and resets the accumulation cycle
+
+**Storage prefix:** `sav_`
+
+```
+sav_funds_{profileId}    (shared) — array of fund objects (name, accountNickname, color, balance)
+sav_goals_{profileId}    (shared) — array of goal objects (fundId, name, goalType, targetAmount,
+                                    dueDate, monthlyContrib, categoryId, linkedTransactionId)
+```
 
 ---
 
@@ -722,6 +757,9 @@ docs/
 - Plaid / bank import — Phase 4
 - CC Rewards tracker
 - AI-personalized category taxonomy (v2/premium)
+- SpendingTracker v1.1 — add `recurrenceType` field UI to transactions (annual/biannual/quarterly/monthly/one-time); feeds Savings Module sinking fund suggestions
+- SpendingTracker v1.1 — user flag for recurring expenses with frequency, surfaces in Savings as goal candidates
+- Savings Module — alert system when sinking fund due date approaches and fund is underfunded
 
 ---
 
