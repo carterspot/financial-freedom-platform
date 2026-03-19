@@ -142,22 +142,16 @@ function parseAmount(str) {
 function normalizeDate(str) {
   if (!str) return null;
   str = String(str).trim();
-  // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-  // M/D/YYYY or MM/DD/YYYY
   const mdy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (mdy) return `${mdy[3]}-${mdy[1].padStart(2,"0")}-${mdy[2].padStart(2,"0")}`;
-  // M/D/YY
   const mdy2 = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
   if (mdy2) {
     const yr = parseInt(mdy2[3]) >= 50 ? "19"+mdy2[3] : "20"+mdy2[3];
     return `${yr}-${mdy2[1].padStart(2,"0")}-${mdy2[2].padStart(2,"0")}`;
   }
-  // Try native parse
   const d = new Date(str);
-  if (!isNaN(d.getTime())) {
-    return d.toISOString().slice(0,10);
-  }
+  if (!isNaN(d.getTime())) return d.toISOString().slice(0,10);
   return null;
 }
 
@@ -243,6 +237,33 @@ function computeRollingAvgIncome(transactions, categoryId, selectedMonth, months
     totals.push(total);
   }
   return totals.reduce((a, b) => a + b, 0) / months;
+}
+
+// ─── Range helpers ────────────────────────────────────────────────────────────
+function getMonthsInRange(start, end) {
+  const months = [];
+  let cur = start;
+  let guard = 0;
+  while (cur <= end && guard < 120) { months.push(cur); cur = nextMonth(cur); guard++; }
+  return months;
+}
+
+function txInRange(tx, range) {
+  if (!tx.date) return false;
+  if (range.mode === "month") return tx.date.startsWith(range.month);
+  const m = tx.date.slice(0,7);
+  return m >= range.start && m <= range.end;
+}
+
+function defaultRange() {
+  const m = currentYYYYMM();
+  return { mode:"month", month:m, start:m, end:m };
+}
+
+function rangeLabel(range) {
+  if (range.mode === "month") return getMonthLabel(range.month);
+  if (range.start === range.end) return getMonthLabel(range.start);
+  return `${getMonthLabel(range.start)} — ${getMonthLabel(range.end)}`;
 }
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
@@ -428,6 +449,58 @@ function MonthSelector({ t, month, onChange }) {
   );
 }
 
+// ─── DateRangeSelector ────────────────────────────────────────────────────────
+function DateRangeSelector({ t, range, onChange }) {
+  const modeBtn = (active) => ({
+    background: active ? COLOR.primary : t.surf,
+    color: active ? "#fff" : t.tx2,
+    border: `1px solid ${active ? COLOR.primary : t.border}`,
+    borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontWeight: 600, fontSize: 11,
+  });
+
+  function switchToRange() {
+    const cur = range.month || currentYYYYMM();
+    onChange({ mode:"range", month:cur, start: prevMonth(prevMonth(cur)), end:cur });
+  }
+
+  function switchToMonth() {
+    const m = range.start || range.month || currentYYYYMM();
+    onChange({ mode:"month", month:m, start:m, end:m });
+  }
+
+  if (range.mode === "month") {
+    const m = range.month;
+    return (
+      <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" }}>
+        <div style={{ display:"flex",gap:2 }}>
+          <button style={modeBtn(true)}>Month</button>
+          <button style={modeBtn(false)} onClick={switchToRange}>Range</button>
+        </div>
+        <button onClick={() => { const p=prevMonth(m); onChange({ mode:"month",month:p,start:p,end:p }); }} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:14 }}>‹</button>
+        <span style={{ fontWeight:700,fontSize:14,color:t.tx1,minWidth:140,textAlign:"center" }}>{getMonthLabel(m)}</span>
+        <button onClick={() => { const n=nextMonth(m); onChange({ mode:"month",month:n,start:n,end:n }); }} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:14 }}>›</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" }}>
+      <div style={{ display:"flex",gap:2 }}>
+        <button style={modeBtn(false)} onClick={switchToMonth}>Month</button>
+        <button style={modeBtn(true)}>Range</button>
+      </div>
+      <div style={{ display:"flex",alignItems:"center",gap:4 }}>
+        <input type="month" value={range.start} onChange={e => onChange({ ...range, start:e.target.value })}
+          style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"5px 8px",color:t.tx1,fontSize:13 }} />
+        <span style={{ color:t.tx2,fontSize:13 }}>—</span>
+        <input type="month" value={range.end} onChange={e => onChange({ ...range, end:e.target.value })}
+          style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"5px 8px",color:t.tx1,fontSize:13 }} />
+      </div>
+      <span style={{ fontWeight:600,fontSize:13,color:t.tx2 }}>{rangeLabel(range)}</span>
+    </div>
+  );
+}
+
 // ─── CategoryMultiSelect ──────────────────────────────────────────────────────
 function CategoryMultiSelect({ t, categories, selectedIds, onChange }) {
   const [open, setOpen] = useState(false);
@@ -549,13 +622,8 @@ function AccountsModal({ t, accounts, onSave, onClose }) {
   const [editing, setEditing] = useState(null);
   const [confirm, setConfirm] = useState(null);
 
-  function handleDelete(id) {
-    setConfirm(id);
-  }
-  function doDelete(id) {
-    onSave(accounts.filter(a => a.id !== id));
-    setConfirm(null);
-  }
+  function handleDelete(id) { setConfirm(id); }
+  function doDelete(id) { onSave(accounts.filter(a => a.id !== id)); setConfirm(null); }
   function handleSaveAccount(acc) {
     const idx = accounts.findIndex(a => a.id === acc.id);
     if (idx >= 0) {
@@ -765,7 +833,7 @@ function ImportStep1({ t, accounts, selectedAccountId, onSelect, onNewAccount, o
     <div>
       <StepDots step={1} total={5} />
       <div style={{ fontWeight:800,fontSize:17,color:t.tx1,marginBottom:4 }}>Select Account</div>
-      <div style={{ fontSize:13,color:t.tx2,marginBottom:16 }}>Which account is this CSV from?</div>
+      <div style={{ fontSize:13,color:t.tx2,marginBottom:16 }}>Which account is this CSV from? You can select multiple files after clicking Next.</div>
       <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:16 }}>
         {accounts.map(a => (
           <div key={a.id} onClick={() => onSelect(a.id)}
@@ -784,7 +852,7 @@ function ImportStep1({ t, accounts, selectedAccountId, onSelect, onNewAccount, o
         </button>
       </div>
       <button onClick={onNext} disabled={!selectedAccountId} style={{ width:"100%",background: selectedAccountId ? COLOR.primary : t.surf,border:"none",borderRadius:10,padding:"10px 0",color: selectedAccountId ? "#fff" : t.tx3,cursor: selectedAccountId ? "pointer" : "default",fontWeight:700,fontSize:14 }}>
-        Next →
+        Select CSV File(s) →
       </button>
     </div>
   );
@@ -872,32 +940,106 @@ function ImportStep3({ t, flipSign, onFlipSign, previewRows, colMap, onBack, onN
   );
 }
 
-// ─── ImportStep4 — Deduplication ──────────────────────────────────────────────
-function ImportStep4({ t, newTxns, dupeCount, onBack, onNext }) {
+// ─── ImportStep4 — Dedup Preview ──────────────────────────────────────────────
+function ImportStep4({ t, dedupData, onBack, onNext }) {
+  const { newTxns, dupes, conflicts } = dedupData || { newTxns:[], dupes:[], conflicts:[] };
+  const [skipDupes,       setSkipDupes]       = useState(true);
+  const [conflictActions, setConflictActions] = useState(
+    () => Object.fromEntries((conflicts||[]).map(c => [c.parsed.id, "keep"]))
+  );
+
+  const toImport = [
+    ...newTxns,
+    ...(skipDupes ? [] : dupes.map(d => d.parsed)),
+    ...(conflicts||[]).filter(c => conflictActions[c.parsed.id] !== "keep").map(c =>
+      conflictActions[c.parsed.id] === "overwrite"
+        ? { ...c.parsed, _replaceId: c.existing.id }
+        : c.parsed
+    ),
+  ];
+
   return (
     <div>
       <StepDots step={4} total={5} />
-      <div style={{ fontWeight:800,fontSize:17,color:t.tx1,marginBottom:4 }}>Deduplication</div>
-      <div style={{ fontSize:13,color:t.tx2,marginBottom:16 }}>We detected duplicates by matching date + description + amount (±$0.01).</div>
-      <div style={{ display:"flex",gap:12,marginBottom:16 }}>
-        <div style={{ flex:1,background:t.surf,borderRadius:12,padding:"14px",textAlign:"center" }}>
-          <div style={{ fontSize:24,fontWeight:800,color:COLOR.success }}>{newTxns}</div>
-          <div style={{ fontSize:12,color:t.tx2 }}>New transactions</div>
+      <div style={{ fontWeight:800,fontSize:17,color:t.tx1,marginBottom:4 }}>Review Import</div>
+      <div style={{ fontSize:13,color:t.tx2,marginBottom:12 }}>Review before importing. Conflicts require your decision.</div>
+
+      <div style={{ display:"flex",gap:8,marginBottom:14 }}>
+        <div style={{ flex:1,background:COLOR.success+"18",border:`1px solid ${COLOR.success}44`,borderRadius:10,padding:"10px",textAlign:"center" }}>
+          <div style={{ fontSize:22,fontWeight:800,color:COLOR.success }}>{newTxns.length}</div>
+          <div style={{ fontSize:11,color:t.tx2 }}>New</div>
         </div>
-        <div style={{ flex:1,background:t.surf,borderRadius:12,padding:"14px",textAlign:"center" }}>
-          <div style={{ fontSize:24,fontWeight:800,color:COLOR.warning }}>{dupeCount}</div>
-          <div style={{ fontSize:12,color:t.tx2 }}>Duplicates skipped</div>
+        <div style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"10px",textAlign:"center" }}>
+          <div style={{ fontSize:22,fontWeight:800,color:t.tx3 }}>{dupes.length}</div>
+          <div style={{ fontSize:11,color:t.tx2 }}>Duplicates</div>
+        </div>
+        <div style={{ flex:1,background:COLOR.warning+"18",border:`1px solid ${COLOR.warning}44`,borderRadius:10,padding:"10px",textAlign:"center" }}>
+          <div style={{ fontSize:22,fontWeight:800,color:COLOR.warning }}>{conflicts.length}</div>
+          <div style={{ fontSize:11,color:t.tx2 }}>Conflicting</div>
         </div>
       </div>
-      {newTxns === 0 && (
-        <div style={{ background:COLOR.warning+"18",border:`1px solid ${COLOR.warning}44`,borderRadius:10,padding:"10px 14px",fontSize:13,color:COLOR.warning,marginBottom:16 }}>
-          All transactions already imported. Nothing new to add.
+
+      {dupes.length > 0 && (
+        <label style={{ display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:12,background:t.surf,borderRadius:8,padding:"10px 12px" }}>
+          <input type="checkbox" checked={skipDupes} onChange={e => setSkipDupes(e.target.checked)} style={{ width:15,height:15,accentColor:COLOR.primary }} />
+          <span style={{ fontSize:13,color:t.tx1 }}>Skip all {dupes.length} duplicate{dupes.length>1?"s":""} (recommended)</span>
+        </label>
+      )}
+
+      {(conflicts||[]).length > 0 && (
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontSize:11,color:COLOR.warning,fontWeight:700,marginBottom:8 }}>⚠ CONFLICTING — SAME DATE & DESCRIPTION, DIFFERENT AMOUNT</div>
+          {(conflicts||[]).map(c => (
+            <div key={c.parsed.id} style={{ background:COLOR.warning+"10",border:`1px solid ${COLOR.warning}44`,borderRadius:10,padding:"10px 12px",marginBottom:8 }}>
+              <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                <span style={{ fontSize:12,color:t.tx1,fontWeight:600,maxWidth:"65%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{c.parsed.description}</span>
+                <span style={{ fontSize:11,color:t.tx2 }}>{c.parsed.date}</span>
+              </div>
+              <div style={{ display:"flex",gap:16,marginBottom:8,fontSize:12 }}>
+                <span style={{ color:t.tx2 }}>Existing: <span style={{ fontFamily:"monospace",fontWeight:700,color:t.tx1 }}>{fmt$(c.existing.amount)}</span></span>
+                <span style={{ color:t.tx2 }}>New: <span style={{ fontFamily:"monospace",fontWeight:700,color:COLOR.primary }}>{fmt$(c.parsed.amount)}</span></span>
+              </div>
+              <div style={{ display:"flex",gap:4 }}>
+                {[{v:"keep",l:"Keep existing"},{v:"overwrite",l:"Overwrite"},{v:"both",l:"Import both"}].map(opt => (
+                  <button key={opt.v} onClick={() => setConflictActions(p => ({...p,[c.parsed.id]:opt.v}))}
+                    style={{ flex:1,background:conflictActions[c.parsed.id]===opt.v?COLOR.primary:t.surf,
+                      border:`1px solid ${conflictActions[c.parsed.id]===opt.v?COLOR.primary:t.border}`,
+                      borderRadius:6,padding:"5px 4px",color:conflictActions[c.parsed.id]===opt.v?"#fff":t.tx2,
+                      cursor:"pointer",fontWeight:600,fontSize:11 }}>
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
+
+      {newTxns.length > 0 && (
+        <div style={{ maxHeight:150,overflowY:"auto",marginBottom:12,border:`1px solid ${t.border}`,borderRadius:10,overflow:"hidden" }}>
+          <div style={{ padding:"6px 12px",background:COLOR.success+"10",fontSize:11,color:COLOR.success,fontWeight:700,borderBottom:`1px solid ${t.border}` }}>NEW ({newTxns.length})</div>
+          {newTxns.slice(0,15).map(tx => (
+            <div key={tx.id} style={{ display:"flex",justifyContent:"space-between",padding:"5px 12px",borderBottom:`1px solid ${t.border}` }}>
+              <span style={{ fontSize:12,color:t.tx1,maxWidth:"65%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{tx.description}</span>
+              <span style={{ fontFamily:"monospace",fontSize:12,fontWeight:700,color:tx.amount<0?COLOR.danger:COLOR.success }}>{fmt$(tx.amount)}</span>
+            </div>
+          ))}
+          {newTxns.length > 15 && <div style={{ padding:"5px 12px",fontSize:11,color:t.tx2 }}>…and {newTxns.length-15} more</div>}
+        </div>
+      )}
+
+      {toImport.length === 0 && (
+        <div style={{ background:COLOR.warning+"18",border:`1px solid ${COLOR.warning}44`,borderRadius:10,padding:"10px 14px",fontSize:13,color:COLOR.warning,marginBottom:12 }}>
+          Nothing new to import with current settings.
+        </div>
+      )}
+
       <div style={{ display:"flex",gap:10 }}>
         <button onClick={onBack} style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"9px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>← Back</button>
-        <button onClick={onNext} disabled={newTxns===0} style={{ flex:2,background: newTxns>0 ? COLOR.primary : t.surf,border:"none",borderRadius:10,padding:"9px 0",color: newTxns>0 ? "#fff" : t.tx3,cursor: newTxns>0 ? "pointer" : "default",fontWeight:700,fontSize:14 }}>
-          {newTxns>0 ? "Categorize →" : "Done"}
+        <button onClick={() => onNext(toImport)} disabled={toImport.length===0}
+          style={{ flex:2,background:toImport.length>0?COLOR.primary:t.surf,border:"none",borderRadius:10,padding:"9px 0",
+            color:toImport.length>0?"#fff":t.tx3,cursor:toImport.length>0?"pointer":"default",fontWeight:700,fontSize:14 }}>
+          Categorize {toImport.length} →
         </button>
       </div>
     </div>
@@ -1033,23 +1175,76 @@ Confidence: "high" (obvious), "medium" (likely), "low" (guess).`;
   );
 }
 
+// ─── ImportSummaryScreen ──────────────────────────────────────────────────────
+function ImportSummaryScreen({ t, results, onClose }) {
+  const totalImported = results.reduce((s,r) => s+r.imported, 0);
+  const totalSkipped  = results.reduce((s,r) => s+r.skipped, 0);
+  const totalConflicts= results.reduce((s,r) => s+r.conflicts, 0);
+  const totalReview   = results.reduce((s,r) => s+r.needsReview, 0);
+  return (
+    <div style={{ textAlign:"center" }}>
+      <div style={{ fontSize:32,marginBottom:8 }}>✅</div>
+      <div style={{ fontWeight:800,fontSize:18,color:t.tx1,marginBottom:4 }}>Import Complete</div>
+      <div style={{ fontSize:13,color:t.tx2,marginBottom:20 }}>{results.length} file{results.length>1?"s":""} processed</div>
+      <div style={{ display:"flex",gap:8,marginBottom:16,flexWrap:"wrap" }}>
+        <div style={{ flex:1,background:COLOR.success+"18",border:`1px solid ${COLOR.success}44`,borderRadius:12,padding:"12px" }}>
+          <div style={{ fontSize:24,fontWeight:800,color:COLOR.success }}>{totalImported}</div>
+          <div style={{ fontSize:11,color:t.tx2 }}>Imported</div>
+        </div>
+        <div style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px" }}>
+          <div style={{ fontSize:24,fontWeight:800,color:t.tx3 }}>{totalSkipped}</div>
+          <div style={{ fontSize:11,color:t.tx2 }}>Skipped</div>
+        </div>
+        {totalConflicts > 0 && (
+          <div style={{ flex:1,background:COLOR.warning+"18",border:`1px solid ${COLOR.warning}44`,borderRadius:12,padding:"12px" }}>
+            <div style={{ fontSize:24,fontWeight:800,color:COLOR.warning }}>{totalConflicts}</div>
+            <div style={{ fontSize:11,color:t.tx2 }}>Conflicts</div>
+          </div>
+        )}
+        {totalReview > 0 && (
+          <div style={{ flex:1,background:COLOR.warning+"18",border:`1px solid ${COLOR.warning}44`,borderRadius:12,padding:"12px" }}>
+            <div style={{ fontSize:24,fontWeight:800,color:COLOR.warning }}>{totalReview}</div>
+            <div style={{ fontSize:11,color:t.tx2 }}>Need review</div>
+          </div>
+        )}
+      </div>
+      {results.length > 1 && (
+        <div style={{ marginBottom:16,textAlign:"left" }}>
+          {results.map((r,i) => (
+            <div key={i} style={{ display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${t.border}`,fontSize:12 }}>
+              <span style={{ color:t.tx2,maxWidth:"55%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{r.fileName}</span>
+              <span style={{ color:t.tx1,fontWeight:600 }}>{r.imported} imported · {r.skipped} skipped</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ fontSize:12,color:t.tx2,marginBottom:12 }}>
+        {totalReview > 0 ? `${totalReview} transaction${totalReview>1?"s":""} flagged for review in Transactions tab.` : "All transactions categorized."}
+      </div>
+      <button onClick={onClose} style={{ width:"100%",background:COLOR.primary,border:"none",borderRadius:10,padding:"11px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14 }}>Done</button>
+    </div>
+  );
+}
+
 // ─── ImportWizard ─────────────────────────────────────────────────────────────
-function ImportWizard({ t, accounts, categories, rules, transactions, apiKey, onComplete, onClose, onNewAccount }) {
-  const [step,       setStep]       = useState(1);
-  const [accountId,  setAccountId]  = useState(accounts[0]?.id||"");
-  const [csvHeaders, setCsvHeaders] = useState([]);
-  const [csvRows,    setCsvRows]    = useState([]);
-  const [colMap,     setColMap]     = useState({});
-  const [flipSign,   setFlipSign]   = useState(false);
-  const [parsed,     setParsed]     = useState([]);
-  const [dupeCount,  setDupeCount]  = useState(0);
-  const [showAccForm,setShowAccForm]= useState(false);
+function ImportWizard({ t, accounts, categories, rules, transactions, apiKey, onComplete, onClose, onUpdateAccounts }) {
+  const [step,           setStep]           = useState(1);
+  const [accountId,      setAccountId]      = useState(accounts[0]?.id||"");
+  const [csvHeaders,     setCsvHeaders]     = useState([]);
+  const [csvRows,        setCsvRows]        = useState([]);
+  const [colMap,         setColMap]         = useState({});
+  const [flipSign,       setFlipSign]       = useState(false);
+  const [dedupData,      setDedupData]      = useState(null);
+  const [toImport,       setToImport]       = useState([]);
+  const [fileQueue,      setFileQueue]      = useState([]);
+  const [currentFileIdx, setCurrentFileIdx] = useState(0);
+  const [importResults,  setImportResults]  = useState([]);
+  const [showSummary,    setShowSummary]    = useState(false);
+  const [showAccForm,    setShowAccForm]    = useState(false);
   const accountRef = useRef(accountId);
   useEffect(() => { accountRef.current = accountId; }, [accountId]);
 
-  function handleFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+  function loadFile(file) {
     const reader = new FileReader();
     reader.onload = ev => {
       const { headers, rows } = parseCSV(ev.target.result);
@@ -1057,23 +1252,26 @@ function ImportWizard({ t, accounts, categories, rules, transactions, apiKey, on
       setCsvRows(rows);
       const auto = autoDetectColumns(headers);
       const acc = accounts.find(a => a.id === accountRef.current);
-      if (acc?.columnMap && Object.keys(acc.columnMap).length) {
-        setColMap(acc.columnMap);
-      } else {
-        setColMap(auto);
-      }
+      setColMap(acc?.columnMap && Object.keys(acc.columnMap).length ? acc.columnMap : auto);
       setFlipSign(acc?.flipSign||false);
       setStep(2);
     };
     reader.readAsText(file);
   }
 
-  function buildParsed() {
-    const acc = accounts.find(a => a.id === accountId);
-    const flip = flipSign;
+  function handleFiles(e) {
+    const files = Array.from(e.target.files||[]);
+    if (!files.length) return;
+    setFileQueue(files);
+    setCurrentFileIdx(0);
+    setImportResults([]);
+    setShowSummary(false);
+    loadFile(files[0]);
+  }
+
+  function buildDedupData() {
     const existing = transactions || [];
-    const newTxns = [];
-    const dupes = [];
+    const newTxns = [], dupes = [], conflicts = [];
     for (const row of csvRows) {
       const rawDate = colMap.date ? row[csvHeaders.indexOf(colMap.date)] : null;
       const rawDesc = colMap.description ? row[csvHeaders.indexOf(colMap.description)] : null;
@@ -1088,109 +1286,138 @@ function ImportWizard({ t, accounts, categories, rules, transactions, apiKey, on
       const date = normalizeDate(rawDate);
       const description = (rawDesc||"").trim();
       if (!date || !description || amt === null) continue;
-      const finalAmt = flip ? -amt : amt;
+      const finalAmt = flipSign ? -amt : amt;
       const theirCat = colMap.category ? row[csvHeaders.indexOf(colMap.category)] : "";
-      // dedup
-      const isDupe = existing.some(ex =>
+
+      const exactMatch = existing.find(ex =>
         ex.date === date &&
         ex.description.toLowerCase() === description.toLowerCase() &&
         Math.abs(ex.amount - finalAmt) < 0.01
       );
-      if (isDupe) { dupes.push(1); continue; }
-      // apply rules
+      if (exactMatch) {
+        dupes.push({ parsed: { id: generateId(), date, description, amount: finalAmt }, existing: exactMatch });
+        continue;
+      }
+
+      const conflictMatch = existing.find(ex =>
+        ex.date === date &&
+        ex.description.toLowerCase() === description.toLowerCase()
+      );
+
       const matchedRule = applyRules(description, rules);
-      newTxns.push({
-        id: generateId(),
-        accountId: accountId,
-        date,
-        description,
-        amount: finalAmt,
+      const parsed = {
+        id: generateId(), accountId, date, description, amount: finalAmt,
         categoryId: matchedRule ? matchedRule.categoryId : (theirCat ? null : "exp_057"),
-        categoryLocked: !!matchedRule,
-        ruleId: matchedRule?.id || null,
-        theirCategory: theirCat || null,
-        notes: "",
-        isSinkingFundCandidate: false,
-        recurrencePattern: null,
+        categoryLocked: !!matchedRule, ruleId: matchedRule?.id||null,
+        theirCategory: theirCat||null, notes: "", isSinkingFundCandidate: false,
+        recurrencePattern: null, recurrenceType: null,
         importedAt: new Date().toISOString(),
-      });
+      };
+
+      if (conflictMatch) {
+        conflicts.push({ parsed, existing: conflictMatch });
+        continue;
+      }
+      newTxns.push(parsed);
     }
-    return { newTxns, dupeCount: dupes.length };
+    return { newTxns, dupes, conflicts };
   }
 
   function goToStep4() {
-    const { newTxns, dupeCount: dc } = buildParsed();
-    setParsed(newTxns);
-    setDupeCount(dc);
+    const data = buildDedupData();
+    setDedupData(data);
+    // Persist column map back to account
+    if (onUpdateAccounts) {
+      const acc = accounts.find(a => a.id === accountId);
+      if (acc) {
+        const updAcc = { ...acc, columnMap: colMap, flipSign };
+        onUpdateAccounts(accounts.map(a => a.id === updAcc.id ? updAcc : a));
+      }
+    }
     setStep(4);
   }
 
-  function goToStep5() {
-    // For txns that already have categoryLocked, keep. Others go to AI.
+  function handleStep4Next(filtered) {
+    setToImport(filtered);
     setStep(5);
   }
 
-  function handleNewAccount(acc) {
-    onNewAccount(acc);
-    setAccountId(acc.id);
-    setShowAccForm(false);
+  function handleStep5Complete(categorized) {
+    const fileObj = fileQueue[currentFileIdx];
+    const result = {
+      fileName: fileObj?.name || `File ${currentFileIdx+1}`,
+      imported: categorized.length,
+      skipped: dedupData?.dupes?.length||0,
+      conflicts: dedupData?.conflicts?.length||0,
+      needsReview: categorized.filter(tx => tx.needsReview).length,
+      txns: categorized,
+    };
+    const allResults = [...importResults, result];
+    setImportResults(allResults);
+
+    const nextIdx = currentFileIdx + 1;
+    if (nextIdx < fileQueue.length) {
+      setCurrentFileIdx(nextIdx);
+      setDedupData(null);
+      setToImport([]);
+      loadFile(fileQueue[nextIdx]);
+    } else {
+      const allTxns = allResults.flatMap(r => r.txns);
+      onComplete(allTxns);
+      setShowSummary(true);
+    }
   }
 
-  if (showAccForm) return <AccountModal t={t} account={null} onSave={handleNewAccount} onClose={() => setShowAccForm(false)} />;
+  if (showAccForm) {
+    return (
+      <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:2100,display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
+        <AccountModal t={t} account={null}
+          onSave={acc => {
+            if (onUpdateAccounts) onUpdateAccounts([...accounts, acc]);
+            setAccountId(acc.id);
+            setShowAccForm(false);
+          }}
+          onClose={() => setShowAccForm(false)} />
+      </div>
+    );
+  }
 
   return (
     <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto" }}>
       <div style={{ background:t.panelBg,borderRadius:20,width:"100%",maxWidth:480,padding:24,boxShadow:"0 20px 60px rgba(0,0,0,.5)",maxHeight:"90vh",overflowY:"auto",position:"relative" }}>
         <button onClick={onClose} style={{ position:"absolute",top:16,right:16,background:"transparent",border:"none",color:t.tx3,cursor:"pointer",fontSize:18 }}>×</button>
 
-        {step === 1 && (
-          <ImportStep1
-            t={t} accounts={accounts} selectedAccountId={accountId}
-            onSelect={id => setAccountId(id)}
-            onNewAccount={() => setShowAccForm(true)}
-            onNext={() => {
-              const fileEl = document.getElementById("csv-file-input");
-              if (fileEl) fileEl.click();
-            }}
-          />
+        {fileQueue.length > 1 && step > 1 && !showSummary && (
+          <div style={{ textAlign:"center",fontSize:12,color:t.tx2,marginBottom:8,background:t.surf,borderRadius:8,padding:"4px 12px",marginRight:28 }}>
+            File {currentFileIdx+1} of {fileQueue.length}: {fileQueue[currentFileIdx]?.name}
+          </div>
         )}
-        {step === 1 && <input id="csv-file-input" type="file" accept=".csv,.txt" style={{ display:"none" }} onChange={handleFile} />}
-        {step === 2 && (
-          <ImportStep2
-            t={t} headers={csvHeaders} colMap={colMap}
-            onColMap={setColMap}
-            onBack={() => setStep(1)}
-            onNext={() => setStep(3)}
-          />
-        )}
-        {step === 3 && (
+
+        {showSummary ? (
+          <ImportSummaryScreen t={t} results={importResults} onClose={onClose} />
+        ) : step === 1 ? (
+          <>
+            <ImportStep1
+              t={t} accounts={accounts} selectedAccountId={accountId}
+              onSelect={id => setAccountId(id)}
+              onNewAccount={() => setShowAccForm(true)}
+              onNext={() => { const el = document.getElementById("csv-multi-input"); if (el) { el.value=""; el.click(); } }}
+            />
+            <input id="csv-multi-input" type="file" accept=".csv,.txt" multiple style={{ display:"none" }} onChange={handleFiles} />
+          </>
+        ) : step === 2 ? (
+          <ImportStep2 t={t} headers={csvHeaders} colMap={colMap} onColMap={setColMap} onBack={() => setStep(1)} onNext={() => setStep(3)} />
+        ) : step === 3 ? (
           <ImportStep3
             t={t} flipSign={flipSign} onFlipSign={setFlipSign}
-            previewRows={csvRows.slice(0,3).map(row => {
-              const obj = {};
-              csvHeaders.forEach((h,i) => { obj[h] = row[i]; });
-              return obj;
-            })}
-            colMap={colMap}
-            onBack={() => setStep(2)}
-            onNext={goToStep4}
+            previewRows={csvRows.slice(0,3).map(row => { const o={}; csvHeaders.forEach((h,i) => { o[h]=row[i]; }); return o; })}
+            colMap={colMap} onBack={() => setStep(2)} onNext={goToStep4}
           />
-        )}
-        {step === 4 && (
-          <ImportStep4
-            t={t} newTxns={parsed.length} dupeCount={dupeCount}
-            onBack={() => setStep(3)}
-            onNext={goToStep5}
-          />
-        )}
-        {step === 5 && (
-          <ImportStep5
-            t={t} pending={parsed} categories={categories}
-            apiKey={apiKey}
-            onComplete={onComplete}
-            onBack={() => setStep(4)}
-          />
-        )}
+        ) : step === 4 ? (
+          <ImportStep4 t={t} dedupData={dedupData} onBack={() => setStep(3)} onNext={handleStep4Next} />
+        ) : step === 5 ? (
+          <ImportStep5 t={t} pending={toImport} categories={categories} apiKey={apiKey} onComplete={handleStep5Complete} onBack={() => setStep(4)} />
+        ) : null}
       </div>
     </div>
   );
@@ -1232,10 +1459,21 @@ function FirstRunSetup({ t, onComplete }) {
 }
 
 // ─── TransactionRow ───────────────────────────────────────────────────────────
-function TransactionRow({ t, transaction, account, category, onEdit, onDelete }) {
+function TransactionRow({ t, transaction, account, category, selectMode, selected, onToggle, onEdit, onDelete }) {
   const flagged = transaction.needsReview === true;
   return (
-    <div style={{ display:"grid",gridTemplateColumns:"90px 1fr 100px",gap:8,padding:"10px 0",paddingLeft: flagged ? 10 : 0,borderBottom:`1px solid ${t.border}`,borderLeft: flagged ? `3px solid ${COLOR.warning}` : "none",alignItems:"center" }}>
+    <div style={{ display:"grid", gridTemplateColumns: selectMode ? "32px 90px 1fr 100px" : "90px 1fr 100px", gap:8, padding:"10px 0",
+      paddingLeft: flagged && !selectMode ? 10 : 0,
+      borderBottom:`1px solid ${t.border}`,
+      borderLeft: flagged && !selectMode ? `3px solid ${COLOR.warning}` : "none",
+      alignItems:"center" }}>
+      {selectMode && (
+        <div onClick={() => onToggle && onToggle(transaction.id)}
+          style={{ display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",padding:"0 4px" }}>
+          <input type="checkbox" readOnly checked={!!selected}
+            style={{ width:15,height:15,accentColor:COLOR.primary,cursor:"pointer",pointerEvents:"none" }} />
+        </div>
+      )}
       <div>
         <div style={{ fontSize:12,color:t.tx2,fontFamily:"monospace" }}>{transaction.date}</div>
         {account && <div style={{ fontSize:10,color:t.tx2,marginTop:2 }}>{account.nickname}</div>}
@@ -1252,34 +1490,42 @@ function TransactionRow({ t, transaction, account, category, onEdit, onDelete })
         <div style={{ fontFamily:"monospace",fontSize:14,fontWeight:700,color: transaction.amount<0?COLOR.danger:COLOR.success }}>
           {fmt$(transaction.amount)}
         </div>
-        <div style={{ display:"flex",gap:4,justifyContent:"flex-end",marginTop:4 }}>
-          <button onClick={() => onEdit(transaction)} style={{ background:"transparent",border:`1px solid ${t.border}`,borderRadius:5,padding:"2px 7px",color:t.tx2,cursor:"pointer",fontSize:11 }}>Edit</button>
-          <button onClick={() => onDelete(transaction.id)} style={{ background:"transparent",border:`1px solid ${COLOR.danger}33`,borderRadius:5,padding:"2px 7px",color:COLOR.danger,cursor:"pointer",fontSize:11 }}>×</button>
-        </div>
+        {!selectMode && (
+          <div style={{ display:"flex",gap:4,justifyContent:"flex-end",marginTop:4 }}>
+            <button onClick={() => onEdit(transaction)} style={{ background:"transparent",border:`1px solid ${t.border}`,borderRadius:5,padding:"2px 7px",color:t.tx2,cursor:"pointer",fontSize:11 }}>Edit</button>
+            <button onClick={() => onDelete(transaction.id)} style={{ background:"transparent",border:`1px solid ${COLOR.danger}33`,borderRadius:5,padding:"2px 7px",color:COLOR.danger,cursor:"pointer",fontSize:11 }}>×</button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── TransactionsTab ──────────────────────────────────────────────────────────
-function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey, presetCatId, onUpdateTransactions, onUpdateAccounts, onUpdateRules, onUpdateCategories }) {
-  const [month,           setMonth]           = useState(currentYYYYMM());
+function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey, presetCatId, range, onRangeChange, onUpdateTransactions, onUpdateAccounts, onUpdateRules, onUpdateCategories }) {
   const [search,          setSearch]          = useState("");
   const [filterAccId,     setFilterAccId]     = useState("all");
   const [filterCatIds,    setFilterCatIds]    = useState(() => presetCatId ? [presetCatId] : []);
-  const [dcFilter,        setDcFilter]        = useState("all"); // "all" | "debit" | "credit"
+  const [dcFilter,        setDcFilter]        = useState("all");
   const [editTx,          setEditTx]          = useState(null);
   const [showImport,      setShowImport]      = useState(false);
   const [confirmId,       setConfirmId]       = useState(null);
   const [reviewDismissed, setReviewDismissed] = useState(false);
+  const [selectMode,      setSelectMode]      = useState(false);
+  const [selectedIds,     setSelectedIds]     = useState(new Set());
+  const [confirmBatch,    setConfirmBatch]    = useState(false);
+
+  useEffect(() => { if (presetCatId) setFilterCatIds([presetCatId]); }, [presetCatId]);
 
   const catMap = Object.fromEntries(categories.map(c => [c.id,c]));
   const accMap = Object.fromEntries(accounts.map(a => [a.id,a]));
 
-  const needsReviewCount = transactions.filter(tx => tx.date && tx.date.startsWith(month) && tx.needsReview === true).length;
+  const needsReviewCount = transactions.filter(tx =>
+    txInRange(tx, range) && tx.needsReview === true
+  ).length;
 
   const filtered = transactions.filter(tx => {
-    if (!tx.date.startsWith(month)) return false;
+    if (!txInRange(tx, range)) return false;
     if (filterAccId !== "all" && tx.accountId !== filterAccId) return false;
     if (filterCatIds.length > 0 && !filterCatIds.includes(tx.categoryId)) return false;
     if (dcFilter === "debit"  && tx.amount >= 0) return false;
@@ -1290,6 +1536,34 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
 
   const totalIncome  = filtered.filter(tx => tx.amount > 0).reduce((s,tx) => s+tx.amount, 0);
   const totalExpense = filtered.filter(tx => tx.amount < 0).reduce((s,tx) => s+Math.abs(tx.amount), 0);
+
+  function toggleSelectMode() {
+    setSelectMode(m => !m);
+    setSelectedIds(new Set());
+  }
+
+  function toggleRow(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(tx => tx.id)));
+    }
+  }
+
+  function handleBatchDelete() {
+    onUpdateTransactions(transactions.filter(tx => !selectedIds.has(tx.id)));
+    setSelectedIds(new Set());
+    setSelectMode(false);
+    setConfirmBatch(false);
+  }
 
   function handleSaveTx(tx) {
     const orig = transactions.find(t2 => t2.id === tx.id);
@@ -1333,23 +1607,33 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
   }
 
   function handleSaveCategoryFromModal(newCat) { onUpdateCategories([...categories, newCat]); }
-
   function handleDelete(id) { setConfirmId(id); }
   function doDelete(id) { onUpdateTransactions(transactions.filter(t2 => t2.id !== id)); setConfirmId(null); }
 
   function handleImportComplete(newTxns) {
     const merged = [...transactions];
     for (const tx of newTxns) {
-      const idx = merged.findIndex(ex => ex.date===tx.date && ex.description.toLowerCase()===tx.description.toLowerCase() && Math.abs(ex.amount-tx.amount)<0.01);
-      if (idx >= 0) merged[idx] = tx;
-      else merged.push(tx);
+      const clean = { ...tx };
+      const replaceId = clean._replaceId;
+      delete clean._replaceId;
+      if (replaceId) {
+        const idx = merged.findIndex(ex => ex.id === replaceId);
+        if (idx >= 0) merged[idx] = clean;
+        else merged.push(clean);
+      } else {
+        const dupeIdx = merged.findIndex(ex =>
+          ex.date===tx.date &&
+          ex.description.toLowerCase()===tx.description.toLowerCase() &&
+          Math.abs(ex.amount-tx.amount)<0.01
+        );
+        if (dupeIdx >= 0) merged[dupeIdx] = clean;
+        else merged.push(clean);
+      }
     }
     onUpdateTransactions(merged);
     if (newTxns.some(tx => tx.needsReview)) setReviewDismissed(false);
     setShowImport(false);
   }
-
-  function handleNewAccountFromImport(acc) { onUpdateAccounts([...accounts, acc]); }
 
   const dcBtnStyle = (active) => ({
     background: active ? COLOR.primary : t.surf,
@@ -1358,11 +1642,15 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
     borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontWeight: 600, fontSize: 12,
   });
 
+  const allVisibleSelected = filtered.length > 0 && selectedIds.size === filtered.length;
+
   return (
-    <div>
+    <div style={{ paddingBottom: selectMode && selectedIds.size > 0 ? 72 : 0 }}>
       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8 }}>
-        <MonthSelector t={t} month={month} onChange={setMonth} />
-        <div style={{ display:"flex",gap:8 }}>
+        <DateRangeSelector t={t} range={range} onChange={onRangeChange} />
+        <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+          <button onClick={toggleSelectMode} title={selectMode ? "Exit select mode" : "Select mode"}
+            style={{ background:selectMode?COLOR.primary:t.surf,border:`1px solid ${selectMode?COLOR.primary:t.border}`,borderRadius:8,padding:"7px 10px",color:selectMode?"#fff":t.tx1,cursor:"pointer",fontSize:14 }}>☑</button>
           <button onClick={() => setShowImport(true)} style={{ background:COLOR.primary,border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13 }}>+ Import CSV</button>
           <button onClick={() => setEditTx({})} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"7px 14px",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>+ Add</button>
         </div>
@@ -1393,8 +1681,14 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
         </div>
       </div>
 
-      {/* Filters */}
       <div style={{ display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center" }}>
+        {selectMode && (
+          <label style={{ display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,color:t.tx1,padding:"7px 10px",background:t.surf,borderRadius:8,border:`1px solid ${t.border}` }}>
+            <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll}
+              style={{ width:15,height:15,accentColor:COLOR.primary,cursor:"pointer" }} />
+            Select All
+          </label>
+        )}
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
           style={{ flex:1,minWidth:120,background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"7px 12px",color:t.tx1,fontSize:13 }} />
         <select value={filterAccId} onChange={e => setFilterAccId(e.target.value)}
@@ -1416,31 +1710,107 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
         )}
         {filtered.map(tx => (
           <TransactionRow key={tx.id} t={t} transaction={tx} account={accMap[tx.accountId]} category={catMap[tx.categoryId]}
+            selectMode={selectMode} selected={selectedIds.has(tx.id)} onToggle={toggleRow}
             onEdit={tx2 => setEditTx(tx2)} onDelete={handleDelete} />
         ))}
       </div>
+
+      {selectMode && selectedIds.size > 0 && (
+        <div style={{ position:"fixed",bottom:0,left:0,right:0,background:t.panelBg,borderTop:`1px solid ${t.border}`,padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:200,boxShadow:"0 -4px 20px rgba(0,0,0,.25)" }}>
+          <span style={{ fontSize:13,color:t.tx1,fontWeight:600 }}>{selectedIds.size} selected</span>
+          <div style={{ display:"flex",gap:8 }}>
+            <button onClick={() => { setSelectMode(false); setSelectedIds(new Set()); }}
+              style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"7px 16px",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Cancel</button>
+            <button onClick={() => setConfirmBatch(true)}
+              style={{ background:COLOR.danger,border:"none",borderRadius:8,padding:"7px 16px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13 }}>
+              Delete {selectedIds.size}
+            </button>
+          </div>
+        </div>
+      )}
 
       {editTx !== null && (
         <TransactionModal t={t} transaction={editTx.id ? editTx : null} accounts={accounts} categories={categories}
           rules={rules} onSave={handleSaveTx} onSaveRule={handleSaveRuleFromModal}
           onSaveCategory={handleSaveCategoryFromModal} onClose={() => setEditTx(null)} />
       )}
-      {showImport && <ImportWizard t={t} accounts={accounts} categories={categories} rules={rules} transactions={transactions} apiKey={apiKey} onComplete={handleImportComplete} onClose={() => setShowImport(false)} onNewAccount={handleNewAccountFromImport} />}
+      {showImport && (
+        <ImportWizard t={t} accounts={accounts} categories={categories} rules={rules}
+          transactions={transactions} apiKey={apiKey}
+          onComplete={handleImportComplete} onClose={() => setShowImport(false)}
+          onUpdateAccounts={onUpdateAccounts} />
+      )}
       {confirmId && <ConfirmModal t={t} message="Delete this transaction?" onConfirm={() => doDelete(confirmId)} onCancel={() => setConfirmId(null)} />}
+      {confirmBatch && <ConfirmModal t={t} message={`Delete ${selectedIds.size} selected transaction${selectedIds.size>1?"s":""}? This cannot be undone.`} onConfirm={handleBatchDelete} onCancel={() => setConfirmBatch(false)} />}
+    </div>
+  );
+}
+
+// ─── RollupPanel ──────────────────────────────────────────────────────────────
+function RollupPanel({ t, transactions, range, onNavigateMonth }) {
+  const refMonth = range.mode === "month" ? range.month : range.end;
+  const months = [refMonth, prevMonth(refMonth), prevMonth(prevMonth(refMonth))];
+  const labels = ["Current", "Prior Month", "2 Months Ago"];
+
+  const cols = months.map(m => {
+    const txs = transactions.filter(tx => tx.date?.startsWith(m));
+    const inc = txs.filter(tx => tx.amount > 0).reduce((s,tx) => s+tx.amount, 0);
+    const exp = txs.filter(tx => tx.amount < 0).reduce((s,tx) => s+Math.abs(tx.amount), 0);
+    return { month: m, income: inc, expenses: exp, net: inc - exp, hasData: txs.length > 0 };
+  });
+
+  function trendIcon(curr, prev, higherIsBetter) {
+    if (!prev) return null;
+    const improved = higherIsBetter ? curr >= prev : curr <= prev;
+    return <span style={{ color: improved ? COLOR.success : COLOR.danger, fontSize: 11 }}>{curr >= prev ? " ▲" : " ▼"}</span>;
+  }
+
+  return (
+    <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,padding:16,marginBottom:16 }}>
+      <div style={{ fontSize:11,color:t.tx2,fontWeight:700,marginBottom:12,letterSpacing:0.5 }}>3-MONTH ROLLUP</div>
+      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
+        {cols.map((col,i) => {
+          const prevCol = i < cols.length-1 ? cols[i+1] : null;
+          return (
+            <div key={col.month} onClick={() => onNavigateMonth && onNavigateMonth(col.month)}
+              style={{ background:i===0?COLOR.primary+"15":t.surf,border:`2px solid ${i===0?COLOR.primary:t.border}`,borderRadius:12,padding:"12px 8px",cursor:"pointer",textAlign:"center",transition:"all .15s" }}>
+              <div style={{ fontSize:9,color:i===0?COLOR.primary:t.tx3,fontWeight:700,marginBottom:2,textTransform:"uppercase",letterSpacing:0.5 }}>{labels[i]}</div>
+              <div style={{ fontSize:10,color:t.tx2,marginBottom:8 }}>{getMonthLabel(col.month)}</div>
+              {!col.hasData ? (
+                <div style={{ fontSize:11,color:t.tx3,padding:"8px 0" }}>No data</div>
+              ) : (
+                <>
+                  <div style={{ fontSize:11,fontFamily:"monospace",color:COLOR.success,fontWeight:700,marginBottom:3 }}>
+                    {fmt$(col.income)}{prevCol && trendIcon(col.income, prevCol.income, true)}
+                  </div>
+                  <div style={{ fontSize:11,fontFamily:"monospace",color:COLOR.danger,fontWeight:700,marginBottom:6 }}>
+                    {fmt$(col.expenses)}{prevCol && trendIcon(col.expenses, prevCol.expenses, false)}
+                  </div>
+                  <div style={{ height:1,background:t.border,margin:"0 0 6px" }} />
+                  <div style={{ fontSize:13,fontFamily:"monospace",fontWeight:800,color:col.net>=0?COLOR.success:COLOR.danger }}>
+                    {fmt$(col.net)}
+                  </div>
+                  <div style={{ fontSize:9,color:t.tx3,marginTop:2,letterSpacing:0.5 }}>NET</div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 // ─── SummaryTab ───────────────────────────────────────────────────────────────
-function SummaryTab({ t, transactions, categories, onNavigateToCategory }) {
-  const [month, setMonth] = useState(currentYYYYMM());
-
+function SummaryTab({ t, transactions, categories, range, onRangeChange, onNavigateToCategory, onNavigateMonth }) {
   const catMap = Object.fromEntries(categories.map(c => [c.id,c]));
+  const refMonth = range.mode === "month" ? range.month : range.end;
+
+  const visibleTxns = transactions.filter(tx => txInRange(tx, range));
 
   const incomeBycat = {};
   const expBycat = {};
-  for (const tx of transactions) {
-    if (!tx.date.startsWith(month)) continue;
+  for (const tx of visibleTxns) {
     const cid = tx.categoryId || "exp_057";
     if (tx.amount > 0) incomeBycat[cid] = (incomeBycat[cid]||0) + tx.amount;
     else if (tx.amount < 0) expBycat[cid] = (expBycat[cid]||0) + Math.abs(tx.amount);
@@ -1451,11 +1821,11 @@ function SummaryTab({ t, transactions, categories, onNavigateToCategory }) {
   const barBase = totalMonthlyIncome > 0 ? totalMonthlyIncome : totalMonthlyExpense;
 
   const incomeRows = Object.entries(incomeBycat)
-    .map(([catId, amount]) => ({ catId, amount, avg: computeRollingAvgIncome(transactions, catId, month, 3) }))
+    .map(([catId, amount]) => ({ catId, amount, avg: computeRollingAvgIncome(transactions, catId, refMonth, 3) }))
     .sort((a,b) => b.amount - a.amount);
 
   const expenseRows = Object.entries(expBycat)
-    .map(([catId, spent]) => ({ catId, spent, avg: computeRollingAvg(transactions, catId, month, 3) }))
+    .map(([catId, spent]) => ({ catId, spent, avg: computeRollingAvg(transactions, catId, refMonth, 3) }))
     .sort((a,b) => b.spent - a.spent);
 
   const totalExpense    = expenseRows.reduce((s,r) => s+r.spent, 0);
@@ -1464,11 +1834,12 @@ function SummaryTab({ t, transactions, categories, onNavigateToCategory }) {
   return (
     <div>
       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8 }}>
-        <MonthSelector t={t} month={month} onChange={setMonth} />
+        <DateRangeSelector t={t} range={range} onChange={onRangeChange} />
         <div style={{ fontSize:12,color:t.tx2 }}>— avg marker · click category to filter transactions</div>
       </div>
 
-      {/* Totals */}
+      <RollupPanel t={t} transactions={transactions} range={range} onNavigateMonth={onNavigateMonth} />
+
       <div style={{ display:"flex",gap:10,marginBottom:16,flexWrap:"wrap" }}>
         <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
           <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>INCOME</div>
@@ -1476,7 +1847,7 @@ function SummaryTab({ t, transactions, categories, onNavigateToCategory }) {
         </div>
         <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
           <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>EXPENSES</div>
-          <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:COLOR.danger }}>{fmt$(totalExpense)}</div>
+          <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:COLOR.danger }}>{fmt$(totalMonthlyExpense)}</div>
         </div>
         <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
           <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>3-MO AVG EXP</div>
@@ -1484,7 +1855,6 @@ function SummaryTab({ t, transactions, categories, onNavigateToCategory }) {
         </div>
       </div>
 
-      {/* Income section */}
       {incomeRows.length > 0 && (
         <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,overflow:"hidden",marginBottom:16 }}>
           <div style={{ display:"flex",alignItems:"center",padding:"8px 16px",borderBottom:`1px solid ${t.border}`,background:COLOR.success+"12" }}>
@@ -1499,7 +1869,6 @@ function SummaryTab({ t, transactions, categories, onNavigateToCategory }) {
         </div>
       )}
 
-      {/* Expense section */}
       <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,overflow:"hidden" }}>
         <div style={{ display:"flex",alignItems:"center",padding:"8px 16px",borderBottom:`1px solid ${t.border}`,background:COLOR.danger+"12" }}>
           <span style={{ fontSize:11,color:COLOR.danger,fontWeight:700 }}>EXPENSE CATEGORIES</span>
@@ -1507,7 +1876,7 @@ function SummaryTab({ t, transactions, categories, onNavigateToCategory }) {
           <span style={{ fontSize:10,color:t.tx2 }}>— avg</span>
         </div>
         {expenseRows.length === 0 && (
-          <div style={{ textAlign:"center",padding:"24px 0",color:t.tx2,fontSize:13 }}>No spending this month.</div>
+          <div style={{ textAlign:"center",padding:"24px 0",color:t.tx2,fontSize:13 }}>No spending this period.</div>
         )}
         {expenseRows.map(r => (
           <CategoryBarRow key={r.catId} t={t} cat={catMap[r.catId]} value={r.spent} avg={r.avg} barBase={barBase} isIncome={false}
@@ -1533,7 +1902,6 @@ function RulesTab({ t, rules, categories, transactions, apiKey, onUpdateRules, o
     setSuggesting(true);
     setSuggestErr(null);
     try {
-      // Sample up to 60 uncategorized or low-confidence transactions
       const sample = transactions
         .filter(tx => tx.amount < 0 && !tx.categoryLocked)
         .slice(0, 60)
@@ -1663,6 +2031,183 @@ Only suggest rules you're confident about.`;
   );
 }
 
+// ─── TrendsTab ────────────────────────────────────────────────────────────────
+function TrendsTab({ t, transactions, categories, range, onNavigateToTxMonth }) {
+  const [windowSize,   setWindowSize]   = useState(3);
+  const [windowOffset, setWindowOffset] = useState(0);
+
+  const refMonth = range.mode === "month" ? range.month : range.end;
+  const CHART_COLORS = [COLOR.primary, COLOR.pink, COLOR.orange, COLOR.teal, COLOR.purple, COLOR.blue];
+
+  // Build display months: windowSize months ending at refMonth - windowOffset
+  const endMonth = (function() {
+    let m = refMonth;
+    for (let i = 0; i < windowOffset; i++) m = prevMonth(m);
+    return m;
+  })();
+  const displayMonths = [];
+  let cur = endMonth;
+  for (let i = 0; i < windowSize; i++) { displayMonths.unshift(cur); cur = prevMonth(cur); }
+
+  const catMap = Object.fromEntries(categories.map(c => [c.id,c]));
+
+  const monthData = displayMonths.map(m => {
+    const txs = transactions.filter(tx => tx.date?.startsWith(m));
+    const totalExpense = txs.filter(tx => tx.amount < 0).reduce((s,tx) => s+Math.abs(tx.amount), 0);
+    const totalIncome  = txs.filter(tx => tx.amount > 0).reduce((s,tx) => s+tx.amount, 0);
+    const byCat = {};
+    for (const tx of txs.filter(tx => tx.amount < 0)) {
+      const cid = tx.categoryId || "exp_057";
+      byCat[cid] = (byCat[cid]||0) + Math.abs(tx.amount);
+    }
+    return { month: m, totalExpense, totalIncome, byCat };
+  });
+
+  const catTotals = {};
+  for (const md of monthData) {
+    for (const [cid, amt] of Object.entries(md.byCat)) {
+      catTotals[cid] = (catTotals[cid]||0) + amt;
+    }
+  }
+  const topCats = Object.entries(catTotals).sort((a,b) => b[1]-a[1]).slice(0,6).map(([id]) => id);
+  const hasOther = Object.keys(catTotals).length > 6;
+
+  const svgW = 520, svgH = 160, padL = 56, padR = 16, padT = 12, padB = 36;
+  const chartW = svgW - padL - padR;
+  const chartH = svgH - padT - padB;
+  const maxExp = Math.max(...monthData.map(d => d.totalExpense), 1);
+
+  function xPos(i) { return padL + (displayMonths.length > 1 ? (chartW / (displayMonths.length-1)) * i : chartW / 2); }
+  function yPos(val) { return padT + chartH - (val / maxExp) * chartH; }
+
+  const barSvgH = 180, barPadT = 12, barPadB = 36, barPadL = 56, barPadR = 16;
+  const barChartW = svgW - barPadL - barPadR;
+  const barChartH = barSvgH - barPadT - barPadB;
+  const maxBarTotal = Math.max(...monthData.map(d => d.totalExpense), 1);
+  const barGroupW = barChartW / Math.max(displayMonths.length, 1);
+  const totalBars = topCats.length + (hasOther ? 1 : 0);
+  const barW = Math.min(barGroupW * 0.8 / Math.max(totalBars, 1), 22);
+
+  function shortMonth(ym) {
+    const [y,m] = ym.split("-");
+    return new Date(+y,+m-1,1).toLocaleString("en-US",{month:"short"}) + " '" + y.slice(2);
+  }
+
+  function fmtShort(n) {
+    if (n >= 1000) return "$" + (n/1000).toFixed(1) + "k";
+    return "$" + Math.round(n);
+  }
+
+  return (
+    <div>
+      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8 }}>
+        <div style={{ fontWeight:700,fontSize:15,color:t.tx1 }}>Spending Trends</div>
+        <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+          <button onClick={() => setWindowOffset(o => o+1)}
+            style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:14 }}>‹</button>
+          <select value={windowSize} onChange={e => setWindowSize(Number(e.target.value))}
+            style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 10px",color:t.tx1,fontSize:13 }}>
+            {[3,6,9,12].map(n => <option key={n} value={n}>{n} months</option>)}
+          </select>
+          <button onClick={() => setWindowOffset(o => Math.max(0,o-1))} disabled={windowOffset===0}
+            style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:windowOffset>0?"pointer":"default",fontSize:14,opacity:windowOffset>0?1:0.4 }}>›</button>
+        </div>
+      </div>
+
+      {/* Total Spending Line Chart */}
+      <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,padding:16,marginBottom:16 }}>
+        <div style={{ fontSize:11,color:t.tx2,fontWeight:700,marginBottom:8 }}>MONTHLY TOTAL EXPENSES</div>
+        <div style={{ overflowX:"auto" }}>
+          <svg width={svgW} height={svgH} style={{ display:"block",minWidth:280 }}>
+            {[0,0.25,0.5,0.75,1].map(frac => {
+              const y = padT + chartH - frac * chartH;
+              return (
+                <g key={frac}>
+                  <line x1={padL} y1={y} x2={svgW-padR} y2={y} stroke={t.border} strokeWidth={1} />
+                  <text x={padL-4} y={y+4} textAnchor="end" fontSize={9} fill={t.tx3}>{fmtShort(maxExp * frac)}</text>
+                </g>
+              );
+            })}
+            {displayMonths.length > 1 && (
+              <polyline
+                points={monthData.map((d,i) => `${xPos(i)},${yPos(d.totalExpense)}`).join(" ")}
+                fill="none" stroke={COLOR.danger} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round"
+              />
+            )}
+            {monthData.map((d,i) => (
+              <g key={d.month} style={{ cursor:"pointer" }} onClick={() => onNavigateToTxMonth && onNavigateToTxMonth(d.month)}>
+                <circle cx={xPos(i)} cy={yPos(d.totalExpense)} r={6} fill={COLOR.danger} stroke={t.panelBg} strokeWidth={2} />
+                <text x={xPos(i)} y={svgH-padB+14} textAnchor="middle" fontSize={10} fill={t.tx2}>{shortMonth(d.month)}</text>
+                <title>{shortMonth(d.month)}: {fmt$(d.totalExpense)}</title>
+              </g>
+            ))}
+          </svg>
+        </div>
+      </div>
+
+      {/* Category Breakdown Bar Chart */}
+      <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,padding:16,marginBottom:16 }}>
+        <div style={{ fontSize:11,color:t.tx2,fontWeight:700,marginBottom:8 }}>CATEGORY BREAKDOWN (Top 6)</div>
+        <div style={{ display:"flex",gap:10,flexWrap:"wrap",marginBottom:12 }}>
+          {topCats.map((cid,ci) => (
+            <div key={cid} style={{ display:"flex",alignItems:"center",gap:4 }}>
+              <div style={{ width:10,height:10,borderRadius:2,background:CHART_COLORS[ci%CHART_COLORS.length],flexShrink:0 }} />
+              <span style={{ fontSize:11,color:t.tx2 }}>{catMap[cid]?.icon} {catMap[cid]?.name||cid}</span>
+            </div>
+          ))}
+          {hasOther && (
+            <div style={{ display:"flex",alignItems:"center",gap:4 }}>
+              <div style={{ width:10,height:10,borderRadius:2,background:"#94a3b8",flexShrink:0 }} />
+              <span style={{ fontSize:11,color:t.tx2 }}>Other</span>
+            </div>
+          )}
+        </div>
+        <div style={{ overflowX:"auto" }}>
+          <svg width={svgW} height={barSvgH} style={{ display:"block",minWidth:280 }}>
+            {[0,0.25,0.5,0.75,1].map(frac => {
+              const y = barPadT + barChartH - frac * barChartH;
+              return (
+                <g key={frac}>
+                  <line x1={barPadL} y1={y} x2={svgW-barPadR} y2={y} stroke={t.border} strokeWidth={1} />
+                  <text x={barPadL-4} y={y+4} textAnchor="end" fontSize={9} fill={t.tx3}>{fmtShort(maxBarTotal * frac)}</text>
+                </g>
+              );
+            })}
+            {monthData.map((md,mi) => {
+              const groupCenterX = barPadL + barGroupW * mi + barGroupW / 2;
+              const groupStartX = groupCenterX - (totalBars * barW) / 2;
+              const otherAmt = Math.max(md.totalExpense - topCats.reduce((s,cid) => s+(md.byCat[cid]||0), 0), 0);
+              const barsData = [
+                ...topCats.map((cid,ci) => ({ amount: md.byCat[cid]||0, color: CHART_COLORS[ci%CHART_COLORS.length], label: catMap[cid]?.name||cid })),
+                ...(hasOther ? [{ amount: otherAmt, color:"#94a3b8", label:"Other" }] : []),
+              ];
+              return (
+                <g key={md.month} style={{ cursor:"pointer" }} onClick={() => onNavigateToTxMonth && onNavigateToTxMonth(md.month)}>
+                  {barsData.map((bar,bi) => {
+                    const barH = bar.amount > 0 ? Math.max((bar.amount / maxBarTotal) * barChartH, 2) : 0;
+                    const barX = groupStartX + bi * barW;
+                    const barY = barPadT + barChartH - barH;
+                    return (
+                      <rect key={bi} x={barX} y={barY} width={Math.max(barW-1,2)} height={barH}
+                        fill={bar.color} rx={2} opacity={0.85}>
+                        <title>{shortMonth(md.month)} · {bar.label}: {fmt$(bar.amount)}</title>
+                      </rect>
+                    );
+                  })}
+                  <text x={groupCenterX} y={barSvgH-barPadB+14} textAnchor="middle" fontSize={10} fill={t.tx2}>{shortMonth(md.month)}</text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+        {monthData.every(d => d.totalExpense === 0) && (
+          <div style={{ textAlign:"center",color:t.tx2,fontSize:13,padding:"16px 0" }}>No spending data in this range.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [loading,      setLoading]      = useState(true);
@@ -1676,6 +2221,7 @@ export default function App() {
   const [rules,        setRules]        = useState([]);
   const [tab,          setTab]          = useState("summary");
   const [txPresetCat,  setTxPresetCat]  = useState(null);
+  const [range,        setRange]        = useState(defaultRange);
   const [showApiKey,     setShowApiKey]     = useState(false);
   const [showBackup,     setShowBackup]     = useState(false);
   const [showAccounts,   setShowAccounts]   = useState(false);
@@ -1716,6 +2262,9 @@ export default function App() {
 
         const rs = await storeGet(`ffp_cat_rules_${profile.id}`, true) || [];
         setRules(rs);
+
+        const savedRange = await storeGet(`sp_selected_range_${profile.id}`);
+        if (savedRange && savedRange.mode) setRange(savedRange);
       }
 
       setLoading(false);
@@ -1741,6 +2290,11 @@ export default function App() {
   const saveCategories = useCallback(async (next) => {
     setCategories(next);
     if (activeProfile) await storeSet(`ffp_categories_${activeProfile.id}`, next, true);
+  }, [activeProfile]);
+
+  const saveRange = useCallback(async (next) => {
+    setRange(next);
+    if (activeProfile) await storeSet(`sp_selected_range_${activeProfile.id}`, next);
   }, [activeProfile]);
 
   async function handleSaveApiKey(key) {
@@ -1782,6 +2336,24 @@ export default function App() {
     setCategories(cats);
     const rs = await storeGet(`ffp_cat_rules_${profile.id}`, true) || [];
     setRules(rs);
+    const savedRange = await storeGet(`sp_selected_range_${profile.id}`);
+    setRange(savedRange && savedRange.mode ? savedRange : defaultRange());
+  }
+
+  // Navigate to a specific month in Transactions tab (from Trends click)
+  function handleNavigateToTxMonth(month) {
+    const r = { mode:"month", month, start:month, end:month };
+    setRange(r);
+    if (activeProfile) storeSet(`sp_selected_range_${activeProfile.id}`, r);
+    setTxPresetCat(null);
+    setTab("transactions");
+  }
+
+  // Navigate within Summary (RollupPanel) — stay in Summary, update range
+  function handleSummaryNavigateMonth(month) {
+    const r = { mode:"month", month, start:month, end:month };
+    setRange(r);
+    if (activeProfile) storeSet(`sp_selected_range_${activeProfile.id}`, r);
   }
 
   if (loading) return (
@@ -1842,21 +2414,27 @@ export default function App() {
       {/* Main */}
       <div style={{ maxWidth:1100,margin:"0 auto",padding:"20px 16px" }}>
         {/* Tabs */}
-        <div style={{ display:"flex",gap:8,marginBottom:20 }}>
+        <div style={{ display:"flex",gap:8,marginBottom:20,flexWrap:"wrap" }}>
           <button style={tabStyle(tab==="summary")} onClick={() => setTab("summary")}>Summary</button>
           <button style={tabStyle(tab==="transactions")} onClick={() => { setTxPresetCat(null); setTab("transactions"); }}>Transactions</button>
           <button style={tabStyle(tab==="rules")} onClick={() => setTab("rules")}>Rules</button>
+          <button style={tabStyle(tab==="trends")} onClick={() => setTab("trends")}>Trends</button>
         </div>
 
         {tab === "summary" && (
-          <SummaryTab t={t} transactions={transactions} categories={categories}
-            onNavigateToCategory={catId => { setTxPresetCat(catId); setTab("transactions"); }} />
+          <SummaryTab
+            t={t} transactions={transactions} categories={categories}
+            range={range} onRangeChange={saveRange}
+            onNavigateToCategory={catId => { setTxPresetCat(catId); setTab("transactions"); }}
+            onNavigateMonth={handleSummaryNavigateMonth}
+          />
         )}
         {tab === "transactions" && (
           <TransactionsTab
             t={t} transactions={transactions} accounts={accounts}
             categories={categories} rules={rules} apiKey={apiKey}
             presetCatId={txPresetCat}
+            range={range} onRangeChange={saveRange}
             onUpdateTransactions={saveTransactions}
             onUpdateAccounts={saveAccounts}
             onUpdateRules={saveRules}
@@ -1866,6 +2444,12 @@ export default function App() {
         {tab === "rules" && (
           <RulesTab t={t} rules={rules} categories={categories} transactions={transactions}
             apiKey={apiKey} onUpdateRules={saveRules} onUpdateTransactions={saveTransactions} />
+        )}
+        {tab === "trends" && (
+          <TrendsTab
+            t={t} transactions={transactions} categories={categories}
+            range={range} onNavigateToTxMonth={handleNavigateToTxMonth}
+          />
         )}
       </div>
 
