@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git:*)",
       "Bash(npm:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "mcp__plugin_context-mode_context-mode__ctx_execute"
     ],
     "deny": [
       "Bash(rm -rf /*)"
