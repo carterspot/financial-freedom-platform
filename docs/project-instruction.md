@@ -11,17 +11,20 @@ The platform is built as a collection of standalone Claude artifacts (React .jsx
 
 ```
 Financial Freedom Platform
-├── 💳 CardTracker      (BUILT — v3.1 complete)
-├── 🏦 LoanTracker      (BUILT — v1.2 complete)
-├── ⚡ DebtTracker      (BUILT — v1.1 complete)
-├── 💰 IncomeTracker    (BUILT — v1.0 complete)
-├── 📊 SpendingTracker  (BUILT — v1.0 complete)
-├── 🏦 Savings Module   (PLANNED — emergency fund, goals)
-├── 📈 Retirement Module(PLANNED — 401k, IRA, projections)
-└── 🧠 AI Advisor       (PLANNED — holistic cross-module planning)
+├── 💳 CardTracker       (BUILT — v3.1 complete)
+├── 🏦 LoanTracker       (BUILT — v1.2 complete)
+├── ⚡ DebtTracker       (BUILT — v1.3 complete)
+├── 💰 IncomeTracker     (BUILT — v1.0 complete)
+├── 📊 SpendingTracker   (BUILT — v1.3 complete)
+├── 🏦 Savings Module    (PLANNED — emergency fund, goals)
+├── 📈 Retirement Module (PLANNED — 401k, IRA, projections)
+├── 💹 Investment Module (PLANNED — taxable brokerage, stocks, ETFs)
+└── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
 ```
 
 Each module is a self-contained React artifact. The AI Advisor is the capstone — it reads data from all modules and generates a unified financial freedom plan.
+
+**Critical AI Advisor note:** SpendingTracker is the transaction source of truth — all spending flows through it, including income entries imported from bank statements. The AI Advisor manages and interprets this data cross-module, but any AI categorization or mapping must be user-correctable. The AI Advisor must include a manual correction layer so users can fix any misread or incorrectly mapped transactions before the plan is generated. Transaction accuracy is the foundation — the AI plan is only as good as the data it reads.
 
 ---
 
@@ -212,7 +215,7 @@ lt_dark                          (local)  — dark mode boolean
 
 ---
 
-## Module 3: DebtTracker (COMPLETE — v1.1)
+## Module 3: DebtTracker (COMPLETE — v1.3)
 
 ### What it is
 Unified merge of CardTracker + LoanTracker. All debt types in one artifact with a unified avalanche/snowball planner across cards and loans.
@@ -223,8 +226,8 @@ Unified merge of CardTracker + LoanTracker. All debt types in one artifact with 
 - Unified avalanche/snowball payoff engine — revolving math for cards, amortization for loans, waterfall across both
 - Portfolio summary dashboard (total debt, monthly payments, estimated interest, payoff date)
 - Quick Pay (✓ Pay) for both cards and loans
-- Five-tab planner: Schedule / Single Debt / Charts / What-If AI / Progress
-- Strategy Builder folded into What-If AI tab as collapsible "Build My Strategy" panel
+- Six-tab planner: Strategy / Schedule / Single Debt / Charts / Analysis / Progress
+- Strategy Builder — dedicated first tab with 5-question questionnaire + Apply This Strategy
 - One-click import banner — detects existing cc_cards_* or lt_loans_* data on first load
 - Backup & Restore — JSON (full) + CSV (cards and loans separately)
 - Shared profile and API key system (cc_profiles, cc_apikey)
@@ -233,6 +236,52 @@ Unified merge of CardTracker + LoanTracker. All debt types in one artifact with 
 
 ### v1.1 bug fixes (March 2026)
 - Added standalone profile creation screen (FirstRunSetup component) — DebtTracker no longer assumes cc_profiles exists from prior modules
+
+### v1.2 bug fixes (March 2026)
+- Lump sum engine — Priority and Split modes now apply correctly; month-by-month table shows amber LUMP SUM marker row with correct PAID = regularPayment + lumpAmount; payoff order list shows per-debt lump annotation
+- Total Debt card added as first stat in portfolio summary bar (was missing)
+- Single Debt tab — Current Balance added as first stat; amortization table now has ⬇ CSV export button
+- AI outputs — Schedule Analysis panel gets 📋 Copy + ⬇ Download .txt buttons; What-If chat AI messages get per-bubble 📋 Copy button with 1.5s "Copied!" confirmation
+
+### v1.3 features (March 2026)
+- Dark mode nav/header font contrast fixed
+- Monthly Payment auto-fills with calculated minimum when Min Payment Mode = Auto
+- Extra/mo persists correctly across planner open/close
+- All export functions use appendChild/removeChild anchor pattern — downloads work reliably
+- Profile edit + add new profile from nav dropdown (name/avatar/PIN)
+- Calendar modal — monthly grid with due days, statement close, projected payoff dates; ICS export; button between Open Planner and Add Debt
+- Responsive layout via useBreakpoint() — 1-col mobile, 2-col tablet, desktop; planner tabs scroll on mobile
+- Utilization markers at 20% (green) and 80% (red); bar color zones green/amber/danger
+- Closed account checkbox — excludes from calculations, CLOSED badge, paid-off progress bar, Show closed toggle
+- Portfolio progress bar — total paid down % with milestone markers at 25/50/75%
+- Loan type breakdown badges in portfolio summary
+- Expand/collapse all debts toggle
+- Payoff preview per debt — inline months/interest/payoff date; over/under minimum shown in Fixed mode
+- Strategy tab as first planner tab — 5-question questionnaire, Apply This Strategy
+- Avalanche vs Snowball comparison summary panel at top of Schedule tab
+- Total monthly payment moved before total interest in Schedule stats
+- Before/after stat comparison when extra/mo applied — original value shown muted below new
+- Monthly total row in M2M schedule with base payment in parentheses
+- CC vs Loan visual grouping in M2M schedule with type icons
+- Per-debt progress bars on home screen; total progress bar above debt list; CC and loans side by side on desktop
+- Analysis tab — combines What-If chat + Refinance Scenario collapsible panel with cross-debt awareness
+- Balance over time — dual lines: original trajectory (dashed) vs with extra/lump (solid)
+- Monthly Payment field simplified — single field in Fixed mode with calc minimum shown as reference
+- Extra/Lump consolidated to Schedule tab only — Single Debt is pure amortization viewer
+- 0% APR promo support — promoApr + promoEndDate on cards; engine uses promo rate until expiry; 90-day and 30-day alerts; calendar integration
+- Morning affirmation splash — total progress, milestones, rotating message; once per calendar day
+
+### Card schema additions (v1.3)
+```
+promoApr: ""          — promo interest rate (blank = no promo)
+promoEndDate: ""      — ISO date when promo expires
+closed: false         — excludes from calculations when true
+```
+
+### Storage additions (v1.3)
+```
+dt_last_open          (localStorage) — date of last app open for morning affirmation
+```
 
 ### Architecture decisions
 - Card and loan schemas stay separate in storage — no migration of existing data
@@ -374,7 +423,18 @@ Tracks spending transactions via CSV import from any bank or credit card stateme
 - Needs Review not surfaced — `needsReview: true` flag now set on low/medium-confidence AI assignments and "skip" path; amber left border + REVIEW badge on transaction rows; dismissible amber banner in Transactions tab showing flagged count
 - Rules not retroactive — `applyRulesRetroactive()` runs after every rule save/edit, updating all `categoryLocked: false` transactions; shows "✓ Rule applied — X transactions updated" confirmation (auto-clears 4s); confirming a Needs Review item auto-creates a rule and applies retroactively
 
-### v1.2 features (March 2026)
+### v1.3 features (March 2026)
+- Multi-month CSV import — queue multiple files per account, each processed through full import flow (map → sign normalize → dedup → AI categorize), progress indicator per file
+- Incremental import dedup preview — before importing shows New (green) / Duplicate (grey) / Conflicting (amber) preview; skip-all-duplicates toggle default on; conflicting transactions require explicit user choice
+- Batch delete — select mode toggle in Transactions tab, per-row checkboxes, Select All respects active filters, sticky action bar with count, ConfirmModal, exits select mode after delete
+- Date range picker — Month/Range toggle; range view has start/end month pickers; Transactions and Summary both respect range; range stored in `sp_selected_range_{profileId}`
+- Trends tab (4th tab) — SVG line chart for total spending + grouped bar chart for top 6 categories by month, 3–12 month configurable window, click month → jumps to that month in Transactions
+- 3-month rolling summary panel — top of Summary tab, three columns (current / previous / two months ago), each shows total income, total expenses, net; delta arrows between columns; clicking a column switches active month
+
+### Storage keys added (v1.3)
+```
+sp_selected_range_{profileId}  (shared) — date range when range mode is active
+```
 - Summary tab moved before Transactions — new order: Summary / Transactions / Rules, Summary is default active tab
 - Summary charts — income categories at top, expenses sorted high→low, horizontal bars as % of monthly income, budget average dash overlay at 3-month rolling average, delta labels color-coded, click category → switches to Transactions tab with filter applied
 - Transactions — Debit/Credit toggle (All/Debit/Credit), multi-category filter (`CategoryMultiSelect` with badge count + click-outside close), AND logic between both filters
@@ -387,6 +447,7 @@ Tracks spending transactions via CSV import from any bank or credit card stateme
 sp_transactions_{profileId}    (shared) — array of transaction objects
 sp_accounts_{profileId}        (shared) — array of account objects
 sp_selected_month_{profileId}  (shared) — currently selected month YYYY-MM
+sp_selected_range_{profileId}  (shared) — date range when range mode is active
 sp_dark                        (local)  — dark mode boolean
 cc_profiles                    (shared) — SHARED across all modules
 cc_active_profile              (shared) — SHARED across all modules
@@ -485,6 +546,17 @@ sav_goals_{profileId}    (shared) — array of goal objects (fundId, name, goalT
 Retirement readiness — balances, contribution rates, employer match, projections, "am I on track?"
 
 - Storage prefix: `ret_`
+
+---
+
+## Module 8: Investment Module (PLANNED)
+
+Taxable brokerage accounts, individual stocks, ETFs, and crypto tracking. Separate from Retirement (which covers tax-advantaged accounts).
+
+- Account types: taxable brokerage, individual stocks, ETFs, mutual funds, crypto
+- Tracks: positions, cost basis, unrealized gains/losses, dividends
+- Connects to AI Advisor for net worth and allocation analysis
+- Storage prefix: `inv_`
 
 ---
 
@@ -744,10 +816,13 @@ docs/
 - ✅ LoanTracker v1.2 — same planner fixes as CardTracker, responsive Payoff Accelerator
 - ✅ DebtTracker v1 — unified cards + loans, 5-tab planner, strategy builder, import banner, shared profiles
 - ✅ DebtTracker v1.1 — standalone profile creation screen (FirstRunSetup)
+- ✅ DebtTracker v1.2 — lump sum engine fix, Total Debt summary card, Single Debt CSV export, AI copy/save buttons
+- ✅ DebtTracker v1.3 — profile edit/add, calendar+ICS, responsive layout, utilization markers, closed accounts, portfolio progress bar, Strategy tab, Analysis tab (What-If+Refinance), promo APR, morning affirmation, payoff preview, M2M improvements, dual-line balance chart
 - ✅ IncomeTracker v1.0 — income stream CRUD, frequency normalization, stability ratings, category seeding
 - ✅ SpendingTracker v1.0 — CSV import, column mapper, AI batch categorization, rules engine, actuals + rolling average
 - ✅ SpendingTracker v1.1 — profile switcher fix, export anchor fix, needs review surfacing, retroactive rule apply
 - ✅ SpendingTracker v1.2 — Summary tab first, category bar charts, debit/credit filter, multi-category filter, dark mode contrast, create rule/category from edit modal, transfer category
+- ✅ SpendingTracker v1.3 — multi-month CSV import, dedup preview, batch delete, date range picker, Trends tab (SVG charts), 3-month rolling summary panel
 - ✅ CLAUDE.md — trimmed for token efficiency, added to repo root
 - ✅ Vite preview server — localhost:5173 for local JSX testing
 - ✅ GitHub Pages landing page — docs/index.html with module cards, artifact links, QS + What's New buttons
@@ -758,11 +833,13 @@ docs/
 - ✅ context-mode installed — MCP context virtualization layer, ~98% context savings in Code sessions
 
 ### Up Next
-- [ ] Family migration from CardTracker/LoanTracker → DebtTracker, then deprecate legacy modules from landing page
+- [ ] Family migration deprecation — remove CardTracker + LoanTracker from landing page
 - [ ] Savings Module v1 — emergency fund + sinking fund goals
 - [ ] Retirement Module v1 — balances, contributions, projections
-- [ ] AI Advisor — holistic cross-module planning (capstone)
+- [ ] Investment Module v1 — taxable brokerage, stocks, ETFs
+- [ ] AI Advisor — holistic cross-module planning with manual correction layer (capstone)
 - [ ] Platform Dashboard — unified entry point linking all modules
+- [ ] Node graph v2 — draggable nodes, edge highlighting, Investment module node
 - [ ] Graduation — Next.js + Supabase hosted app
 - [ ] React Native / Expo — iOS + Android
 - [ ] Monetization — freemium, Pro tier, family plan
