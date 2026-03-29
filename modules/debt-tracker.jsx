@@ -1927,7 +1927,8 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
 
                   // F15 — divider between CC and Loan rows if both present
                   if (hasCards && hasLoans) {
-                    const divIdx = mo.rows.findLastIndex?.(r=>r._type==="card") ?? mo.rows.filter(r=>r._type==="card").length-1;
+                    let divIdx = -1;
+                    for (let _i = mo.rows.length-1; _i >= 0; _i--) { if (mo.rows[_i]._type==="card") { divIdx=_i; break; } }
                     if (divIdx>=0 && divIdx<mo.rows.length-1) {
                       rows.splice(divIdx+1, 0,
                         <tr key={`${mo.month}-div`}>
