@@ -1,5 +1,5 @@
-import SpendingModule from "../../modules/spending.jsx";
+import DebtTracker from "../../modules/debt-tracker.jsx";
 
 export default function App() {
-  return <SpendingModule />;
+  return <DebtTracker />;
 }
