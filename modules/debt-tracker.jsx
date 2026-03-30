@@ -2199,7 +2199,7 @@ function SingleDebtTab({ cards, loans, t }) {
         </>
       )}
       {!all.length && (
-        <div style={{...panelSt(t,{textAlign:"center",color:t.tx3,padding:40})}>Add a debt to see its schedule.</div>
+        <div style={{...panelSt(t,{textAlign:"center",color:t.tx3,padding:40})}}>Add a debt to see its schedule.</div>
       )}
       <AddLumpSumModal open={showLump} onClose={()=>setShowLump(false)} onAdd={ls=>setLumps(p=>[...p,ls])} t={t} />
     </div>
