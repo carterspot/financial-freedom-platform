@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// --- Constants ----------------------------------------------------------------
 const API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL   = "claude-sonnet-4-20250514";
 const AVATAR_COLORS = ["#6366f1","#ec4899","#f97316","#10b981","#3b82f6","#8b5cf6","#f43f5e","#06b6d4"];
@@ -23,25 +23,55 @@ const STRATEGY_QUESTIONS = [
   { id:"q5", label:"What concerns you most about your debt?",
     options:["Total interest cost","High monthly payments","How long it will take","All of the above"] },
 ];
-const AFFIRMATIONS = [
-  "Every payment is progress.",
+const AFFIRMATIONS_CRUSHING = [
+  "Over 75% paid off — you are absolutely crushing it.",
+  "The finish line is in sight. Keep that momentum.",
+  "You've done the hard part. Now coast to debt-free.",
+  "75%+ gone. Your discipline is paying off every month.",
+  "Almost there — every payment is a victory lap.",
+];
+const AFFIRMATIONS_HALFWAY = [
+  "Halfway through — the hardest climb is behind you.",
+  "50% paid down. You've proved you can do this.",
+  "The back half is always faster. You've got this.",
+  "You're over the mountain. Keep rolling downhill.",
+  "Half the debt, twice the momentum. Keep going.",
+];
+const AFFIRMATIONS_PROGRESS = [
+  "Every dollar paid is a dollar working for your future.",
+  "Progress is never linear — you're still winning.",
+  "You're further along than you were yesterday.",
+  "Small steps forward are still steps forward.",
+  "Building the habit is the hardest part. You're doing it.",
+];
+const AFFIRMATIONS_START = [
+  "The hardest step is the first one — you're here.",
+  "Tracking is the first act of control. Welcome.",
+  "You can't change what you don't measure. Now you know.",
+  "Every financial success story starts right here.",
+];
+const AFFIRMATIONS_EARLY = [
+  "Every payment is progress. Don't stop now.",
   "Debt-free is a direction, not just a destination.",
-  "Small steps, big results — keep going.",
-  "Your future self is cheering you on.",
-  "Financial freedom is built one payment at a time.",
-  "You're making real progress — don't stop now.",
   "Consistency beats intensity. Show up every month.",
-  "Every dollar paid down is a dollar earned back.",
-  "The best time to start was yesterday. Second best is today.",
-  "You're in control of your financial story.",
-  "Each minimum met is a promise kept to yourself.",
-  "Debt has a finish line. You're getting closer.",
-  "Small wins compound into big freedom.",
+  "Financial freedom is built one payment at a time.",
   "You've already done the hardest part — you started.",
   "Progress, not perfection. Keep moving forward.",
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+function pickAffirmation(cards, loans) {
+  const allDebts = [...cards.filter(c => !c.closed), ...loans.filter(l => !l.closed)];
+  if (allDebts.length === 0) return AFFIRMATIONS_START;
+  const totalOrig = allDebts.reduce((s, d) => s + (toNum(d.originalBalance) || toNum(d.balance || d.currentBalance)), 0);
+  const totalCur  = allDebts.reduce((s, d) => s + toNum(d.balance || d.currentBalance), 0);
+  const pct = totalOrig > 0 ? (totalOrig - totalCur) / totalOrig * 100 : 0;
+  if (pct >= 75) return AFFIRMATIONS_CRUSHING;
+  if (pct >= 50) return AFFIRMATIONS_HALFWAY;
+  if (pct >= 25) return AFFIRMATIONS_PROGRESS;
+  return AFFIRMATIONS_EARLY;
+}
+
+// --- Helpers ------------------------------------------------------------------
 const generateId  = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
 const fmt$        = (n) => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n||0);
 const fmtPct      = (n) => `${(parseFloat(n)||0).toFixed(2)}%`;
@@ -49,7 +79,7 @@ const fmtMonths   = (n) => n===1?"1 mo":`${n} mo`;
 const toNum       = (s) => parseFloat(s)||0;
 const getInitials = (n) => !n ? "?" : n.trim().split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
 
-// ─── Theme ────────────────────────────────────────────────────────────────────
+// --- Theme --------------------------------------------------------------------
 function useTheme(dm) {
   return {
     bg:      dm?"#020617":"#f1f5f9",
@@ -64,9 +94,9 @@ function useTheme(dm) {
   };
 }
 
-// F3 — useBreakpoint hook ──────────────────────────────────────────────────────
+// F3 — useBreakpoint hook ------------------------------------------------------
 function useBreakpoint() {
-  const [w, setW] = useState(window.innerWidth);
+  const [w, setW] = useState(960);
   useEffect(() => {
     const fn = () => setW(window.innerWidth);
     window.addEventListener("resize", fn);
@@ -75,7 +105,7 @@ function useBreakpoint() {
   return { isMobile: w < 640, isTablet: w < 960, isDesktop: w >= 960 };
 }
 
-// ─── Storage ──────────────────────────────────────────────────────────────────
+// --- Storage ------------------------------------------------------------------
 let _cloudAvailable = null;
 async function probeCloudStorage() {
   if (_cloudAvailable !== null) return _cloudAvailable;
@@ -105,16 +135,44 @@ async function storeSet(key, value, shared=false) {
 }
 const hasCloudStorage = () => _cloudAvailable === true;
 
-// ─── AI ───────────────────────────────────────────────────────────────────────
+// --- AI -----------------------------------------------------------------------
 async function callClaude(apiKey, body) {
   const headers = { "Content-Type":"application/json" };
   if (apiKey?.trim()) headers["x-api-key"] = apiKey.trim();
-  const res = await fetch(API_URL, { method:"POST", headers, body:JSON.stringify(body) });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  return res;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(API_URL, { method:"POST", headers, body:JSON.stringify(body), signal:controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return res;
+  } catch(e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
 }
 
-// ─── Payoff Engine ────────────────────────────────────────────────────────────
+function aiErrorMsg(e) {
+  if (e.name === "AbortError")       return "Request timed out — check your connection and retry.";
+  if (e.message.includes("401"))     return "Invalid API key — update your key via the key button in the nav bar.";
+  if (e.message.includes("429"))     return "Rate limited — wait a moment and try again.";
+  if (e.message.includes("500"))     return "Anthropic API error — try again shortly.";
+  return `AI unavailable (${e.message}) — try again.`;
+}
+
+async function probeApiKey(key) {
+  try {
+    const res = await fetch(API_URL, {
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":key},
+      body:JSON.stringify({ model:MODEL, max_tokens:1, messages:[{role:"user",content:"hi"}] }),
+      signal:AbortSignal.timeout(8000),
+    });
+    return res.status === 200 ? "valid" : res.status === 401 ? "invalid" : "limited";
+  } catch { return "unknown"; }
+}
+
+// --- Payoff Engine ------------------------------------------------------------
 function calcMinPmt(balance, apr) {
   const b = toNum(balance);
   const interest = b * toNum(apr) / 100 / 12;
@@ -283,7 +341,7 @@ function computeUnifiedSchedule(cards, loans, method, opts={}) {
   return { months, totalInterest, totalPaid, payoffDate, debtPayoffDates, debts };
 }
 
-// ─── Shared style helpers ─────────────────────────────────────────────────────
+// --- Shared style helpers -----------------------------------------------------
 function inputStyle(t) {
   return { width:"100%", background:t.surf, border:`1px solid ${t.border}`,
     borderRadius:8, padding:"8px 12px", color:t.tx1, fontSize:13, boxSizing:"border-box",
@@ -319,7 +377,7 @@ function overlayContainer(t, maxW=440) {
   };
 }
 
-// ─── CopyButton ───────────────────────────────────────────────────────────────
+// --- CopyButton ---------------------------------------------------------------
 function CopyButton({ text, label, t, style }) {
   const [copied, setCopied] = useState(false);
   function handleCopy() {
@@ -337,7 +395,7 @@ function CopyButton({ text, label, t, style }) {
   );
 }
 
-// ─── InfoModal ────────────────────────────────────────────────────────────────
+// --- InfoModal ----------------------------------------------------------------
 function InfoModal({ open, onClose, title, body, t }) {
   if (!open) return null;
   const s = overlayContainer(t, 420);
@@ -355,7 +413,7 @@ function InfoModal({ open, onClose, title, body, t }) {
   );
 }
 
-// ─── ConfirmDeleteModal ───────────────────────────────────────────────────────
+// --- ConfirmDeleteModal -------------------------------------------------------
 function ConfirmDeleteModal({ open, onClose, onConfirm, itemName, t }) {
   if (!open) return null;
   const s = overlayContainer(t, 380);
@@ -376,7 +434,7 @@ function ConfirmDeleteModal({ open, onClose, onConfirm, itemName, t }) {
   );
 }
 
-// ─── ApiKeyModal ──────────────────────────────────────────────────────────────
+// --- ApiKeyModal --------------------------------------------------------------
 function ApiKeyModal({ open, onClose, apiKey, onSave, t }) {
   const [val,setVal] = useState(apiKey||"");
   useEffect(()=>{ if (open) setVal(apiKey||""); },[open,apiKey]);
@@ -410,7 +468,7 @@ function ApiKeyModal({ open, onClose, apiKey, onSave, t }) {
   );
 }
 
-// ─── ProfileModal (F1) ────────────────────────────────────────────────────────
+// --- ProfileModal (F1) --------------------------------------------------------
 function ProfileModal({ open, onClose, editProfile, onSave, t }) {
   const [name, setName]             = useState("");
   const [pin, setPin]               = useState("");
@@ -489,7 +547,7 @@ function ProfileModal({ open, onClose, editProfile, onSave, t }) {
   );
 }
 
-// ─── AddLumpSumModal ──────────────────────────────────────────────────────────
+// --- AddLumpSumModal ----------------------------------------------------------
 function AddLumpSumModal({ open, onClose, onAdd, t }) {
   const [date,setDate] = useState("");
   const [amount,setAmount] = useState("");
@@ -534,7 +592,7 @@ function AddLumpSumModal({ open, onClose, onAdd, t }) {
   );
 }
 
-// ─── QuickPayModal ────────────────────────────────────────────────────────────
+// --- QuickPayModal ------------------------------------------------------------
 function QuickPayModal({ open, onClose, item, onConfirm, t }) {
   const [amount,setAmount] = useState("");
   const [date,setDate] = useState(() => new Date().toISOString().slice(0,10));
@@ -585,7 +643,7 @@ function QuickPayModal({ open, onClose, item, onConfirm, t }) {
   );
 }
 
-// ─── BackupModal (B4 — anchor fix) ───────────────────────────────────────────
+// --- BackupModal (B4 — anchor fix) -------------------------------------------
 function BackupModal({ open, onClose, cards, loans, logs, profileId, onImport, t }) {
   const [importText,setImportText] = useState("");
   const [importMode,setImportMode] = useState("replace");
@@ -694,7 +752,7 @@ function BackupModal({ open, onClose, cards, loans, logs, profileId, onImport, t
   );
 }
 
-// ─── AddDebtModal (B2 auto-fill, F5 closed, F6-promo) ────────────────────────
+// --- AddDebtModal (B2 auto-fill, F5 closed, F6-promo) ------------------------
 const BLANK_CARD = { name:"", last4:"", color:"#6366f1", balance:"", limit:"",
   apr:"", minPaymentMode:"auto", minPaymentFixed:"", monthlyPayment:"", payoffMode:"payment",
   dueDay:"", statementDay:"", originalBalance:"", closed:false,
@@ -984,7 +1042,7 @@ function AddDebtModal({ open, onClose, editCard, editLoan, onSaveCard, onSaveLoa
   );
 }
 
-// ─── ImportBanner ─────────────────────────────────────────────────────────────
+// --- ImportBanner -------------------------------------------------------------
 function ImportBanner({ onImport, onDismiss, t }) {
   return (
     <div style={{background:COLOR.warning+"18", border:`1px solid ${COLOR.warning}44`,
@@ -1005,7 +1063,7 @@ function ImportBanner({ onImport, onDismiss, t }) {
   );
 }
 
-// ─── SectionProgressBar (F16/F17) ────────────────────────────────────────────
+// --- SectionProgressBar (F16/F17) --------------------------------------------
 function SectionProgressBar({ items, _type, t }) {
   const totalOrig = items.reduce((s,item)=>{
     return s+(toNum(item.originalBalance)||toNum(_type==="card"?item.balance:item.currentBalance));
@@ -1050,7 +1108,7 @@ function SectionProgressBar({ items, _type, t }) {
   );
 }
 
-// ─── TotalProgressBar (F6 / F17) ─────────────────────────────────────────────
+// --- TotalProgressBar (F6 / F17) ---------------------------------------------
 function TotalProgressBar({ cards, loans, t }) {
   const allCards = cards.filter(c=>!c.closed);
   const allLoans = loans.filter(l=>!l.closed);
@@ -1097,7 +1155,7 @@ function TotalProgressBar({ cards, loans, t }) {
   );
 }
 
-// ─── PortfolioSummary (F6 progress bar, F7 type badges) ──────────────────────
+// --- PortfolioSummary (F6 progress bar, F7 type badges) ----------------------
 function PortfolioSummary({ cards, loans, schedule, t }) {
   const bp = useBreakpoint();
   const openCards = cards.filter(c=>!c.closed);
@@ -1109,9 +1167,6 @@ function PortfolioSummary({ cards, loans, schedule, t }) {
   const totalInt  = schedule?.totalInterest||0;
   const payoff    = schedule?.payoffDate;
 
-  const totalOrig = openCards.reduce((s,c)=>s+(toNum(c.originalBalance)||toNum(c.balance)),0)
-                  + openLoans.reduce((s,l)=>s+(toNum(l.originalBalance)||toNum(l.currentBalance)),0);
-  const progPct   = totalOrig>0 ? Math.max(0,Math.min(100,(totalOrig-totalDebt)/totalOrig*100)) : 0;
 
   const stats = [
     { label:"Total Debt",       value:fmt$(totalDebt),  color:COLOR.danger },
@@ -1140,26 +1195,6 @@ function PortfolioSummary({ cards, loans, schedule, t }) {
         ))}
       </div>
 
-      {/* F6 — portfolio progress bar */}
-      {totalOrig>0 && (
-        <div style={{...panelSt(t,{marginBottom:12})}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <span style={{fontSize:12,fontWeight:700,color:t.tx1}}>Total Progress — {progPct.toFixed(0)}% paid down</span>
-            <span style={{fontSize:11,fontFamily:"monospace",color:COLOR.success}}>{fmt$(totalOrig-totalDebt)} paid down</span>
-          </div>
-          <div style={{position:"relative",padding:"4px 0"}}>
-            <div style={{height:8,borderRadius:4,background:t.surf}}>
-              <div style={{height:"100%",width:`${progPct}%`,background:COLOR.success,borderRadius:4,transition:"width .5s"}} />
-            </div>
-            {[25,50,75].map(m=>(
-              <div key={m} style={{position:"absolute",top:"50%",left:`${m}%`,
-                transform:"translate(-50%,-50%)",width:10,height:10,borderRadius:"50%",
-                background:progPct>=m?COLOR.success:t.panelBg,
-                border:`2px solid ${progPct>=m?COLOR.success:t.border2}`,zIndex:1}} />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* F7 — type badges */}
       {Object.keys(typeCounts).length>0 && (
@@ -1176,7 +1211,7 @@ function PortfolioSummary({ cards, loans, schedule, t }) {
   );
 }
 
-// ─── DebtProgressBar (F16 per-debt inline) ───────────────────────────────────
+// --- DebtProgressBar (F16 per-debt inline) -----------------------------------
 function DebtProgressBar({ origBal, curBal, color, t }) {
   const pct = origBal>0 ? Math.max(0,Math.min(100,(origBal-curBal)/origBal*100)) : 0;
   const milestones=[25,50,75,100];
@@ -1197,7 +1232,7 @@ function DebtProgressBar({ origBal, curBal, color, t }) {
   );
 }
 
-// ─── CardPanel (F4 util markers, F5 closed, F9 payoff preview, F16 progress) ─
+// --- CardPanel (F4 util markers, F5 closed, F9 payoff preview, F16 progress) -
 function CardPanel({ card, onPay, onEdit, onDelete, schedule, t, expanded, onToggle }) {
   const bal    = toNum(card.balance);
   const limit  = toNum(card.limit);
@@ -1348,10 +1383,6 @@ function CardPanel({ card, onPay, onEdit, onDelete, schedule, t, expanded, onTog
               </div>
             )}
 
-            {/* F16 — paid-down progress bar with milestones */}
-            {orig>0 && !isClosed && (
-              <DebtProgressBar origBal={orig} curBal={bal} color={card.color} t={t} />
-            )}
 
             {/* F9 — payoff preview */}
             {!isClosed && payoffPreview.months>0 && payoffPreview.months<600 && (
@@ -1376,7 +1407,7 @@ function CardPanel({ card, onPay, onEdit, onDelete, schedule, t, expanded, onTog
   );
 }
 
-// ─── LoanPanel (F5 closed, F9 payoff preview, F16 progress) ──────────────────
+// --- LoanPanel (F5 closed, F9 payoff preview, F16 progress) ------------------
 function LoanPanel({ loan, onPay, onEdit, onDelete, schedule, t, expanded, onToggle }) {
   const cur  = toNum(loan.currentBalance);
   const orig = toNum(loan.originalBalance)||cur;
@@ -1435,31 +1466,31 @@ function LoanPanel({ loan, onPay, onEdit, onDelete, schedule, t, expanded, onTog
 
         {expanded && (
           <>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(90px,1fr))",gap:8,marginBottom:12}}>
-              <div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:12}}>
+              <div style={{minWidth:120,flex:"1 1 auto"}}>
                 <div style={{fontSize:10,color:t.tx3,fontWeight:600}}>BALANCE</div>
                 <div style={{fontSize:16,fontWeight:800,color:COLOR.danger,fontFamily:"monospace"}}>{fmt$(cur)}</div>
               </div>
-              <div>
+              <div style={{minWidth:120,flex:"1 1 auto"}}>
                 <div style={{fontSize:10,color:t.tx3,fontWeight:600}}>RATE</div>
                 <div style={{fontSize:14,fontWeight:700,color:t.tx1}}>{fmtPct(rate)}</div>
               </div>
-              <div>
+              <div style={{minWidth:120,flex:"1 1 auto"}}>
                 <div style={{fontSize:10,color:t.tx3,fontWeight:600}}>PAYMENT</div>
                 <div style={{fontSize:14,fontWeight:700,color:t.tx1,fontFamily:"monospace"}}>{fmt$(pmt)}</div>
               </div>
-              <div>
+              <div style={{minWidth:120,flex:"1 1 auto"}}>
                 <div style={{fontSize:10,color:t.tx3,fontWeight:600}}>INT/MO</div>
                 <div style={{fontSize:12,fontWeight:600,color:COLOR.orange,fontFamily:"monospace"}}>{fmt$(intPerMo)}</div>
               </div>
               {payoff && (
-                <div>
+                <div style={{minWidth:120,flex:"1 1 auto"}}>
                   <div style={{fontSize:10,color:t.tx3,fontWeight:600}}>PAYOFF</div>
                   <div style={{fontSize:12,fontWeight:700,color:COLOR.success}}>{payoff}</div>
                 </div>
               )}
               {loan.remainingMonths && (
-                <div>
+                <div style={{minWidth:120,flex:"1 1 auto"}}>
                   <div style={{fontSize:10,color:t.tx3,fontWeight:600}}>REMAINING</div>
                   <div style={{fontSize:12,fontWeight:600,color:t.tx2}}>{fmtMonths(toNum(loan.remainingMonths))}</div>
                 </div>
@@ -1493,7 +1524,7 @@ function LoanPanel({ loan, onPay, onEdit, onDelete, schedule, t, expanded, onTog
   );
 }
 
-// ─── DebtList (F8 expand/collapse, F16/F17 progress, responsive 2-col) ───────
+// --- DebtList (F8 expand/collapse, F16/F17 progress, responsive 2-col) -------
 function DebtList({ cards, loans, interleave, onPay, onEdit, onDelete, schedule, t }) {
   const bp = useBreakpoint();
   const [collapsedIds, setCollapsedIds] = useState(new Set());
@@ -1615,104 +1646,280 @@ function DebtList({ cards, loans, interleave, onPay, onEdit, onDelete, schedule,
   );
 }
 
-// ─── ScheduleTab (B3, F11-F15) ───────────────────────────────────────────────
-function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, setLumps,
-  lumpMode, setLumpMode, recalcMins, setRecalcMins, profileId, aiResults, apiKey,
-  onSaveAiResults, onSavePlanner, t, darkMode }) {
-  const [showLumpModal, setShowLumpModal] = useState(false);
-  const [infoOpen, setInfoOpen]           = useState(false);
-  const [aiLoading, setAiLoading]         = useState(false);
-  const [aiError, setAiError]             = useState("");
-  const [localExtra, setLocalExtra]       = useState(extra||"");
-  const [showTable, setShowTable]         = useState(false);
-  const [extraSaved, setExtraSaved]       = useState(false);
+// --- ExtraLumpModal (D2) ------------------------------------------------------
+function ExtraLumpModal({ open, onClose, scope, scopeLabel, extra, onApplyExtra,
+  lumps, onAddLump, onRemoveLump, lumpMode, onSetLumpMode, recalcMins, onSetRecalcMins, t }) {
+  const [innerTab, setInnerTab] = useState("extra");
+  const [showAddLump, setShowAddLump] = useState(false);
+  const [localExtra, setLocalExtra]   = useState(extra||"");
+  const [saved, setSaved]             = useState(false);
 
-  const schedule    = computeUnifiedSchedule(cards, loans, method,
-    { extraMonthly:toNum(localExtra), lumpSums:lumps, recalcMins, lumpMode });
-  const scheduleAlt = computeUnifiedSchedule(cards, loans, method==="avalanche"?"snowball":"avalanche",
-    { extraMonthly:toNum(localExtra), lumpSums:lumps, recalcMins, lumpMode });
-  // F13 — schedule without extra for before/after comparison
-  const scheduleBase = computeUnifiedSchedule(cards, loans, method,
-    { extraMonthly:0, lumpSums:[], recalcMins, lumpMode });
+  useEffect(()=>{ if (open) setLocalExtra(extra||""); },[open,extra]);
 
-  // F11 — AV vs SB side by side
-  const avSched = method==="avalanche" ? schedule : scheduleAlt;
-  const snSched = method==="snowball"  ? schedule : scheduleAlt;
-  const avBetter = avSched.totalInterest <= snSched.totalInterest;
+  if (!open) return null;
+  const s = overlayContainer(t, 480);
 
-  // F12 — total monthly payment
-  const totalMinPmts = cards.filter(c=>!c.closed).reduce((s,c)=>s+(toNum(c.monthlyPayment)||calcMinPmt(c.balance,c.apr)),0)
-                     + loans.filter(l=>!l.closed).reduce((s,l)=>s+toNum(l.monthlyPayment),0);
-  const totalMonthly = totalMinPmts + toNum(localExtra);
+  function handleApply() {
+    onApplyExtra(localExtra);
+    setSaved(true);
+    setTimeout(()=>setSaved(false), 1500);
+  }
 
-  const hasExtra = toNum(localExtra)>0 || lumps.length>0;
+  return (
+    <div style={s.overlay} onClick={onClose}>
+      <div style={s.box} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{fontWeight:800,fontSize:17,color:t.tx1}}>💰 Extra & Lump Payments</span>
+          <button onClick={onClose} style={{background:"none",border:"none",color:t.tx2,cursor:"pointer",fontSize:20}}>×</button>
+        </div>
+        <div style={{fontSize:11,color:t.tx3,marginBottom:16}}>
+          Applying to: <span style={{color:t.tx2,fontWeight:600}}>{scopeLabel||"All Debts"}</span>
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:20}}>
+          {["extra","lump"].map(tb=>(
+            <button key={tb} onClick={()=>setInnerTab(tb)} style={tabBtn(innerTab===tb,t)}>
+              {tb==="extra"?"Extra Monthly":"Lump Sums"}
+            </button>
+          ))}
+        </div>
 
-  // B3 — direct storeSet for extra persistence
-  async function applyExtra() {
-    setExtra(localExtra);
-    await storeSet(`dt_planner_extra_${profileId}`, localExtra, true);
-    onSavePlanner({ extra:localExtra, lumps, lumpMode, recalcMins });
-    setExtraSaved(true);
-    setTimeout(()=>setExtraSaved(false), 1500);
-  }
-  function removeLump(id) {
-    const next = lumps.filter(l=>l.id!==id);
-    setLumps(next);
-    onSavePlanner({ extra:localExtra, lumps:next, lumpMode, recalcMins });
-  }
-  function addLump(ls) {
-    const next=[...lumps,ls];
-    setLumps(next);
-    onSavePlanner({ extra:localExtra, lumps:next, lumpMode, recalcMins });
-  }
-  function toggleLumpMode(m) {
-    setLumpMode(m);
-    onSavePlanner({ extra:localExtra, lumps, lumpMode:m, recalcMins });
-  }
-  function toggleRecalc(v) {
-    setRecalcMins(v);
-    onSavePlanner({ extra:localExtra, lumps, lumpMode, recalcMins:v });
-  }
+        {innerTab==="extra" && (
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            <div>
+              <label style={labelSt(t)}>Extra Monthly Payment ($)</label>
+              <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:8}}>
+                <input type="number" value={localExtra} onChange={e=>setLocalExtra(e.target.value)}
+                  placeholder="0" min="0" style={inputStyle(t)} />
+                <button onClick={handleApply} style={btnPrimary({whiteSpace:"nowrap",
+                  background:saved?COLOR.success:COLOR.primary})}>
+                  {saved?"Saved ✓":"Apply"}
+                </button>
+              </div>
+            </div>
+            {scope==="all" && (
+              <>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <input type="checkbox" id="elRecalc" checked={recalcMins}
+                    onChange={e=>onSetRecalcMins(e.target.checked)} />
+                  <label htmlFor="elRecalc" style={{fontSize:13,color:t.tx1,cursor:"pointer"}}>
+                    Recalculate minimums monthly
+                  </label>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:t.tx2,fontWeight:600,marginBottom:8}}>Lump Sum Distribution</div>
+                  <div style={{display:"flex",gap:8}}>
+                    {["priority","split"].map(m=>(
+                      <button key={m} onClick={()=>onSetLumpMode(m)} style={tabBtn(lumpMode===m,t)}>
+                        {m==="priority"?"Priority Debt":"Split Evenly"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {innerTab==="lump" && (
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <button onClick={()=>setShowAddLump(true)} style={btnPrimary({padding:"7px 14px",fontSize:12})}>
+              + Add Lump Sum
+            </button>
+            {lumps.length===0 && (
+              <div style={{fontSize:13,color:t.tx3,textAlign:"center",padding:"16px 0"}}>No lump sums added yet.</div>
+            )}
+            {lumps.map(ls=>(
+              <div key={ls.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                padding:"8px 0",borderBottom:`1px solid ${t.border}`}}>
+                <div>
+                  <span style={{fontSize:13,color:t.tx1,fontWeight:600,fontFamily:"monospace"}}>{fmt$(ls.amount)}</span>
+                  <span style={{fontSize:12,color:t.tx2,marginLeft:8}}>{ls.date}</span>
+                  {ls.note && <span style={{fontSize:11,color:t.tx3,marginLeft:8}}>{ls.note}</span>}
+                </div>
+                <button onClick={()=>onRemoveLump(ls.id)} style={{background:"none",border:"none",
+                  color:COLOR.danger,cursor:"pointer",fontSize:16}}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button onClick={onClose} style={{...btnGhost(t,{width:"100%",marginTop:20})}}>Done</button>
+        <AddLumpSumModal open={showAddLump} onClose={()=>setShowAddLump(false)} onAdd={onAddLump} t={t} />
+      </div>
+    </div>
+  );
+}
+
+// --- AnalyzeModal (D3) -------------------------------------------------------
+function AnalyzeModal({ open, onClose, cards, loans, method, extra, schedule, apiKey, aiResults, onSaveAiResults, t }) {
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError]     = useState("");
+  const didAutoRun = useRef(false);
+
+  useEffect(()=>{
+    if (open && !aiResults?.scheduleAnalysis && !didAutoRun.current) {
+      didAutoRun.current = true;
+      runAI();
+    }
+    if (!open) didAutoRun.current = false;
+  },[open]);
 
   async function runAI() {
-    if (!apiKey) { setAiError("Add your API key via 🔑 in the nav bar."); return; }
+    if (!apiKey) { setAiError("Add your API key via the key button in the nav bar."); return; }
     setAiLoading(true); setAiError("");
     try {
       const debtCtx = [
         ...cards.map(c=>`Card: ${c.name}, Balance: ${fmt$(c.balance)}, APR: ${fmtPct(c.apr)}, Payment: ${fmt$(c.monthlyPayment)}`),
         ...loans.map(l=>`Loan: ${l.name} (${l.type}), Balance: ${fmt$(l.currentBalance)}, Rate: ${fmtPct(l.interestRate)}, Payment: ${fmt$(l.monthlyPayment)}`),
       ].join("\n");
-      const prompt = `Analyze this debt payoff schedule and provide actionable advice.\n\nDebts:\n${debtCtx}\n\nMethod: ${method}\nExtra monthly: ${fmt$(toNum(localExtra))}\nTotal interest: ${fmt$(schedule.totalInterest)}\nPayoff date: ${schedule.payoffDate||"unknown"}\nMonths: ${schedule.months.length}\n\nProvide a concise analysis: (1) Whether avalanche or snowball is better for this situation, (2) Impact of the extra payment, (3) Top 2-3 recommendations to pay off faster.`;
-      const res = await callClaude(apiKey, { model:MODEL, max_tokens:800,
-        messages:[{role:"user",content:prompt}] });
+      const prompt = `Analyze this debt payoff schedule and provide actionable advice.\n\nDebts:\n${debtCtx}\n\nMethod: ${method}\nExtra monthly: ${fmt$(toNum(extra))}\nTotal interest: ${fmt$(schedule.totalInterest)}\nPayoff date: ${schedule.payoffDate||"unknown"}\nMonths: ${schedule.months.length}\n\nProvide a concise analysis: (1) Whether avalanche or snowball is better for this situation, (2) Impact of the extra payment, (3) Top 2-3 recommendations to pay off faster.`;
+      const res = await callClaude(apiKey, { model:MODEL, max_tokens:800, messages:[{role:"user",content:prompt}] });
       const data = await res.json();
       const text = data.content?.[0]?.text||"";
       onSaveAiResults({...(aiResults||{}), scheduleAnalysis:text});
     } catch(e) {
-      setAiError(e.message||"AI error");
+      setAiError(aiErrorMsg(e));
     } finally {
       setAiLoading(false);
     }
   }
 
+  if (!open) return null;
+  const s = overlayContainer(t, 600);
+  const result = aiResults?.scheduleAnalysis;
+
+  return (
+    <div style={s.overlay} onClick={onClose}>
+      <div style={s.box} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <span style={{fontWeight:800,fontSize:17,color:COLOR.purple}}>📊 AI Schedule Analysis</span>
+          <button onClick={onClose} style={{background:"none",border:"none",color:t.tx2,cursor:"pointer",fontSize:20}}>×</button>
+        </div>
+        {aiLoading && (
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 0",color:t.tx2}}>
+            <div style={{width:16,height:16,border:`2px solid ${COLOR.purple}`,borderTopColor:"transparent",
+              borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
+            <span style={{fontSize:13}}>Analyzing your payoff schedule…</span>
+          </div>
+        )}
+        {aiError && !aiLoading && (
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:12,color:COLOR.danger,marginBottom:8}}>{aiError}</div>
+            <button onClick={runAI} style={{...btnGhost(t,{fontSize:12,padding:"5px 12px"})}}>↺ Retry</button>
+          </div>
+        )}
+        {result && !aiLoading && (
+          <div>
+            <div style={{fontSize:13,color:t.tx1,lineHeight:1.7,whiteSpace:"pre-wrap",
+              background:t.surf,borderRadius:10,padding:"12px 14px",marginBottom:12,
+              maxHeight:400,overflowY:"auto"}}>
+              {result}
+            </div>
+            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+              <CopyButton text={result} t={t} />
+              <button onClick={()=>{
+                const blob=new Blob([result],{type:"text/plain"});
+                const a=document.createElement("a");
+                a.href=URL.createObjectURL(blob);
+                a.download="debt-schedule-analysis.txt";
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+              }} style={{background:"none",border:`1px solid ${t.border}`,borderRadius:6,
+                padding:"4px 10px",color:t.tx2,cursor:"pointer",fontSize:11,fontWeight:600}}>
+                ⬇ Download .txt
+              </button>
+              <button onClick={runAI} style={{...btnGhost(t,{fontSize:11,padding:"4px 10px"})}}>🔄 Re-analyze</button>
+            </div>
+          </div>
+        )}
+        {!result && !aiLoading && !aiError && (
+          <div style={{fontSize:12,color:t.tx3,marginBottom:12}}>Click Analyze to get AI insights on your payoff schedule.</div>
+        )}
+        <div style={{display:"flex",gap:8}}>
+          {!result && !aiLoading && (
+            <button onClick={runAI} style={btnPrimary({flex:1,background:COLOR.purple})}>📊 Analyze</button>
+          )}
+          <button onClick={onClose} style={{...btnGhost(t,{flex:1})}}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- ScheduleTab (D1 redesign) ------------------------------------------------
+function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, setLumps,
+  lumpMode, setLumpMode, recalcMins, setRecalcMins, profileId, aiResults, apiKey,
+  onSaveAiResults, onSavePlanner, t, darkMode }) {
+  const [showExtraLump, setShowExtraLump] = useState(false);
+  const [showAnalyze, setShowAnalyze]     = useState(false);
+  const [showTable, setShowTable]         = useState(false);
+  const [m2mFilter, setM2mFilter]         = useState("all");
+
+  // D1/B4 — compute both schedules fresh every render
+  const avSched = computeUnifiedSchedule(cards, loans, "avalanche",
+    { extraMonthly:toNum(extra), lumpSums:lumps, recalcMins, lumpMode });
+  const snSched = computeUnifiedSchedule(cards, loans, "snowball",
+    { extraMonthly:toNum(extra), lumpSums:lumps, recalcMins, lumpMode });
+  const schedule     = method === "avalanche" ? avSched : snSched;
+  const scheduleBase = computeUnifiedSchedule(cards, loans, method,
+    { extraMonthly:0, lumpSums:[], recalcMins, lumpMode });
+
+  const avBetter     = avSched.totalInterest <= snSched.totalInterest;
+  const totalMinPmts = cards.filter(c=>!c.closed).reduce((s,c)=>s+(toNum(c.monthlyPayment)||calcMinPmt(c.balance,c.apr)),0)
+                     + loans.filter(l=>!l.closed).reduce((s,l)=>s+toNum(l.monthlyPayment),0);
+  const totalMonthly = totalMinPmts + toNum(extra);
+  const hasExtra     = toNum(extra)>0 || lumps.length>0;
+
+  function handleApplyExtra(val) {
+    setExtra(val);
+    onSavePlanner({ extra:val, lumps, lumpMode, recalcMins });
+  }
+  function handleAddLump(ls) {
+    const next = [...lumps, ls];
+    setLumps(next);
+    onSavePlanner({ extra, lumps:next, lumpMode, recalcMins });
+  }
+  function handleRemoveLump(id) {
+    const next = lumps.filter(l=>l.id!==id);
+    setLumps(next);
+    onSavePlanner({ extra, lumps:next, lumpMode, recalcMins });
+  }
+  function handleSetLumpMode(m) {
+    setLumpMode(m);
+    onSavePlanner({ extra, lumps, lumpMode:m, recalcMins });
+  }
+  function handleSetRecalcMins(v) {
+    setRecalcMins(v);
+    onSavePlanner({ extra, lumps, lumpMode, recalcMins:v });
+  }
+
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
 
-      {/* F11 — AV vs SB comparison */}
+      {/* D1 — Clickable strategy selector tiles */}
       {(cards.length+loans.length)>0 && (
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           {[
-            {label:"🏔 Avalanche", color:COLOR.primary, sched:avSched, better:avBetter},
-            {label:"❄ Snowball",   color:COLOR.pink,    sched:snSched, better:!avBetter},
-          ].map(({label,color,sched,better})=>(
-            <div key={label} style={{...panelSt(t,{position:"relative"}),
-              border:`1px solid ${better?color+"55":t.border}`}}>
+            {id:"avalanche", label:"🏔 Avalanche", color:COLOR.primary, sched:avSched, better:avBetter,
+              desc:"Highest interest first — minimizes total interest paid."},
+            {id:"snowball",  label:"❄ Snowball",   color:COLOR.pink,    sched:snSched, better:!avBetter,
+              desc:"Smallest balance first — builds momentum through quick wins."},
+          ].map(({id,label,color,sched,better,desc})=>(
+            <div key={id} onClick={()=>setMethod(id)}
+              style={{...panelSt(t,{position:"relative",cursor:"pointer",
+                outline:method===id?`2px solid ${color}`:"2px solid transparent",
+                transition:"outline .15s"}),
+                border:`1px solid ${method===id?color+"88":t.border}`}}>
               {better && (
                 <div style={{position:"absolute",top:-10,right:10,fontSize:9,fontWeight:800,
                   color:"#fff",background:color,borderRadius:6,padding:"2px 8px"}}>BETTER ✓</div>
               )}
-              <div style={{fontWeight:700,fontSize:13,color,marginBottom:8}}>{label}</div>
-              <div style={{fontSize:11,color:t.tx2}}>Interest: <span style={{color:color,fontFamily:"monospace",fontWeight:700}}>{fmt$(sched.totalInterest)}</span></div>
+              {method===id && (
+                <div style={{position:"absolute",top:-10,left:10,fontSize:9,fontWeight:800,
+                  color:"#fff",background:color,borderRadius:6,padding:"2px 8px"}}>ACTIVE</div>
+              )}
+              <div style={{fontWeight:700,fontSize:13,color,marginBottom:4}}>{label}</div>
+              <div style={{fontSize:10,color:t.tx3,marginBottom:8}}>{desc}</div>
+              <div style={{fontSize:11,color:t.tx2}}>Interest: <span style={{color,fontFamily:"monospace",fontWeight:700}}>{fmt$(sched.totalInterest)}</span></div>
               <div style={{fontSize:11,color:t.tx2}}>Months: <span style={{color:t.tx1,fontWeight:700}}>{sched.months.length}</span></div>
               <div style={{fontSize:11,color:t.tx2}}>Payoff: <span style={{color:COLOR.teal,fontWeight:700}}>{sched.payoffDate||"—"}</span></div>
             </div>
@@ -1720,79 +1927,11 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
         </div>
       )}
 
-      {/* Method + Controls */}
-      <div style={panelSt(t)}>
-        <div style={{fontWeight:700,fontSize:14,color:t.tx1,marginBottom:12}}>Payoff Strategy</div>
-        <div style={{display:"flex",gap:8,marginBottom:16}}>
-          {["avalanche","snowball"].map(m=>(
-            <button key={m} onClick={()=>setMethod(m)} style={tabBtn(method===m,t)}>
-              {m==="avalanche"?"🏔 Avalanche":"❄ Snowball"}
-            </button>
-          ))}
-        </div>
-        <div style={{fontSize:12,color:t.tx2,marginBottom:16}}>
-          {method==="avalanche"
-            ? "Pays highest-interest debt first — minimizes total interest paid."
-            : "Pays smallest balance first — builds momentum through quick wins."}
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:8,alignItems:"flex-end",marginBottom:12}}>
-          <div>
-            <label style={labelSt(t)}>Extra Monthly Payment ($)</label>
-            <input type="number" value={localExtra} onChange={e=>setLocalExtra(e.target.value)}
-              placeholder="0" min="0" style={inputStyle(t)} />
-          </div>
-          <button onClick={()=>applyExtra()} style={btnPrimary({whiteSpace:"nowrap",
-            background:extraSaved?COLOR.success:COLOR.primary})}>
-            {extraSaved?"Saved ✓":"Apply"}
-          </button>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-          <input type="checkbox" id="recalcMins" checked={recalcMins}
-            onChange={e=>toggleRecalc(e.target.checked)} />
-          <label htmlFor="recalcMins" style={{fontSize:13,color:t.tx1,cursor:"pointer"}}>
-            Recalculate minimums monthly
-          </label>
-          <button onClick={()=>setInfoOpen(true)} style={{background:"none",border:"none",
-            color:COLOR.primary,cursor:"pointer",fontSize:14,padding:"0 4px"}}>ℹ️</button>
-        </div>
-        <div style={{marginBottom:4}}>
-          <div style={{fontSize:11,color:t.tx2,fontWeight:600,marginBottom:8}}>Lump Sum Distribution</div>
-          <div style={{display:"flex",gap:8}}>
-            {["priority","split"].map(m=>(
-              <button key={m} onClick={()=>toggleLumpMode(m)} style={tabBtn(lumpMode===m,t)}>
-                {m==="priority"?"Priority Debt":"Split Evenly"}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Lump Sums */}
-      <div style={panelSt(t)}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{fontWeight:700,fontSize:14,color:t.tx1}}>Lump Sums</div>
-          <button onClick={()=>setShowLumpModal(true)} style={btnPrimary({padding:"6px 14px",fontSize:12})}>+ Add</button>
-        </div>
-        {lumps.length===0 && <div style={{fontSize:13,color:t.tx3}}>No lump sums added yet.</div>}
-        {lumps.map(ls=>(
-          <div key={ls.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-            padding:"8px 0",borderBottom:`1px solid ${t.border}`}}>
-            <div>
-              <span style={{fontSize:13,color:t.tx1,fontWeight:600,fontFamily:"monospace"}}>{fmt$(ls.amount)}</span>
-              <span style={{fontSize:12,color:t.tx2,marginLeft:8}}>{ls.date}</span>
-              {ls.note && <span style={{fontSize:11,color:t.tx3,marginLeft:8}}>{ls.note}</span>}
-            </div>
-            <button onClick={()=>removeLump(ls.id)} style={{background:"none",border:"none",
-              color:COLOR.danger,cursor:"pointer",fontSize:16}}>×</button>
-          </div>
-        ))}
-      </div>
-
-      {/* F12 — Reordered stat tiles + F13 before/after when extra applied */}
+      {/* Stats tiles */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12}}>
         {[
-          { label:"Total Monthly Payment", value:fmt$(totalMonthly), base:fmt$(totalMinPmts),
-            color:COLOR.primary, showDiff:hasExtra && toNum(localExtra)>0 },
+          { label:"Total Monthly", value:fmt$(totalMonthly), base:fmt$(totalMinPmts),
+            color:COLOR.primary, showDiff:hasExtra && toNum(extra)>0 },
           { label:"Total Interest", value:fmt$(schedule.totalInterest), base:fmt$(scheduleBase.totalInterest),
             color:COLOR.orange, showDiff:hasExtra,
             saveTxt: hasExtra&&scheduleBase.totalInterest>schedule.totalInterest
@@ -1811,7 +1950,7 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
             <div style={{fontSize:10,color:t.tx2,fontWeight:600,marginBottom:4}}>{s.label}</div>
             <div style={{fontSize:15,fontWeight:800,color:s.color,fontFamily:"monospace"}}>{s.value}</div>
             {s.showDiff && s.base && s.base!==s.value && (
-              <div style={{fontSize:10,color:t.tx3,textDecoration:"line-through",marginTop:2}}>{s.base}</div>
+              <div style={{fontSize:10,color:t.tx3,marginTop:2}}>{s.base}</div>
             )}
             {s.saveTxt && (
               <div style={{fontSize:10,color:COLOR.success,fontWeight:600,marginTop:2}}>↑ {s.saveTxt}</div>
@@ -1824,72 +1963,59 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
       {schedule.debts?.length>0 && (
         <div style={panelSt(t)}>
           <div style={{fontWeight:700,fontSize:14,color:t.tx1,marginBottom:12}}>Payoff Order</div>
-          {schedule.debts.map((d,i)=>{
-            const basePmt = d.minPayment + toNum(localExtra);
-            return (
-              <div key={d.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",
-                borderBottom:i<schedule.debts.length-1?`1px solid ${t.border}`:"none"}}>
-                <div style={{width:22,height:22,borderRadius:"50%",background:COLOR.primary+"22",
-                  color:COLOR.primary,fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  {i+1}
-                </div>
-                <div style={{width:10,height:10,borderRadius:"50%",background:d.color}} />
-                <div style={{flex:1,fontSize:13,color:t.tx1,fontWeight:600}}>{d.name}</div>
-                <div style={{fontSize:11,color:t.tx2}}>{fmtPct(d.rate*100)}</div>
-                <div style={{fontSize:11,color:t.tx2,fontFamily:"monospace"}}>{fmt$(basePmt)}/mo</div>
-                <div style={{fontSize:12,color:COLOR.success,fontWeight:600}}>
-                  {schedule.debtPayoffDates?.[d.id]||"—"}
-                </div>
+          {schedule.debts.map((d,i)=>(
+            <div key={d.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",
+              borderBottom:i<schedule.debts.length-1?`1px solid ${t.border}`:"none"}}>
+              <div style={{width:22,height:22,borderRadius:"50%",background:COLOR.primary+"22",
+                color:COLOR.primary,fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {i+1}
               </div>
-            );
-          })}
+              <div style={{flex:1,fontSize:13,color:t.tx1,fontWeight:600}}>
+                {d.name} <span style={{fontWeight:400,color:t.tx3}}>({fmtPct(d.rate*100)})</span>
+              </div>
+              <div style={{fontSize:11,color:t.tx2,fontFamily:"monospace"}}>{fmt$(d.minPayment + toNum(extra))}/mo</div>
+              <div style={{fontSize:12,color:COLOR.success,fontWeight:600}}>
+                {schedule.debtPayoffDates?.[d.id]||"—"}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* AI Analysis */}
+      {/* D1 — Month-by-Month Schedule with new header */}
       <div style={panelSt(t)}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{fontWeight:700,fontSize:14,color:COLOR.purple}}>🤖 AI Schedule Analysis</div>
-          <button onClick={runAI} disabled={aiLoading} style={btnPrimary({background:COLOR.purple,
-            padding:"7px 14px",fontSize:12,opacity:aiLoading?0.6:1})}>
-            {aiLoading?"Analyzing…":"Analyze"}
-          </button>
+        <div style={{display:"flex",flexWrap:"wrap",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:12}}>
+          <div style={{fontWeight:700,fontSize:14,color:t.tx1}}>Month-by-Month Schedule</div>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            {toNum(extra)>0 && (
+              <span style={{fontSize:11,color:t.tx2}}>Extra: <span style={{fontWeight:700,color:COLOR.success,fontFamily:"monospace"}}>{fmt$(extra)}/mo</span></span>
+            )}
+            <button onClick={()=>setShowExtraLump(true)}
+              style={{background:COLOR.success+"18",border:`1px solid ${COLOR.success}44`,
+                borderRadius:8,padding:"5px 11px",color:COLOR.success,cursor:"pointer",fontSize:12,fontWeight:600}}>
+              💰 Extra/Lump
+            </button>
+            <button onClick={()=>setShowAnalyze(true)}
+              style={{background:COLOR.purple+"18",border:`1px solid ${COLOR.purple}44`,
+                borderRadius:8,padding:"5px 11px",color:COLOR.purple,cursor:"pointer",fontSize:12,fontWeight:600}}>
+              📊 Analyze
+            </button>
+            <button onClick={()=>setShowTable(s=>!s)} style={btnGhost(t,{padding:"5px 11px",fontSize:12})}>
+              {showTable?"Hide":"Show"}
+            </button>
+          </div>
         </div>
-        {aiError && <div style={{fontSize:12,color:COLOR.danger,marginBottom:8}}>{aiError}</div>}
-        {aiResults?.scheduleAnalysis && (
-          <div>
-            <div style={{fontSize:13,color:t.tx1,lineHeight:1.7,whiteSpace:"pre-wrap",
-              background:t.surf,borderRadius:10,padding:"12px 14px",marginBottom:8}}>
-              {aiResults.scheduleAnalysis}
-            </div>
-            <div style={{display:"flex",gap:8}}>
-              <CopyButton text={aiResults.scheduleAnalysis} t={t} />
-              <button onClick={()=>{
-                const blob=new Blob([aiResults.scheduleAnalysis],{type:"text/plain"});
-                const a=document.createElement("a");
-                a.href=URL.createObjectURL(blob);
-                a.download="debt-schedule-analysis.txt";
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-              }} style={{background:"none",border:`1px solid ${t.border}`,borderRadius:6,
-                padding:"4px 10px",color:t.tx2,cursor:"pointer",fontSize:11,fontWeight:600}}>
-                ⬇ Download .txt
+
+        {showTable && (
+          <div style={{display:"flex",gap:6,marginBottom:12}}>
+            {[["all","All"],["card","Credit"],["loan","Loans"]].map(([val,lbl])=>(
+              <button key={val} onClick={()=>setM2mFilter(val)} style={tabBtn(m2mFilter===val,t)}>
+                {lbl}
               </button>
-            </div>
+            ))}
           </div>
         )}
-        {!aiResults?.scheduleAnalysis && !aiLoading && (
-          <div style={{fontSize:12,color:t.tx3}}>Click Analyze to get AI insights on your payoff schedule.</div>
-        )}
-      </div>
 
-      {/* Month-by-month schedule — F14 monthly total, F15 CC/Loan prefix */}
-      <div style={panelSt(t)}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{fontWeight:700,fontSize:14,color:t.tx1}}>Month-by-Month Schedule</div>
-          <button onClick={()=>setShowTable(s=>!s)} style={btnGhost(t,{padding:"6px 14px",fontSize:12})}>
-            {showTable?"Hide":"Show"}
-          </button>
-        </div>
         {showTable && (
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
@@ -1902,58 +2028,40 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
                 </tr>
               </thead>
               <tbody>
-                {schedule.months.slice(0,48).flatMap(mo=>{
-                  const hasCards = mo.rows.some(r=>r._type==="card");
-                  const hasLoans = mo.rows.some(r=>r._type==="loan");
-                  const rows = mo.rows.map((row,ri)=>{
-                    const typeIcon = row._type==="card" ? "💳" : (LOAN_ICONS[row.loanType]||"🏦");
-                    return (
-                      <tr key={`${mo.month}-reg-${ri}`} style={{background:ri%2===0?"transparent":t.surf+"44"}}>
-                        <td style={{padding:"4px 8px",color:t.tx2,fontFamily:"monospace"}}>{ri===0?mo.date:""}</td>
-                        <td style={{padding:"4px 8px"}}>
-                          <div style={{display:"flex",alignItems:"center",gap:6}}>
-                            <span style={{fontSize:11}}>{typeIcon}</span>
-                            <div style={{width:8,height:8,borderRadius:"50%",background:row.debtColor,flexShrink:0}} />
-                            <span style={{color:t.tx1}}>{row.debtName}</span>
-                          </div>
-                        </td>
-                        <td style={{padding:"4px 8px",fontFamily:"monospace",color:COLOR.primary}}>{fmt$(row.payment)}</td>
-                        <td style={{padding:"4px 8px",fontFamily:"monospace",color:COLOR.success}}>{fmt$(row.principal)}</td>
-                        <td style={{padding:"4px 8px",fontFamily:"monospace",color:COLOR.orange}}>{fmt$(row.interest)}</td>
-                        <td style={{padding:"4px 8px",fontFamily:"monospace",color:t.tx1}}>{fmt$(row.balance)}</td>
-                      </tr>
-                    );
+                {schedule.months.slice(0,48).filter(mo=>{
+                  if (m2mFilter==="card") return mo.rows.some(r=>r._type==="card");
+                  if (m2mFilter==="loan") return mo.rows.some(r=>r._type==="loan");
+                  return true;
+                }).flatMap(mo=>{
+                  const filteredRows = mo.rows.filter(row=>{
+                    if (m2mFilter==="card") return row._type==="card";
+                    if (m2mFilter==="loan") return row._type==="loan";
+                    return true;
                   });
+                  const rows = filteredRows.map((row,ri)=>(
+                    <tr key={`${mo.month}-reg-${ri}`} style={{background:ri%2===0?"transparent":t.surf+"44"}}>
+                      <td style={{padding:"4px 8px",color:t.tx2,fontFamily:"monospace"}}>{ri===0?mo.date:""}</td>
+                      <td style={{padding:"4px 8px",color:t.tx1}}>{row.debtName}</td>
+                      <td style={{padding:"4px 8px",fontFamily:"monospace",color:COLOR.primary}}>{fmt$(row.payment)}</td>
+                      <td style={{padding:"4px 8px",fontFamily:"monospace",color:COLOR.success}}>{fmt$(row.principal)}</td>
+                      <td style={{padding:"4px 8px",fontFamily:"monospace",color:COLOR.orange}}>{fmt$(row.interest)}</td>
+                      <td style={{padding:"4px 8px",fontFamily:"monospace",color:t.tx1}}>{fmt$(row.balance)}</td>
+                    </tr>
+                  ));
 
-                  // F15 — divider between CC and Loan rows if both present
-                  if (hasCards && hasLoans) {
-                    let divIdx = -1;
-                    for (let _i = mo.rows.length-1; _i >= 0; _i--) { if (mo.rows[_i]._type==="card") { divIdx=_i; break; } }
-                    if (divIdx>=0 && divIdx<mo.rows.length-1) {
-                      rows.splice(divIdx+1, 0,
-                        <tr key={`${mo.month}-div`}>
-                          <td colSpan={6} style={{padding:"2px 8px",borderTop:`1px dashed ${t.border2}`,
-                            borderBottom:`1px dashed ${t.border2}`}}>
-                            <span style={{fontSize:9,color:t.tx3}}>── Loans ──</span>
-                          </td>
-                        </tr>
-                      );
-                    }
-                  }
-
-                  // F14 — monthly total row
                   const moTotal = mo.moPaid + mo.monthLump;
                   rows.push(
-                    <tr key={`${mo.month}-total`} style={{background:t.surf+"88"}}>
-                      <td colSpan={2} style={{padding:"4px 8px",fontSize:11,color:t.tx2,fontWeight:600,fontStyle:"italic"}}>
-                        Month total
+                    <tr key={`${mo.month}-total`} style={{background:COLOR.warning+"10",
+                      borderLeft:`3px solid ${COLOR.warning}`}}>
+                      <td colSpan={2} style={{padding:"4px 8px",fontSize:11,color:COLOR.warning,fontWeight:700}}>
+                        Month Total
                       </td>
                       <td colSpan={4} style={{padding:"4px 8px",fontFamily:"monospace",fontSize:11,
-                        color:t.tx2,fontWeight:700}}>
+                        color:COLOR.warning,fontWeight:700}}>
                         {fmt$(moTotal)}
-                        {toNum(localExtra)>0 && moTotal>totalMinPmts+0.5 && (
+                        {toNum(extra)>0 && moTotal>totalMinPmts+0.5 && (
                           <span style={{color:t.tx3,marginLeft:6,fontWeight:400}}>
-                            (base: {fmt$(moTotal-toNum(localExtra))})
+                            (base: {fmt$(moTotal-toNum(extra))})
                           </span>
                         )}
                       </td>
@@ -1973,7 +2081,7 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
                         <td style={{padding:"4px 8px",fontFamily:"monospace",color:COLOR.warning,fontWeight:700}}>
                           {fmt$(mo.monthLump)}
                         </td>
-                        <td colSpan={3} style={{padding:"4px 8px",color:t.tx3}}>—</td>
+                        <td colSpan={3} style={{padding:"4px 8px",color:t.tx3}}></td>
                       </tr>
                     );
                   }
@@ -1990,23 +2098,33 @@ function ScheduleTab({ cards, loans, method, setMethod, extra, setExtra, lumps, 
         )}
       </div>
 
-      <AddLumpSumModal open={showLumpModal} onClose={()=>setShowLumpModal(false)} onAdd={addLump} t={t} />
-      <InfoModal open={infoOpen} onClose={()=>setInfoOpen(false)} title="Recalculate Minimums"
-        body="When enabled, credit card minimum payments are recalculated each month as your balance decreases. This is more accurate but means minimums shrink over time, which can extend payoff. Disable to keep minimums fixed at their current amount." t={t} />
+      <ExtraLumpModal
+        open={showExtraLump} onClose={()=>setShowExtraLump(false)}
+        scope="all" scopeLabel="All Debts"
+        extra={extra} onApplyExtra={handleApplyExtra}
+        lumps={lumps} onAddLump={handleAddLump} onRemoveLump={handleRemoveLump}
+        lumpMode={lumpMode} onSetLumpMode={handleSetLumpMode}
+        recalcMins={recalcMins} onSetRecalcMins={handleSetRecalcMins}
+        t={t} />
+      <AnalyzeModal
+        open={showAnalyze} onClose={()=>setShowAnalyze(false)}
+        cards={cards} loans={loans} method={method} extra={extra}
+        schedule={schedule} apiKey={apiKey}
+        aiResults={aiResults} onSaveAiResults={onSaveAiResults} t={t} />
     </div>
   );
 }
 
-// ─── SingleDebtTab (F19 dual balance lines) ──────────────────────────────────
+// --- SingleDebtTab (F19 dual balance lines) ----------------------------------
 function SingleDebtTab({ cards, loans, t }) {
   const all = [
     ...cards.map(c=>({...c,_type:"card",_label:`💳 ${c.name}`})),
     ...loans.map(l=>({...l,_type:"loan",_label:`${LOAN_ICONS[l.type]||"🏦"} ${l.name}`})),
   ];
-  const [selId,setSelId] = useState(all[0]?.id||"");
-  const [extra,setExtra] = useState("");
-  const [lumps,setLumps] = useState([]);
-  const [showLump,setShowLump] = useState(false);
+  const [selId,setSelId]           = useState(all[0]?.id||"");
+  const [extra,setExtra]           = useState("");
+  const [lumps,setLumps]           = useState([]);
+  const [showExtraLump,setShowExtraLump] = useState(false);
 
   const item = all.find(d=>d.id===selId);
 
@@ -2055,19 +2173,19 @@ function SingleDebtTab({ cards, loans, t }) {
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={panelSt(t)}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:10,alignItems:"flex-end"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"flex-end"}}>
           <div>
             <label style={labelSt(t)}>Select Debt</label>
             <select value={selId} onChange={e=>setSelId(e.target.value)} style={inputStyle(t)}>
               {all.map(d=><option key={d.id} value={d.id}>{d._label}</option>)}
             </select>
           </div>
-          <div>
-            <label style={labelSt(t)}>Extra Monthly ($)</label>
-            <input type="number" value={extra} onChange={e=>setExtra(e.target.value)}
-              placeholder="0" min="0" style={inputStyle(t)} />
-          </div>
-          <button onClick={()=>setShowLump(true)} style={btnGhost(t,{whiteSpace:"nowrap"})}>+ Lump</button>
+          <button onClick={()=>setShowExtraLump(true)}
+            style={{background:COLOR.success+"18",border:`1px solid ${COLOR.success}44`,
+              borderRadius:8,padding:"8px 14px",color:COLOR.success,cursor:"pointer",
+              fontSize:13,fontWeight:600,whiteSpace:"nowrap"}}>
+            💰 Extra/Lump
+          </button>
         </div>
       </div>
 
@@ -2201,12 +2319,20 @@ function SingleDebtTab({ cards, loans, t }) {
       {!all.length && (
         <div style={{...panelSt(t,{textAlign:"center",color:t.tx3,padding:40})}}>Add a debt to see its schedule.</div>
       )}
-      <AddLumpSumModal open={showLump} onClose={()=>setShowLump(false)} onAdd={ls=>setLumps(p=>[...p,ls])} t={t} />
+      <ExtraLumpModal
+        open={showExtraLump} onClose={()=>setShowExtraLump(false)}
+        scope="single" scopeLabel={item?item.name:"Debt"}
+        extra={extra} onApplyExtra={val=>setExtra(val)}
+        lumps={lumps} onAddLump={ls=>setLumps(p=>[...p,ls])}
+        onRemoveLump={id=>setLumps(p=>p.filter(l=>l.id!==id))}
+        lumpMode="priority" onSetLumpMode={()=>{}}
+        recalcMins={false} onSetRecalcMins={()=>{}}
+        t={t} />
     </div>
   );
 }
 
-// ─── ChartsTab ────────────────────────────────────────────────────────────────
+// --- ChartsTab ----------------------------------------------------------------
 function ChartsTab({ cards, loans, method, extra, lumps, lumpMode, recalcMins, t }) {
   const opts = { extraMonthly:toNum(extra), lumpSums:lumps, recalcMins, lumpMode };
   const avSched  = computeUnifiedSchedule(cards,loans,"avalanche",opts);
@@ -2341,7 +2467,7 @@ function ChartsTab({ cards, loans, method, extra, lumps, lumpMode, recalcMins, t
   );
 }
 
-// ─── StrategyTab (F10 — new first tab) ───────────────────────────────────────
+// --- StrategyTab (F10 — new first tab) ---------------------------------------
 function StrategyTab({ cards, loans, apiKey, aiResults, onSaveAiResults, onApplyStrategy, t }) {
   const [answers, setAnswers]   = useState(()=>aiResults?.strategyAnswers||{});
   const [loading, setLoading]   = useState(false);
@@ -2365,7 +2491,7 @@ function StrategyTab({ cards, loans, apiKey, aiResults, onSaveAiResults, onApply
       const text = data.content?.[0]?.text||"";
       onSaveAiResults({...(aiResults||{}), strategy:text, strategyAnswers:answers});
     } catch(e) {
-      setError(e.message||"AI error");
+      setError(aiErrorMsg(e));
     } finally {
       setLoading(false);
     }
@@ -2415,7 +2541,19 @@ function StrategyTab({ cards, loans, apiKey, aiResults, onSaveAiResults, onApply
           </div>
         ))}
 
-        {error && <div style={{fontSize:12,color:COLOR.danger,marginBottom:8}}>{error}</div>}
+        {loading && (
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 0",color:t.tx2}}>
+            <div style={{width:16,height:16,border:`2px solid ${COLOR.purple}`,borderTopColor:"transparent",
+              borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
+            <span style={{fontSize:13}}>Building your personalized strategy…</span>
+          </div>
+        )}
+        {error && (
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:12,color:COLOR.danger,marginBottom:6}}>{error}</div>
+            <button onClick={buildStrategy} style={{...btnGhost(t,{fontSize:12,padding:"5px 12px"})}}>↺ Retry</button>
+          </div>
+        )}
         <button onClick={buildStrategy} disabled={loading} style={btnPrimary({width:"100%",
           background:COLOR.purple,opacity:loading?0.6:1})}>
           {loading?"Building Strategy…":"🧠 Generate My Strategy"}
@@ -2442,7 +2580,7 @@ function StrategyTab({ cards, loans, apiKey, aiResults, onSaveAiResults, onApply
   );
 }
 
-// ─── RefinancePanel (F18) ─────────────────────────────────────────────────────
+// --- RefinancePanel (F18) -----------------------------------------------------
 function RefinancePanel({ cards, loans, apiKey, t }) {
   const [open, setOpen]         = useState(false);
   const [selId, setSelId]       = useState(loans[0]?.id||"");
@@ -2479,7 +2617,7 @@ function RefinancePanel({ cards, loans, apiKey, t }) {
       const res = await callClaude(apiKey,{model:MODEL,max_tokens:500,messages:[{role:"user",content:prompt}]});
       const data = await res.json();
       setAiResult(data.content?.[0]?.text||"");
-    } catch(e) { setError(e.message||"AI error"); }
+    } catch(e) { setError(aiErrorMsg(e)); }
     finally { setLoading(false); }
   }
 
@@ -2555,7 +2693,7 @@ function RefinancePanel({ cards, loans, apiKey, t }) {
   );
 }
 
-// ─── WhatIfTab (F18 — Analysis tab with Refinance) ────────────────────────────
+// --- WhatIfTab (F18 — Analysis tab with Refinance) ----------------------------
 function WhatIfTab({ cards, loans, apiKey, profileId, aiResults, onSaveAiResults, onApplyStrategy, t }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput]       = useState("");
@@ -2591,7 +2729,7 @@ function WhatIfTab({ cards, loans, apiKey, profileId, aiResults, onSaveAiResults
       const text = data.content?.[0]?.text||"";
       setMessages(prev=>[...prev,{role:"assistant",content:text}]);
     } catch(e) {
-      setError(e.message||"AI error");
+      setError(aiErrorMsg(e));
     } finally {
       setLoading(false);
     }
@@ -2661,7 +2799,7 @@ function WhatIfTab({ cards, loans, apiKey, profileId, aiResults, onSaveAiResults
   );
 }
 
-// ─── ProgressTab ──────────────────────────────────────────────────────────────
+// --- ProgressTab --------------------------------------------------------------
 function ProgressTab({ cards, loans, logs, t }) {
   const [filter,setFilter] = useState("");
   const all = [
@@ -2774,7 +2912,7 @@ function ProgressTab({ cards, loans, logs, t }) {
   );
 }
 
-// ─── CalendarModal (F2) ───────────────────────────────────────────────────────
+// --- CalendarModal (F2) -------------------------------------------------------
 function CalendarModal({ open, onClose, cards, loans, schedule, t, darkMode }) {
   const [curDate, setCurDate] = useState(()=>new Date());
   if (!open) return null;
@@ -2926,10 +3064,9 @@ function CalendarModal({ open, onClose, cards, loans, schedule, t, darkMode }) {
   );
 }
 
-// ─── MorningModal (F6-morning) ────────────────────────────────────────────────
+// --- MorningModal (U5 — shows every open, context-aware pool) -----------------
 function MorningModal({ open, onClose, cards, loans, t }) {
   const [fill, setFill] = useState(0);
-  const [msgIdx] = useState(()=>Math.floor(Date.now()/86400000) % AFFIRMATIONS.length);
 
   const openCards = cards.filter(c=>!c.closed);
   const openLoans = loans.filter(l=>!l.closed);
@@ -2939,8 +3076,11 @@ function MorningModal({ open, onClose, cards, loans, t }) {
                   + openLoans.reduce((s,l)=>s+toNum(l.currentBalance),0);
   const pct = totalOrig>0 ? Math.max(0,Math.min(100,(totalOrig-totalCur)/totalOrig*100)) : 0;
 
+  const pool = pickAffirmation(cards, loans);
+  const msg  = pool[Math.floor(Math.random() * pool.length)];
+
   useEffect(()=>{
-    if (open) { const t = setTimeout(()=>setFill(pct),150); return ()=>clearTimeout(t); }
+    if (open) { const timer = setTimeout(()=>setFill(pct),150); return ()=>clearTimeout(timer); }
     else setFill(0);
   },[open,pct]);
 
@@ -2954,13 +3094,14 @@ function MorningModal({ open, onClose, cards, loans, t }) {
           <div style={{fontSize:48,marginBottom:12}}>💸</div>
           <div style={{fontWeight:800,fontSize:20,color:t.tx1,marginBottom:6}}>Good to see you!</div>
           <div style={{fontSize:14,color:t.tx2,lineHeight:1.6,marginBottom:20,fontStyle:"italic"}}>
-            "{AFFIRMATIONS[msgIdx]}"
+            {msg}
           </div>
 
           {totalOrig>0 && (
             <>
               <div style={{fontSize:13,color:t.tx2,marginBottom:8}}>
                 You've paid down <strong style={{color:COLOR.success,fontFamily:"monospace"}}>{fmt$(totalOrig-totalCur)}</strong> across all debts
+                {" "}({pct.toFixed(1)}% of original balance)
               </div>
               <div style={{marginBottom:8}}>
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:t.tx2,marginBottom:6}}>
@@ -2994,7 +3135,7 @@ function MorningModal({ open, onClose, cards, loans, t }) {
   );
 }
 
-// ─── PlannerModal (F10 Strategy tab, F3 responsive) ──────────────────────────
+// --- PlannerModal (F10 Strategy tab, F3 responsive) --------------------------
 function PlannerModal({ open, onClose, cards, loans, logs, method, setMethod, extra, setExtra,
   lumps, setLumps, lumpMode, setLumpMode, recalcMins, setRecalcMins, profileId, apiKey,
   aiResults, onSaveAiResults, onSavePlanner, onApplyStrategy, t, darkMode }) {
@@ -3068,8 +3209,8 @@ function PlannerModal({ open, onClose, cards, loans, logs, method, setMethod, ex
   );
 }
 
-// ─── NavBar (B1 text fix, F1 add/edit profile, F3 responsive) ────────────────
-function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey, onOpenApiKey,
+// --- NavBar (B1 text fix, F1 add/edit profile, F3 responsive) ----------------
+function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey, apiKeyStatus, onOpenApiKey,
   onOpenBackup, onSwitchProfile, onEditProfile, onAddProfile, itemCount, t }) {
   const [showProfiles, setShowProfiles] = useState(false);
   const bp = useBreakpoint();
@@ -3104,10 +3245,21 @@ function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey, onOpen
         <button onClick={onOpenBackup} style={{background:t.surf,border:`1px solid ${t.border}`,
           borderRadius:8,padding:"6px 11px",color:t.tx2,cursor:"pointer",fontSize:14}}
           title="Backup & Restore">📦</button>
-        <button onClick={onOpenApiKey} style={{background:apiKey?COLOR.purple+"18":t.surf,
-          border:`1px solid ${apiKey?COLOR.purple+"44":t.border}`,
-          borderRadius:8,padding:"6px 11px",color:apiKey?COLOR.purple:t.tx2,cursor:"pointer",fontSize:14}}
-          title="API Key">🔑</button>
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          <button onClick={onOpenApiKey} style={{background:apiKey?COLOR.purple+"18":t.surf,
+            border:`1px solid ${apiKey?COLOR.purple+"44":t.border}`,
+            borderRadius:8,padding:"6px 11px",color:apiKey?COLOR.purple:t.tx2,cursor:"pointer",fontSize:14}}
+            title="API Key">🔑</button>
+          {apiKeyStatus==="valid" && (
+            <div style={{width:8,height:8,borderRadius:"50%",background:COLOR.success}} title="AI ready"/>
+          )}
+          {(apiKeyStatus==="invalid") && (
+            <span style={{fontSize:10,color:COLOR.warning,fontWeight:700}}>Key invalid</span>
+          )}
+          {apiKeyStatus==="limited" && (
+            <div style={{width:8,height:8,borderRadius:"50%",background:COLOR.warning}} title="Rate limited"/>
+          )}
+        </div>
         {activeProfile && (
           <div style={{position:"relative"}}>
             <button onClick={()=>setShowProfiles(s=>!s)}
@@ -3164,7 +3316,7 @@ function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey, onOpen
   );
 }
 
-// ─── First-Run Profile Setup ──────────────────────────────────────────────────
+// --- First-Run Profile Setup --------------------------------------------------
 function FirstRunSetup({ darkMode, setDarkMode, onSave }) {
   const [name, setName]             = useState("");
   const [pin, setPin]               = useState("");
@@ -3255,7 +3407,7 @@ function FirstRunSetup({ darkMode, setDarkMode, onSave }) {
   );
 }
 
-// ─── App ──────────────────────────────────────────────────────────────────────
+// --- App ----------------------------------------------------------------------
 export default function App() {
   const [loading,setLoading]       = useState(true);
   const [darkMode,setDarkMode]     = useState(()=>localStorage.getItem("dt_dark")!=="false");
@@ -3266,6 +3418,7 @@ export default function App() {
   const [logs,setLogs]             = useState([]);
   const [aiResults,setAiResults]   = useState(null);
   const [apiKey,setApiKey]         = useState("");
+  const [apiKeyStatus,setApiKeyStatus] = useState("unchecked");
   const [interleave,setInterleave] = useState(false);
 
   // Planner state
@@ -3301,7 +3454,10 @@ export default function App() {
       const profs  = await storeGet("cc_profiles",true)||[];
       const actId  = await storeGet("cc_active_profile",true);
       const key    = await storeGet("cc_apikey",true);
-      if (key) setApiKey(key);
+      if (key) {
+        setApiKey(key);
+        probeApiKey(key).then(status => setApiKeyStatus(status));
+      }
       setProfiles(profs);
 
       const id = actId||(profs[0]?.id)||null;
@@ -3327,15 +3483,9 @@ export default function App() {
         if (lm!=null) setLumpMode(lm);
         if (rm!=null) setRecalcMins(rm);
 
-        // F6-morning — check last open date
-        const today = new Date().toISOString().slice(0,10);
-        const lastOpen = localStorage.getItem("dt_last_open");
-        if (lastOpen!==today) {
-          localStorage.setItem("dt_last_open", today);
-          // Show morning affirmation after a brief delay (only if there are debts)
-          if ((c?.length||0)+(l?.length||0)>0) {
-            setTimeout(()=>setShowMorning(true), 800);
-          }
+        // U5 — show morning affirmation on every open (no once-per-day gate)
+        if ((c?.length||0)+(l?.length||0)>0) {
+          setTimeout(()=>setShowMorning(true), 800);
         }
 
         // Check import banner
@@ -3411,6 +3561,8 @@ export default function App() {
   async function saveApiKey(key) {
     setApiKey(key); setShowApiKey(false);
     await storeSet("cc_apikey",key,true);
+    if (key) probeApiKey(key).then(status => setApiKeyStatus(status));
+    else setApiKeyStatus("unchecked");
   }
 
   function handleSaveCard(card) {
@@ -3536,7 +3688,7 @@ export default function App() {
   return (
     <div style={{minHeight:"100vh",background:t.bg,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:t.tx1}}>
       <NavBar profiles={profiles} activeProfile={activeProfile} darkMode={darkMode}
-        setDarkMode={setDarkMode} apiKey={apiKey} onOpenApiKey={()=>setShowApiKey(true)}
+        setDarkMode={setDarkMode} apiKey={apiKey} apiKeyStatus={apiKeyStatus} onOpenApiKey={()=>setShowApiKey(true)}
         onOpenBackup={()=>setShowBackup(true)} onSwitchProfile={switchProfile}
         onEditProfile={(p)=>{setEditingProfile(p);setShowProfileModal(true);}}
         onAddProfile={()=>{setEditingProfile(null);setShowProfileModal(true);}}

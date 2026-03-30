@@ -4,7 +4,8 @@
       "Bash(git:*)",
       "Bash(npm:*)",
       "Bash(node:*)",
-      "mcp__plugin_context-mode_context-mode__ctx_execute"
+      "mcp__plugin_context-mode_context-mode__ctx_execute",
+      "mcp__plugin_context-mode_context-mode__ctx_execute_file"
     ],
     "deny": [
       "Bash(rm -rf /*)"
