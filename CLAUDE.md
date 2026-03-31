@@ -41,5 +41,6 @@
 - [ ] No nested JSX-returning functions
 
 ## Full Context
+At session start, read docs/ffp-cto-SKILL.md for platform constraints and patterns.
 Read `docs/project-instruction.md` for complete module specs, schemas, and architecture decisions.
 Read `docs/design-system.md` for theme tokens, component patterns, and visual specs.
