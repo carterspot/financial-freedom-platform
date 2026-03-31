@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
 // --- Constants ----------------------------------------------------------------
-const API_URL = "https://api.anthropic.com/v1/messages";
+const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
 const MODEL   = "claude-sonnet-4-20250514";
 const AVATAR_COLORS = ["#6366f1","#ec4899","#f97316","#10b981","#3b82f6","#8b5cf6","#f43f5e","#06b6d4"];
 const COLOR = {
@@ -137,12 +137,20 @@ const hasCloudStorage = () => _cloudAvailable === true;
 
 // --- AI -----------------------------------------------------------------------
 async function callClaude(apiKey, body) {
-  const headers = { "Content-Type":"application/json", "anthropic-version":"2023-06-01" };
+  const headers = {
+    "Content-Type": "application/json",
+    "anthropic-version": "2023-06-01",
+  };
   if (apiKey?.trim()) headers["x-api-key"] = apiKey.trim();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
   try {
-    const res = await fetch(API_URL, { method:"POST", headers, body:JSON.stringify(body), signal:controller.signal });
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`API ${res.status}`);
     return res;

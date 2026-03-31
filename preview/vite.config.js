@@ -7,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: "/financial-freedom-platform/debt/",
   plugins: [react()],
   resolve: {
     alias: {
@@ -14,5 +15,9 @@ export default defineConfig({
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
       'react/jsx-runtime': path.resolve(__dirname, 'node_modules/react/jsx-runtime'),
     },
+  },
+  build: {
+    outDir: "../docs/debt",
+    emptyOutDir: true,
   },
 })
