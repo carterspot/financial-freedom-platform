@@ -722,18 +722,45 @@ const hasCloudStorage = () => _cloudAvailable === true;
 
 ---
 
+## AI Proxy (Cloudflare Worker)
+
+Direct `fetch()` to `api.anthropic.com` is blocked by CORS from browser contexts (GitHub Pages, artifacts). All AI calls route through a Cloudflare Worker proxy that adds the required CORS headers.
+
+**Worker URL:** `https://ffp-api-proxy.carterspot.workers.dev/`
+
+All modules must use this constant instead of `api.anthropic.com`:
+```javascript
+const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
+```
+
+`callClaude` keeps `x-api-key` and `anthropic-version: 2023-06-01` headers — the worker expects and forwards them to Anthropic.
+
+---
+
 ## AI Integration Pattern
 
 ```javascript
-const API_URL = "https://api.anthropic.com/v1/messages";
+// PROXY URL — never call api.anthropic.com directly (blocked by CORS in browsers)
+const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
 const MODEL   = "claude-sonnet-4-20250514";
 
 async function callClaude(apiKey, body) {
-  const headers = { "Content-Type": "application/json" };
-  if (apiKey && apiKey.trim()) headers["x-api-key"] = apiKey.trim();
-  const res = await fetch(API_URL, { method: "POST", headers, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  return res;
+  const headers = {
+    "Content-Type": "application/json",
+    "anthropic-version": "2023-06-01",
+  };
+  if (apiKey?.trim()) headers["x-api-key"] = apiKey.trim();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(API_URL, { method:"POST", headers, body:JSON.stringify(body), signal:controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return res;
+  } catch(e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
 }
 
 // Usage (non-streaming only):
