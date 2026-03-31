@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FFP — PM Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ─── THEME ─────────────────────────────────────────────────────────────────── */
+:root {
+  --bg:#f1f5f9; --panel:#ffffff; --surf:#f1f5f9; --deep:#ffffff;
+  --border:#e2e8f0; --border2:#cbd5e1;
+  --tx1:#0f172a; --tx2:#64748b; --tx3:#94a3b8;
+  --primary:#6366f1; --success:#10b981; --warning:#f59e0b;
+  --danger:#ef4444; --purple:#8b5cf6; --pink:#ec4899;
+  --blue:#3b82f6; --orange:#f97316; --teal:#06b6d4;
+}
+[data-dark] {
+  --bg:#020617; --panel:#0f172a; --surf:#1e293b; --deep:#0a0f1e;
+  --border:#1e293b; --border2:#334155;
+  --tx1:#f1f5f9; --tx2:#94a3b8; --tx3:#475569;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx1);font-family:'DM Sans','Segoe UI',sans-serif;
+  min-height:100vh;font-size:14px;transition:background .2s,color .2s}
+
+/* ─── NAV ────────────────────────────────────────────────────────────────────── */
+.nav{background:var(--deep);border-bottom:1px solid var(--border);
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100}
+.nav-brand{display:flex;align-items:center;gap:10px}
+.nav-logo{width:30px;height:30px;border-radius:7px;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  display:flex;align-items:center;justify-content:center;font-size:15px}
+.nav-title{font-weight:800;font-size:16px;color:var(--tx1)}
+.nav-sub{font-size:10px;color:var(--tx3);font-family:'JetBrains Mono',monospace;
+  text-transform:uppercase;letter-spacing:1px}
+.nav-right{display:flex;align-items:center;gap:8px}
+.badge-internal{font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;
+  background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.2);
+  text-transform:uppercase;letter-spacing:.5px}
+.btn-icon{background:var(--surf);border:1px solid var(--border);border-radius:7px;
+  padding:6px 10px;color:var(--tx2);cursor:pointer;font-size:13px;transition:all .15s}
+.btn-icon:hover{color:var(--tx1);border-color:var(--border2)}
+
+/* ─── LAYOUT ─────────────────────────────────────────────────────────────────── */
+.page{display:grid;grid-template-columns:220px 1fr;gap:0;height:calc(100vh - 52px);overflow:hidden}
+@media(max-width:768px){.page{grid-template-columns:1fr;height:auto;overflow:auto}}
+
+/* ─── SIDEBAR ────────────────────────────────────────────────────────────────── */
+.sidebar{background:var(--panel);border-right:1px solid var(--border);
+  padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.section-hd{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--tx3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.section-hd::after{content:'';flex:1;height:1px;background:var(--border)}
+.mod-grid{display:flex;flex-direction:column;gap:3px}
+.mod-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;
+  cursor:pointer;transition:background .12s;border:1px solid transparent}
+.mod-item:hover{background:var(--surf)}
+.mod-item.selected{background:var(--surf);border-color:var(--border)}
+.mod-icon-sm{font-size:16px;width:20px;text-align:center}
+.mod-name-sm{font-size:12px;font-weight:600;color:var(--tx1);flex:1}
+.mod-ver-sm{font-size:10px;color:var(--tx3);font-family:'JetBrains Mono',monospace}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-live{background:var(--success)}
+.dot-legacy{background:var(--tx3)}
+.dot-planned{background:var(--warning)}
+.dot-capstone{background:var(--pink)}
+
+/* ─── MAIN ───────────────────────────────────────────────────────────────────── */
+.main{overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+
+/* ─── STAT CARDS ─────────────────────────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:900px){.stat-row{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px}
+.stat-card.danger{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.04)}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--tx3);margin-bottom:6px}
+.stat-num{font-size:28px;font-weight:800;color:var(--tx1);font-family:'JetBrains Mono',monospace;line-height:1}
+.stat-card.danger .stat-num{color:var(--danger)}
+.stat-sub{font-size:11px;color:var(--tx2);margin-top:4px}
+
+/* ─── DETAIL PANEL ───────────────────────────────────────────────────────────── */
+.detail-panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;
+  padding:18px;display:none}
+.detail-panel.open{display:block}
+.detail-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.detail-icon{font-size:32px;flex-shrink:0}
+.detail-name{font-size:18px;font-weight:800;color:var(--tx1)}
+.detail-meta{font-size:12px;color:var(--tx2);margin-top:3px;
+  font-family:'JetBrains Mono',monospace}
+.detail-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:10px;margin-left:6px;text-transform:uppercase;letter-spacing:.4px;vertical-align:middle}
+.b-live{background:rgba(16,185,129,.12);color:var(--success);border:1px solid rgba(16,185,129,.2)}
+.b-legacy{background:rgba(148,163,184,.12);color:var(--tx2);border:1px solid var(--border)}
+.b-planned{background:rgba(245,158,11,.12);color:var(--warning);border:1px solid rgba(245,158,11,.2)}
+.b-capstone{background:rgba(236,72,153,.12);color:var(--pink);border:1px solid rgba(236,72,153,.2)}
+.detail-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:600px){.detail-cols{grid-template-columns:1fr}}
+.col-hd{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--tx3);margin-bottom:6px}
+.feat-list{list-style:none;display:flex;flex-direction:column;gap:3px}
+.feat-list li{font-size:12px;color:var(--tx2);display:flex;align-items:flex-start;gap:6px;line-height:1.5}
+.feat-list li::before{content:'';width:4px;height:4px;border-radius:50%;
+  background:var(--border2);margin-top:5px;flex-shrink:0}
+.detail-actions{display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border)}
+.btn-brief{display:inline-flex;align-items:center;gap:5px;
+  padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;
+  background:var(--primary);color:#fff;border:none;cursor:pointer;transition:opacity .15s;text-decoration:none}
+.btn-brief:hover{opacity:.88}
+.btn-doc{display:inline-flex;align-items:center;gap:5px;
+  padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;
+  color:var(--tx2);border:1px solid var(--border);background:none;
+  cursor:pointer;transition:all .15s;text-decoration:none}
+.btn-doc:hover{color:var(--tx1);border-color:var(--border2);background:var(--surf)}
+
+/* ─── TIMELINE ───────────────────────────────────────────────────────────────── */
+.timeline-wrap{background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:18px}
+.timeline-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.timeline-title{font-size:14px;font-weight:700;color:var(--tx1)}
+.tl-track{position:relative;padding:8px 0}
+.tl-line{position:absolute;top:50%;left:0;right:0;height:2px;background:var(--border);transform:translateY(-50%)}
+.tl-pills{display:flex;gap:6px;position:relative;z-index:1;flex-wrap:wrap}
+.tl-pill{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:90px}
+.tl-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--panel);flex-shrink:0}
+.tl-pill-label{font-size:10px;font-weight:600;padding:3px 8px;border-radius:10px;
+  white-space:nowrap;text-align:center}
+.tl-pill-date{font-size:9px;color:var(--tx3);font-family:'JetBrains Mono',monospace}
+.tl-done .tl-dot{background:var(--success)}
+.tl-done .tl-pill-label{background:rgba(16,185,129,.12);color:var(--success)}
+.tl-now .tl-dot{background:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.2)}
+.tl-now .tl-pill-label{background:var(--primary);color:#fff}
+.tl-upcoming .tl-dot{background:var(--border2)}
+.tl-upcoming .tl-pill-label{background:var(--surf);color:var(--tx2);border:1px solid var(--border)}
+.tl-overdue .tl-dot{background:var(--danger)}
+.tl-overdue .tl-pill-label{background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.2)}
+.red-zone{margin-top:12px;padding:10px 14px;background:rgba(239,68,68,.06);
+  border:1px solid rgba(239,68,68,.2);border-radius:8px;
+  font-size:12px;color:var(--danger);display:flex;align-items:center;gap:8px}
+.red-zone-icon{font-size:14px;flex-shrink:0}
+.red-zone-items{color:var(--tx2);font-size:11px;margin-top:4px}
+
+/* ─── FLAGS ──────────────────────────────────────────────────────────────────── */
+.flags-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
+.flags-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.flags-title{font-size:14px;font-weight:700;color:var(--tx1)}
+.flag-count-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.flag-item{padding:10px 12px;border-radius:8px;margin-bottom:6px;
+  border-left:3px solid;background:var(--surf)}
+.flag-sev-red{border-left-color:var(--danger)}
+.flag-sev-amber{border-left-color:var(--warning)}
+.flag-sev-blue{border-left-color:var(--blue)}
+.flag-title{font-size:13px;font-weight:600;color:var(--tx1);margin-bottom:2px}
+.flag-body{font-size:11px;color:var(--tx2);line-height:1.5}
+.flag-meta{font-size:10px;color:var(--tx3);margin-top:4px;font-family:'JetBrains Mono',monospace}
+.empty-flags{font-size:13px;color:var(--tx3);text-align:center;padding:20px;font-style:italic}
+
+/* ─── LAST UPDATED ───────────────────────────────────────────────────────────── */
+.last-updated{font-size:10px;color:var(--tx3);text-align:center;padding:8px 0;
+  font-family:'JetBrains Mono',monospace}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-brand">
+    <div class="nav-logo">💸</div>
+    <div>
+      <div class="nav-title">FFP — PM Dashboard</div>
+      <div class="nav-sub">Internal use only</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <span class="badge-internal">🔒 Internal</span>
+    <button class="btn-icon" onclick="toggleDark()" id="dark-btn">🌙</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div>
+      <div class="section-hd">Modules</div>
+      <div class="mod-grid" id="mod-grid"></div>
+    </div>
+    <div class="last-updated" id="last-updated"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- STAT CARDS -->
+    <div class="stat-row" id="stat-row"></div>
+
+    <!-- DETAIL PANEL -->
+    <div class="detail-panel" id="detail-panel">
+      <div style="font-size:13px;color:var(--tx3);padding:20px;text-align:center">
+        Select a module from the sidebar to view details.
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="timeline-wrap">
+      <div class="timeline-hd">
+        <div class="timeline-title">📅 Roadmap Timeline</div>
+        <div id="red-zone-count" style="font-size:11px;color:var(--tx3)"></div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-line"></div>
+        <div class="tl-pills" id="tl-pills"></div>
+      </div>
+      <div id="red-zone-panel"></div>
+    </div>
+
+    <!-- FLAGS -->
+    <div class="flags-wrap">
+      <div class="flags-hd">
+        <div class="flags-title">🚩 Open Flags</div>
+        <span class="flag-count-badge" id="flag-badge"></span>
+      </div>
+      <div id="flags-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFIG — update this block to reflect current project state
+// Last updated: 2026-03-31
+// ═══════════════════════════════════════════════════════════════════════════════
+const CONFIG = {
+
+  lastUpdated: "2026-03-31",
+
+  modules: [
+    {
+      id: "spending", icon: "📊", name: "SpendingTracker", ver: "v1.3", status: "live",
+      url: "https://carterspot.github.io/financial-freedom-platform/spending/",
+      piSection: "docs/project-instruction.md#module-5-spendingtracker",
+      features: [
+        "Multi-month CSV import with dedup preview",
+        "Column mapper remembered per account",
+        "AI batch categorization on import",
+        "Needs Review queue + retroactive rules",
+        "Summary: bar charts as % of income",
+        "Date range picker + Trends tab (3-12 months)",
+        "Batch delete with select mode",
+        "Transfer + custom category creation"
+      ],
+      notes: "Category + rules engine owner for entire platform. SpendingTracker v1.3 backlog: add recurrenceType UI for Savings Module handoff."
+    },
+    {
+      id: "income", icon: "💰", name: "IncomeTracker", ver: "v1.0", status: "live",
+      url: "https://carterspot.github.io/financial-freedom-platform/income/",
+      piSection: "docs/project-instruction.md#module-4-incometracker",
+      features: [
+        "7 income types with monthly normalization",
+        "4 stability ratings with color-coded badges",
+        "After-tax flag, start/end dates, notes",
+        "Seeds 56 shared categories on first run",
+        "Export JSON + CSV"
+      ],
+      notes: "No AI at v1. Real file is income-tracker.jsx — income.jsx is a stub (rename to income-stub.jsx before Savings build)."
+    },
+    {
+      id: "debt", icon: "⚡", name: "DebtTracker", ver: "v1.4", status: "live",
+      url: "https://carterspot.github.io/financial-freedom-platform/debt/",
+      piSection: "docs/project-instruction.md#module-3-debttracker",
+      features: [
+        "Unified cards + loans in one avalanche/snowball planner",
+        "Strategy Builder + What-If AI chat (working via proxy)",
+        "Calendar modal + ICS export",
+        "0% APR promo support + morning affirmation",
+        "Closed account checkbox + portfolio progress bars",
+        "GitHub Pages deployment — AI fully working"
+      ],
+      notes: "v1.5 bugs open: loan card overflow, duplicate progress bars, vs tile, tab active state, AI spinner contrast, Schedule tab redesign."
+    },
+    {
+      id: "card", icon: "💳", name: "CardTracker", ver: "v3.1", status: "legacy",
+      url: "https://claude.ai/public/artifacts/67fac319-a7d6-442b-bed6-c8b6c4579ac3",
+      piSection: "",
+      features: ["Credit card CRUD + utilization bars", "Avalanche/Snowball planner", "Strategy Builder + What-If AI", "ICS calendar export"],
+      notes: "Family migrated to DebtTracker. Legacy artifact URL. Deprecating from landing page — no further development."
+    },
+    {
+      id: "loan", icon: "🏦", name: "LoanTracker", ver: "v1.2", status: "legacy",
+      url: "https://claude.ai/public/artifacts/b299eb32-cd52-4668-b3e9-f130d0fe5d27",
+      piSection: "",
+      features: ["5 loan types with amortization math", "6-tab planner + Refinance AI", "Single Loan tab + Payoff Accelerator"],
+      notes: "Family migrated to DebtTracker. Legacy artifact URL. No further development."
+    },
+    {
+      id: "savings", icon: "🏦", name: "Savings Module", ver: "planned", status: "planned",
+      url: null, piSection: "",
+      features: ["Emergency fund + sinking fund goals", "Fund → Goal two-layer model", "Monthly contribution calculator", "Reads SpendingTracker recurring expenses"],
+      notes: "Build blocked until DebtTracker v1.5 ships and gets a clean week of family use. Claudette signals go."
+    },
+    {
+      id: "retirement", icon: "📈", name: "Retirement Module", ver: "planned", status: "planned",
+      url: null, piSection: "",
+      features: ["401k, IRA, Roth balances", "Contribution rates + employer match", "30-year projections", "On-track assessment"],
+      notes: "Follows Savings Module. Storage prefix: ret_"
+    },
+    {
+      id: "investment", icon: "💹", name: "Investment Module", ver: "planned", status: "planned",
+      url: null, piSection: "",
+      features: ["Taxable brokerage accounts", "Stocks, ETFs, mutual funds (no crypto at v1)", "Cost basis + unrealized gains/losses", "Dividend tracking"],
+      notes: "Scope doc needed before build slot. No live data feeds at v1. Storage prefix: inv_"
+    },
+    {
+      id: "advisor", icon: "🧠", name: "AI Advisor", ver: "capstone", status: "capstone",
+      url: null, piSection: "",
+      features: ["Cross-module holistic plan", "Priority-ranked action items", "Debt vs savings tradeoff analysis", "Manual correction layer for misread transactions"],
+      notes: "Capstone — requires all other modules complete. Manual correction layer is non-negotiable before build."
+    },
+  ],
+
+  timeline: [
+    { label: "CardTracker v3",      date: "2026-01", done: true  },
+    { label: "LoanTracker v1.2",    date: "2026-02", done: true  },
+    { label: "IncomeTracker v1",    date: "2026-03", done: true  },
+    { label: "SpendingTracker v1.3",date: "2026-03", done: true  },
+    { label: "DebtTracker v1.4",    date: "2026-03", done: true  },
+    { label: "NOW",                 date: "2026-03", now: true   },
+    { label: "DT v1.5",            date: "2026-04", done: false, target: "2026-04-15" },
+    { label: "Savings v1",          date: "2026-05", done: false, target: "2026-05-31" },
+    { label: "Retirement v1",       date: "2026-06", done: false, target: "2026-06-30" },
+    { label: "Investment v1",       date: "2026-07", done: false, target: "2026-07-31" },
+    { label: "AI Advisor",          date: "2026-09", done: false, target: "2026-09-30" },
+  ],
+
+  redZoneItems: [
+    { label: "AI Advisor slip risk", note: "Capstone depends on all modules completing on schedule. Any delay cascades." },
+    { label: "Cloudflare Worker (SPOF)", note: "All AI features route through ffp-api-proxy.carterspot.workers.dev. Free tier 100k req/day. No fallback documented." },
+  ],
+
+  flags: [
+    {
+      sev: "red",
+      title: "DebtTracker v1.5 — bugs open",
+      body: "Loan card balance overflow on large values, duplicate progress bars, vs tile not updating on method switch, Schedule tab still highlighted on other tabs, AI spinner low contrast in dark mode.",
+      meta: "Opened: 2026-03-30 · Owner: CTO"
+    },
+    {
+      sev: "amber",
+      title: "income.jsx stub — filename collision risk",
+      body: "modules/income.jsx is a 2-line placeholder. Real module is modules/income-tracker.jsx. Stub should be renamed to income-stub.jsx before Savings build starts to prevent Code targeting wrong file.",
+      meta: "Opened: 2026-03-31 · Owner: Carter (1-line commit)"
+    },
+    {
+      sev: "amber",
+      title: "Cloudflare Worker — no rollback plan documented",
+      body: "If ffp-api-proxy.carterspot.workers.dev goes down, all AI features across all modules fail simultaneously. Rollback procedure should be documented in PI.",
+      meta: "Opened: 2026-03-31 · Owner: CTO"
+    },
+    {
+      sev: "blue",
+      title: "Investment Module — no v1 scope defined",
+      body: "Module added to roadmap but scope boundary not yet written. Needs a scope doc before it gets a build slot to prevent scope creep against Savings and Retirement.",
+      meta: "Opened: 2026-03-31 · Owner: CTO + Claudette"
+    },
+    {
+      sev: "blue",
+      title: "GitHub MCP — not yet used in build workflow",
+      body: "GitHub MCP is deployed and confirmed working. Build prompts not yet updated to leverage direct repo read/write. Next build session should use it to eliminate file upload step.",
+      meta: "Opened: 2026-03-31 · Owner: CTO"
+    },
+  ]
+};
+// ═══════════════════════════════════════════════════════════════════════════════
+// END CONFIG
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── DARK MODE ─────────────────────────────────────────────────────────────────
+let dark = localStorage.getItem("ffp_pm_dark") !== "false";
+function applyDark() {
+  document.documentElement.toggleAttribute("data-dark", dark);
+  document.getElementById("dark-btn").textContent = dark ? "☀️" : "🌙";
+}
+function toggleDark() { dark = !dark; localStorage.setItem("ffp_pm_dark", dark); applyDark(); }
+applyDark();
+
+// ─── STAT CARDS ────────────────────────────────────────────────────────────────
+function renderStats() {
+  const live = CONFIG.modules.filter(m => m.status === "live").length;
+  const coreTotal = CONFIG.modules.filter(m => m.status !== "legacy").length;
+  const coreDone = CONFIG.modules.filter(m => m.status === "live" || m.status === "capstone" && false).length;
+  const corePct = Math.round((live / (coreTotal - CONFIG.modules.filter(m=>m.status==="capstone").length)) * 100);
+  const inFlight = CONFIG.modules.filter(m => m.status === "live").length;
+  const flagCount = CONFIG.flags.length;
+
+  const stats = [
+    { label: "Live Modules", num: live, sub: "on GitHub Pages", danger: false },
+    { label: "Core Stack", num: corePct + "%", sub: `${live} of ${coreTotal - 1} non-capstone`, danger: false },
+    { label: "In Development", num: "v1.5", sub: "DebtTracker next", danger: false },
+    { label: "Open Flags", num: flagCount, sub: flagCount > 0 ? "needs attention" : "all clear", danger: flagCount > 0 },
+  ];
+
+  document.getElementById("stat-row").innerHTML = stats.map(s => `
+    <div class="stat-card${s.danger ? " danger" : ""}">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-num">${s.num}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>`).join("");
+}
+
+// ─── SIDEBAR MODULE GRID ────────────────────────────────────────────────────────
+let selectedMod = null;
+function renderSidebar() {
+  document.getElementById("mod-grid").innerHTML = CONFIG.modules.map(m => `
+    <div class="mod-item" id="mod-${m.id}" onclick="selectMod('${m.id}')">
+      <span class="status-dot dot-${m.status}"></span>
+      <span class="mod-icon-sm">${m.icon}</span>
+      <span class="mod-name-sm">${m.name}</span>
+      <span class="mod-ver-sm">${m.ver}</span>
+    </div>`).join("");
+
+  document.getElementById("last-updated").textContent = `Updated: ${CONFIG.lastUpdated}`;
+}
+
+function selectMod(id) {
+  CONFIG.modules.forEach(m => document.getElementById("mod-"+m.id)?.classList.remove("selected"));
+  document.getElementById("mod-"+id)?.classList.add("selected");
+  selectedMod = id;
+  renderDetail(id);
+}
+
+// ─── DETAIL PANEL ──────────────────────────────────────────────────────────────
+function badgeHTML(status) {
+  const map = { live: ["Live","b-live"], legacy: ["Legacy","b-legacy"],
+                planned: ["Planned","b-planned"], capstone: ["Capstone","b-capstone"] };
+  const [l,c] = map[status] || ["",""];
+  return `<span class="detail-badge ${c}">${l}</span>`;
+}
+
+function renderDetail(id) {
+  const m = CONFIG.modules.find(x => x.id === id);
+  const panel = document.getElementById("detail-panel");
+  panel.classList.add("open");
+
+  const launchBtn = m.url
+    ? `<a class="btn-brief" href="${m.url}" target="_blank">🚀 Launch</a>`
+    : `<span class="btn-doc" style="cursor:default;opacity:.5">Coming soon</span>`;
+
+  panel.innerHTML = `
+    <div class="detail-top">
+      <span class="detail-icon">${m.icon}</span>
+      <div>
+        <div class="detail-name">${m.name} ${badgeHTML(m.status)}
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;
+            color:var(--tx3);font-weight:400;margin-left:4px">${m.ver}</span>
+        </div>
+        <div class="detail-meta">${m.notes}</div>
+      </div>
+    </div>
+    <div class="detail-cols">
+      <div>
+        <div class="col-hd">Features</div>
+        <ul class="feat-list">${m.features.map(f=>`<li>${f}</li>`).join("")}</ul>
+      </div>
+      <div>
+        <div class="col-hd">Status</div>
+        <div style="font-size:12px;color:var(--tx2);line-height:1.7">${m.notes}</div>
+      </div>
+    </div>
+    <div class="detail-actions">${launchBtn}</div>`;
+}
+
+// ─── TIMELINE ──────────────────────────────────────────────────────────────────
+function renderTimeline() {
+  const now = Date.now();
+  let overdueItems = [];
+
+  document.getElementById("tl-pills").innerHTML = CONFIG.timeline.map(item => {
+    let cls = "tl-upcoming";
+    if (item.done) cls = "tl-done";
+    else if (item.now) cls = "tl-now";
+    else if (item.target && new Date(item.target).getTime() < now && !item.done) {
+      cls = "tl-overdue";
+      overdueItems.push(item.label);
+    }
+
+    return `<div class="tl-pill ${cls}">
+      <div class="tl-dot"></div>
+      <div class="tl-pill-label">${item.label}</div>
+      <div class="tl-pill-date">${item.date}</div>
+    </div>`;
+  }).join("");
+
+  const redPanel = document.getElementById("red-zone-panel");
+  if (CONFIG.redZoneItems.length > 0) {
+    redPanel.innerHTML = CONFIG.redZoneItems.map(r => `
+      <div class="red-zone">
+        <span class="red-zone-icon">⚠️</span>
+        <div>
+          <strong>${r.label}</strong>
+          <div class="red-zone-items">${r.note}</div>
+        </div>
+      </div>`).join("");
+  }
+
+  document.getElementById("red-zone-count").textContent =
+    overdueItems.length > 0 ? `${overdueItems.length} milestone(s) overdue` : "";
+}
+
+// ─── FLAGS ─────────────────────────────────────────────────────────────────────
+function renderFlags() {
+  const count = CONFIG.flags.length;
+  const badge = document.getElementById("flag-badge");
+  badge.textContent = count > 0 ? `${count} open` : "0 open";
+  badge.style.background = count > 0 ? "rgba(239,68,68,.12)" : "rgba(16,185,129,.12)";
+  badge.style.color = count > 0 ? "var(--danger)" : "var(--success)";
+
+  const list = document.getElementById("flags-list");
+  if (count === 0) {
+    list.innerHTML = `<div class="empty-flags">✓ No open flags — all clear</div>`;
+    return;
+  }
+
+  list.innerHTML = CONFIG.flags.map(f => `
+    <div class="flag-item flag-sev-${f.sev}">
+      <div class="flag-title">${f.title}</div>
+      <div class="flag-body">${f.body}</div>
+      <div class="flag-meta">${f.meta}</div>
+    </div>`).join("");
+}
+
+// ─── INIT ───────────────────────────────────────────────────────────────────────
+renderStats();
+renderSidebar();
+renderTimeline();
+renderFlags();
+</script>
+</body>
+</html>
