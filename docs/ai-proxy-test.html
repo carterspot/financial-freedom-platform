@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FFP — AI Proxy Test</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#020617;color:#f1f5f9;font-family:'Segoe UI',sans-serif;
+  display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.card{background:#0f172a;border:1px solid #1e293b;border-radius:16px;
+  padding:32px;width:100%;max-width:540px}
+h1{font-size:18px;font-weight:700;margin-bottom:6px}
+.sub{font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.6}
+label{font-size:11px;color:#94a3b8;font-weight:600;display:block;margin-bottom:5px;
+  text-transform:uppercase;letter-spacing:.5px}
+input{width:100%;background:#1e293b;border:1px solid #334155;border-radius:8px;
+  padding:10px 12px;color:#f1f5f9;font-size:13px;margin-bottom:16px}
+input::placeholder{color:#475569}
+button{width:100%;background:#6366f1;border:none;border-radius:8px;
+  padding:11px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;
+  transition:opacity .15s;margin-bottom:16px}
+button:hover{opacity:.88}
+button:disabled{opacity:.4;cursor:default}
+.result{border-radius:8px;padding:14px;font-size:13px;line-height:1.6;display:none}
+.result.success{background:#10b98115;border:1px solid #10b98133;color:#10b981}
+.result.error{background:#ef444415;border:1px solid #ef444433;color:#ef4444}
+.env{font-size:11px;color:#475569;margin-bottom:20px;padding:8px 12px;
+  background:#1e293b;border-radius:6px;font-family:monospace}
+.proxy-url{font-size:11px;color:#94a3b8;padding:8px 12px;background:#1e293b;
+  border-radius:6px;font-family:monospace;margin-bottom:16px;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🧪 FFP Proxy Test</h1>
+  <div class="sub">
+    Tests the Cloudflare Worker proxy. If this passes, all FFP modules
+    can use the same proxy URL for AI features.
+  </div>
+
+  <div class="env" id="env-display">Detecting environment...</div>
+
+  <label>Proxy URL</label>
+  <div class="proxy-url" id="proxy-url-display">
+    Update PROXY_URL in this file to your worker URL before testing.
+  </div>
+
+  <label>Anthropic API Key</label>
+  <input type="password" id="api-key" placeholder="sk-ant-..." />
+
+  <button onclick="runTest()" id="btn">🚀 Test AI via Proxy</button>
+  <div class="result" id="result"></div>
+</div>
+
+<script>
+// ─── UPDATE THIS after deploying the worker ───────────────────────────────────
+// It will look like: https://ffp-api-proxy.YOUR-SUBDOMAIN.workers.dev
+const PROXY_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
+// ─────────────────────────────────────────────────────────────────────────────
+
+const host = window.location.hostname;
+const envLabel = host.includes("github.io") ? "GitHub Pages" :
+                 host === "localhost" || host === "127.0.0.1" ? "Localhost" :
+                 host.includes("claude") ? "Claude.ai artifact" : host;
+
+document.getElementById("env-display").textContent =
+  "Environment: " + envLabel + " | Host: " + (host || "no hostname");
+document.getElementById("proxy-url-display").textContent =
+  PROXY_URL === "PASTE_YOUR_WORKER_URL_HERE"
+    ? "⚠ No proxy URL set — edit PROXY_URL in this file first"
+    : PROXY_URL;
+
+async function runTest() {
+  if (PROXY_URL === "PASTE_YOUR_WORKER_URL_HERE") {
+    showResult("error", "Update PROXY_URL in this file to your Cloudflare Worker URL first.");
+    return;
+  }
+
+  const key = document.getElementById("api-key").value.trim();
+  if (!key) {
+    showResult("error", "Enter your API key first.");
+    return;
+  }
+
+  const btn = document.getElementById("btn");
+  btn.disabled = true;
+  btn.textContent = "Testing...";
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+
+  try {
+    const res = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 30,
+        messages: [{ role: "user", content: "Reply with only: Proxy test successful." }]
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      const text = data.content?.[0]?.text || "(no text in response)";
+      showResult("success",
+        "✓ HTTP " + res.status + " — AI response: \"" + text + "\"\n\n" +
+        "Proxy is working. This URL can be used in all FFP modules.");
+    } else {
+      let errMsg = "";
+      try { const e = await res.json(); errMsg = e.error?.message || JSON.stringify(e); } catch {}
+      showResult("error", "✗ HTTP " + res.status + " — " + errMsg);
+    }
+  } catch(e) {
+    clearTimeout(timeout);
+    if (e.name === "AbortError") {
+      showResult("error", "✗ Timed out after 20 seconds — worker may not be deployed or URL is wrong.");
+    } else {
+      showResult("error", "✗ " + e.name + ": " + e.message);
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = "🚀 Test AI via Proxy";
+}
+
+function showResult(type, msg) {
+  const el = document.getElementById("result");
+  el.className = "result " + type;
+  el.textContent = msg;
+  el.style.display = "block";
+}
+</script>
+</body>
+</html>
