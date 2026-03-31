@@ -98,7 +98,7 @@ function useTheme(dm) {
 function useBreakpoint() {
   const [w, setW] = useState(960);
   useEffect(() => {
-    const fn = () => setW(window.innerWidth);
+    const fn = () => setW(typeof window !== 'undefined' ? window.innerWidth : 960);
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
@@ -137,7 +137,7 @@ const hasCloudStorage = () => _cloudAvailable === true;
 
 // --- AI -----------------------------------------------------------------------
 async function callClaude(apiKey, body) {
-  const headers = { "Content-Type":"application/json" };
+  const headers = { "Content-Type":"application/json", "anthropic-version":"2023-06-01" };
   if (apiKey?.trim()) headers["x-api-key"] = apiKey.trim();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
