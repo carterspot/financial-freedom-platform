@@ -350,7 +350,7 @@ const CONFIG = {
       features:["Multi-month CSV import with dedup preview","Column mapper remembered per account","Sign-flip toggle for CC statements","AI batch categorization on import","Needs Review queue with retroactive rules","Summary: bar charts as % of income","Date range picker + Trends tab (3-12 months)","Batch delete + multi-category filter","Transfer + custom category creation"],
       ai:["AI batch categorizes all unruled transactions","High confidence → silent auto-assign","Low confidence → Needs Review queue","AI Suggest Rules for unruled merchants"],
       flows:[{dir:"out",to:"Savings Module",label:"isSinkingFundCandidate transactions + recurrenceType"},{dir:"out",to:"AI Advisor",label:"Full transaction history + category aggregates"}],
-      artifactUrl:"https://claude.ai/public/artifacts/d3a50010-65a2-4c63-99ef-6f2668c03660",
+      artifactUrl:"https://carterspot.github.io/financial-freedom-platform/spending/",
       quickstartUrl:"spending-quickstart.html",
       whatsNewUrl:"whats-new.html#spending-tracker"
     },
@@ -361,7 +361,7 @@ const CONFIG = {
       features:["7 income types (W2, Self-Employment, Rental, etc.)","7 frequencies with automatic monthly normalization","4 stability ratings with color-coded badges","After-tax flag, start/end dates, notes","Summary: total monthly, annual, breakdown by type","Seeds 56 shared categories on first run"],
       ai:["Data entry only at v1","Stability ratings feed AI Advisor risk model","Category system seeded here powers all modules"],
       flows:[{dir:"out",to:"SpendingTracker",label:"Seeds ffp_categories_ on first run"},{dir:"out",to:"AI Advisor",label:"Income stability + amounts"}],
-      artifactUrl:"https://claude.ai/public/artifacts/2f3c6e2f-6e59-4dd1-bde8-93b7af3dc04b",
+      artifactUrl:"https://carterspot.github.io/financial-freedom-platform/income/",
       quickstartUrl:"income-quickstart.html",
       whatsNewUrl:"whats-new.html#income-tracker"
     },

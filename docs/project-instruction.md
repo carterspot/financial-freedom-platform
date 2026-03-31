@@ -41,7 +41,18 @@ Modules are deployed as static builds via Vite to `docs/{module}/` subfolders. G
 
 **Live module URLs:**
 ```
-https://carterspot.github.io/financial-freedom-platform/debt/
+https://carterspot.github.io/financial-freedom-platform/debt/       ← DebtTracker v1.4
+https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.3
+https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.0
+```
+
+**Module filename clarification (critical for Code prompts):**
+```
+modules/debt-tracker.jsx     ← DebtTracker
+modules/spending.jsx          ← SpendingTracker (no -tracker suffix)
+modules/income-tracker.jsx    ← IncomeTracker (has -tracker suffix, income.jsx is a stub)
+modules/credit-card-tracker.jsx ← CardTracker (legacy)
+modules/loan-tracker.jsx      ← LoanTracker (legacy)
 ```
 
 **Vite config template:**
@@ -411,7 +422,7 @@ ffp_categories_{profileId} (shared) — seeded on first run if empty
 }
 ```
 
-**Artifact:** `modules/income.jsx`
+**Artifact:** `modules/income-tracker.jsx`
 
 ---
 
@@ -655,7 +666,7 @@ ffp_cat_rules_{profileId}    (shared) — auto-assignment rules
 
 ### v1 constraints
 - Flat categories only — `parentId` reserved for v2 subcategories
-- Default category set ships standard (56 categories across 13 sections — hardcoded in `DEFAULT_CATEGORIES` constant in `income.jsx`, also in `docs/ffp-categories.xlsx`)
+- Default category set ships standard (56 categories across 13 sections — hardcoded in `DEFAULT_CATEGORIES` constant in `income-tracker.jsx`, also in `docs/ffp-categories.xlsx`)
 - AI-personalized taxonomy (Spender vs Saver archetype) is a v2/premium feature
 
 ---
@@ -875,16 +886,18 @@ docs/
 - ✅ DebtTracker v1.2 — lump sum engine fix, Total Debt summary card, Single Debt CSV export, AI copy/save buttons
 - ✅ DebtTracker v1.4 — proxy API URL (Cloudflare Worker), GitHub Pages deployment at /debt/
 - ✅ IncomeTracker v1.0 — income stream CRUD, frequency normalization, stability ratings, category seeding
+- ✅ IncomeTracker — GitHub Pages deployment at /income/ (proxy API URL added)
 - ✅ SpendingTracker v1.0 — CSV import, column mapper, AI batch categorization, rules engine, actuals + rolling average
 - ✅ SpendingTracker v1.1 — profile switcher fix, export anchor fix, needs review surfacing, retroactive rule apply
 - ✅ SpendingTracker v1.2 — Summary tab first, category bar charts, debit/credit filter, multi-category filter, dark mode contrast, create rule/category from edit modal, transfer category
 - ✅ SpendingTracker v1.3 — multi-month CSV import, dedup preview, batch delete, date range picker, Trends tab (SVG charts), 3-month rolling summary panel
+- ✅ SpendingTracker — GitHub Pages deployment at /spending/ (proxy API URL)
 - ✅ CLAUDE.md — trimmed for token efficiency, added to repo root
 - ✅ Vite preview server — localhost:5173 for local JSX testing
 - ✅ GitHub Pages landing page — docs/index.html with module cards, artifact links, QS + What's New buttons
 - ✅ What's New page — docs/whats-new.html covering all five live modules
 - ✅ Quick start guides — all five live modules have quickstart guides in docs/
-- ✅ Default category set — docs/ffp-categories.xlsx (56 categories, 13 sections); hardcoded in income.jsx DEFAULT_CATEGORIES constant
+- ✅ Default category set — docs/ffp-categories.xlsx (56 categories, 13 sections); hardcoded in income-tracker.jsx DEFAULT_CATEGORIES constant
 - ✅ Category system architecture — shared platform layer, schemas, auto-assign priority, AI batch categorization design
 - ✅ context-mode installed — MCP context virtualization layer, ~98% context savings in Code sessions
 
