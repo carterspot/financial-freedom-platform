@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FFP — AI Call Test</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#020617;color:#f1f5f9;font-family:'Segoe UI',sans-serif;
+  display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.card{background:#0f172a;border:1px solid #1e293b;border-radius:16px;
+  padding:32px;width:100%;max-width:540px}
+h1{font-size:18px;font-weight:700;margin-bottom:6px}
+.sub{font-size:13px;color:#64748b;margin-bottom:24px}
+label{font-size:11px;color:#94a3b8;font-weight:600;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+input{width:100%;background:#1e293b;border:1px solid #334155;border-radius:8px;
+  padding:10px 12px;color:#f1f5f9;font-size:13px;margin-bottom:16px}
+input::placeholder{color:#475569}
+button{width:100%;background:#6366f1;border:none;border-radius:8px;
+  padding:11px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;
+  transition:opacity .15s;margin-bottom:16px}
+button:hover{opacity:.88}
+button:disabled{opacity:.4;cursor:default}
+.result{border-radius:8px;padding:14px;font-size:13px;line-height:1.6;display:none}
+.result.success{background:#10b98115;border:1px solid #10b98133;color:#10b981}
+.result.error{background:#ef444415;border:1px solid #ef444433;color:#ef4444}
+.result.info{background:#6366f115;border:1px solid #6366f133;color:#a5b4fc}
+.env{font-size:11px;color:#475569;margin-bottom:20px;padding:8px 12px;
+  background:#1e293b;border-radius:6px;font-family:monospace}
+.test-label{font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:8px}
+.divider{height:1px;background:#1e293b;margin:20px 0}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🧪 FFP AI Call Test</h1>
+  <div class="sub">Tests which callClaude patterns work in this environment</div>
+
+  <div class="env" id="env-display">Detecting environment...</div>
+
+  <label>Anthropic API Key</label>
+  <input type="password" id="api-key" placeholder="sk-ant-..." />
+
+  <div class="divider"></div>
+
+  <div class="test-label">Test 1 — No headers (chat proxy pattern)</div>
+  <button onclick="runTest('no-headers')" id="btn1">Run Test 1</button>
+  <div class="result" id="result1"></div>
+
+  <div class="divider"></div>
+
+  <div class="test-label">Test 2 — x-api-key + anthropic-version (GitHub Pages pattern)</div>
+  <button onclick="runTest('full-headers')" id="btn2">Run Test 2</button>
+  <div class="result" id="result2"></div>
+
+  <div class="divider"></div>
+
+  <div class="test-label">Test 3 — anthropic-version only (no key)</div>
+  <button onclick="runTest('version-only')" id="btn3">Run Test 3</button>
+  <div class="result" id="result3"></div>
+
+</div>
+
+<script>
+const API_URL = "https://api.anthropic.com/v1/messages";
+const MODEL = "claude-sonnet-4-20250514";
+const BODY = JSON.stringify({
+  model: MODEL,
+  max_tokens: 30,
+  messages: [{ role: "user", content: "Reply with only: AI call test successful." }]
+});
+
+// Detect environment
+const host = window.location.hostname;
+const isGitHubPages = host.includes("github.io");
+const isLocalhost = host === "localhost" || host === "127.0.0.1";
+const isClaudeAI = host.includes("claude.ai") || host.includes("usercontent");
+const envLabel = isGitHubPages ? "GitHub Pages" : isLocalhost ? "Localhost (Vite)" : isClaudeAI ? "Claude.ai artifact" : host || "Unknown";
+
+document.getElementById("env-display").textContent =
+  `Environment: ${envLabel} | Host: ${host || "no hostname"}`;
+
+async function runTest(mode) {
+  const key = document.getElementById("api-key").value.trim();
+  const idx = mode === "no-headers" ? "1" : mode === "full-headers" ? "2" : "3";
+  const btn = document.getElementById("btn" + idx);
+  const result = document.getElementById("result" + idx);
+
+  btn.disabled = true;
+  btn.textContent = "Running...";
+  result.style.display = "none";
+
+  const headers = { "Content-Type": "application/json" };
+
+  if (mode === "full-headers") {
+    if (!key) {
+      showResult(idx, "error", "No API key entered — Test 2 requires a key.");
+      btn.disabled = false;
+      btn.textContent = "Run Test " + idx;
+      return;
+    }
+    headers["x-api-key"] = key;
+    headers["anthropic-version"] = "2023-06-01";
+  }
+
+  if (mode === "version-only") {
+    headers["anthropic-version"] = "2023-06-01";
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers,
+      body: BODY,
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    const status = res.status;
+
+    if (res.ok) {
+      const data = await res.json();
+      const text = data.content?.[0]?.text || "(no text)";
+      showResult(idx, "success", `✓ HTTP ${status} — Response: "${text}"`);
+    } else {
+      let errText = "";
+      try { const e = await res.json(); errText = e.error?.message || JSON.stringify(e); } catch {}
+      showResult(idx, "error", `✗ HTTP ${status} — ${errText}`);
+    }
+  } catch(e) {
+    clearTimeout(timeout);
+    if (e.name === "AbortError") {
+      showResult(idx, "error", "✗ Timed out after 15 seconds — fetch never completed (likely CSP block)");
+    } else {
+      showResult(idx, "error", `✗ ${e.name}: ${e.message}`);
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Run Test " + idx;
+}
+
+function showResult(idx, type, msg) {
+  const el = document.getElementById("result" + idx);
+  el.className = "result " + type;
+  el.textContent = msg;
+  el.style.display = "block";
+}
+</script>
+</body>
+</html>
