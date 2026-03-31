@@ -79,9 +79,9 @@
 
   <!-- Jump links -->
   <div class="nav-pills">
-    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.2</a>
+    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.3</a>
     <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.0</a>
-    <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.1</a>
+    <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.4</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
     <a href="#loan-tracker" class="nav-pill">🏦 LoanTracker v1.2</a>
   </div>
@@ -92,9 +92,57 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#f97316,#f59e0b)">📊</div>
       <div>
         <div class="module-name">SpendingTracker</div>
-        <div class="module-version">v1.2</div>
+        <div class="module-version">v1.3</div>
       </div>
       <div class="module-date">March 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-feature">⚡ Features — v1.3</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>Multi-month CSV import</h4>
+            <p>Queue multiple statement files for the same account and import them in one pass. Each file goes through the full flow — column mapping, sign normalization, dedup, and AI categorization — with a progress indicator showing status per file.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>Dedup preview before import</h4>
+            <p>Before committing an import, a preview screen shows every transaction labeled New (green), Duplicate (grey), or Conflicting (amber — same date and description but different amount). Skip-all-duplicates is on by default. Conflicting transactions always require an explicit choice: keep existing, overwrite, or import both.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>Batch delete</h4>
+            <p>Toggle Select mode in the Transactions tab to get checkboxes on every row. Select All respects your active filters — only visible transactions get selected. A sticky action bar shows the count and a Delete Selected button. Confirmation modal required, no accidental deletes.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>Date range picker</h4>
+            <p>Toggle between Month view (existing) and Range view. Range mode adds start and end month pickers — both the Transactions and Summary tabs update to reflect the selected range. The header label shows the full range (e.g. "Jan 2026 — Mar 2026") so you always know what you're looking at.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>Trends tab — spending over time</h4>
+            <p>A new fourth tab shows your spending history as SVG charts. A line chart shows total expenses by month. A grouped bar chart breaks down the top 6 categories month by month with an "Other" bucket for the rest. The window is configurable from 3 to 12 months. Click any month bar to jump to that month's transactions.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--orange)"></div>
+          <div class="change-body">
+            <h4>3-month rolling summary panel</h4>
+            <p>A new panel at the top of the Summary tab shows the last three months side by side — total income, total expenses, and net for each. Delta arrows between columns show whether things are improving or getting worse. Click any column to switch to that month.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">
@@ -322,9 +370,97 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)">⚡</div>
       <div>
         <div class="module-name">DebtTracker</div>
-        <div class="module-version">v1.1</div>
+        <div class="module-version">v1.4</div>
       </div>
       <div class="module-date">March 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-feature">🚀 Deployment — v1.4</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Now live on GitHub Pages — AI features fully working</h4>
+            <p>DebtTracker is now served from GitHub Pages at <strong>carterspot.github.io/financial-freedom-platform/debt/</strong>. All AI features (Strategy Builder, Schedule Analysis, What-If chat) are fully working via a Cloudflare Worker proxy that resolves the browser CORS restriction when calling the Anthropic API directly.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-feature">⚡ Features — v1.3</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--purple)"></div>
+          <div class="change-body">
+            <h4>Profile edit + add new profile</h4>
+            <p>Edit name, avatar color, and PIN for the current profile, or add new profiles — all from the nav bar dropdown. No longer requires CardTracker or LoanTracker to exist first.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--purple)"></div>
+          <div class="change-body">
+            <h4>Calendar modal + ICS export</h4>
+            <p>Monthly calendar showing due days, statement close dates, and projected payoff dates per debt. ICS export for Google Calendar, Apple Calendar, and Outlook. Accessible via button between Open Planner and Add Debt.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--purple)"></div>
+          <div class="change-body">
+            <h4>Strategy tab + Analysis tab</h4>
+            <p>Strategy Builder moved to its own first tab in the Planner — 5-question questionnaire with Apply This Strategy. What-If chat and Refinance Scenario combined into a single Analysis tab with cross-debt awareness.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--purple)"></div>
+          <div class="change-body">
+            <h4>Portfolio progress + utilization improvements</h4>
+            <p>Total paid-down progress bar above debt list with 25/50/75/100% milestones. Per-debt progress bars on home screen. Utilization markers at 20% and 80% with color-zoned bars (green/amber/red). Closed account checkbox excludes debts from calculations.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--purple)"></div>
+          <div class="change-body">
+            <h4>0% APR promo support + morning affirmation</h4>
+            <p>Cards with promotional APR periods show a green badge and use the promo rate in calculations until expiry, then switch to the standard rate. 90-day and 30-day expiry alerts. Morning affirmation splash on every open — context-aware message pools based on payoff progress.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-fix">🔧 Bug Fixes — v1.2</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Lump sum engine now works correctly</h4>
+            <p>Priority and Split modes now apply lump sums properly in the payoff engine. The month-by-month schedule table shows an amber LUMP SUM marker row in the month it applies, with the PAID column showing the correct total (regular payment + lump amount). The payoff order list annotates each debt with its lump allocation.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Total Debt card added to portfolio summary</h4>
+            <p>The portfolio summary bar was missing a Total Debt figure. It now appears as the first stat — Total Debt / Monthly Payments / Est. Interest / Payoff Date.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Single Debt tab — current balance stat + CSV export</h4>
+            <p>The Single Debt tab summary row now shows Current Balance as the first stat. The Amortization Schedule panel has a ⬇ CSV export button — columns: Date, Payment, Principal, Interest, Balance.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>AI output copy and save buttons</h4>
+            <p>The Schedule Analysis panel now has 📋 Copy and ⬇ Download .txt buttons after the AI response. Each AI message in the What-If chat gets a 📋 Copy button with a 1.5-second "Copied!" confirmation.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">
