@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
+const MODEL   = "claude-sonnet-4-20250514";
 const AVATAR_COLORS = ["#6366f1","#ec4899","#f97316","#10b981","#3b82f6","#8b5cf6","#f43f5e","#06b6d4"];
 const COLOR = {
   primary:"#6366f1", success:"#10b981", warning:"#f59e0b",
