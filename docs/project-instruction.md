@@ -28,7 +28,36 @@ Each module is a self-contained React artifact. The AI Advisor is the capstone �
 
 ---
 
-## Artifact URL Strategy
+## GitHub Pages Deployment
+
+Modules are deployed as static builds via Vite to `docs/{module}/` subfolders. GitHub Pages serves from the `docs/` directory.
+
+**Deployment workflow per module:**
+1. Update `preview/src/App.jsx` to import the target module
+2. Set `preview/vite.config.js`: `base: "/financial-freedom-platform/{module}/"` and `build.outDir: "../docs/{module}"`
+3. `cd preview && npm run build`
+4. Commit `modules/{name}.jsx`, `docs/{module}/`, `preview/vite.config.js`, `preview/src/App.jsx`
+5. Push — GitHub Pages auto-deploys within ~60 seconds
+
+**Live module URLs:**
+```
+https://carterspot.github.io/financial-freedom-platform/debt/
+```
+
+**Vite config template:**
+```javascript
+export default {
+  base: "/financial-freedom-platform/debt/",
+  build: {
+    outDir: "../docs/debt",
+    emptyOutDir: true,
+  }
+}
+```
+
+**Note:** `outDir` must be `"../docs/{module}"` (one level up from `preview/`), not `"../../docs/{module}"`.
+
+---
 
 Each module lives in a **dedicated Claude.ai chat**. Editing the artifact in that same chat preserves the URL — no config update needed. Creating a new artifact (new chat) generates a new URL and requires updating the `CONFIG` block in `docs/index.html`.
 
@@ -844,7 +873,7 @@ docs/
 - ✅ DebtTracker v1 — unified cards + loans, 5-tab planner, strategy builder, import banner, shared profiles
 - ✅ DebtTracker v1.1 — standalone profile creation screen (FirstRunSetup)
 - ✅ DebtTracker v1.2 — lump sum engine fix, Total Debt summary card, Single Debt CSV export, AI copy/save buttons
-- ✅ DebtTracker v1.3 — profile edit/add, calendar+ICS, responsive layout, utilization markers, closed accounts, portfolio progress bar, Strategy tab, Analysis tab (What-If+Refinance), promo APR, morning affirmation, payoff preview, M2M improvements, dual-line balance chart
+- ✅ DebtTracker v1.4 — proxy API URL (Cloudflare Worker), GitHub Pages deployment at /debt/
 - ✅ IncomeTracker v1.0 — income stream CRUD, frequency normalization, stability ratings, category seeding
 - ✅ SpendingTracker v1.0 — CSV import, column mapper, AI batch categorization, rules engine, actuals + rolling average
 - ✅ SpendingTracker v1.1 — profile switcher fix, export anchor fix, needs review surfacing, retroactive rule apply
