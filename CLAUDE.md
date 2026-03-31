@@ -44,3 +44,5 @@
 At session start, read docs/ffp-cto-SKILL.md for platform constraints and patterns.
 Read `docs/project-instruction.md` for complete module specs, schemas, and architecture decisions.
 Read `docs/design-system.md` for theme tokens, component patterns, and visual specs.
+Working directory: C:\Users\CarterBeaton\OneDrive - Argano LLC\Personal Projects\Financial Freedom Platform\GitHub\financial-freedom-platform
+All bash commands run from this directory. Never cd into it — it is already the working directory.
