@@ -281,6 +281,17 @@ function useTheme(dm) {
   };
 }
 
+// ─── Responsive ───────────────────────────────────────────────────────────────
+function useBreakpoint() {
+  const [w, setW] = useState(960);
+  useEffect(() => {
+    const fn = () => setW(typeof window !== 'undefined' ? window.innerWidth : 960);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return { isMobile: w < 640, isTablet: w < 960, isDesktop: w >= 960 };
+}
+
 // ─── Storage ──────────────────────────────────────────────────────────────────
 let _cloudAvailable = null;
 async function probeCloudStorage() {
@@ -336,6 +347,26 @@ async function callClaude(apiKey, body) {
   }
 }
 
+function aiErrorMsg(e) {
+  if (e.name === "AbortError")       return "Request timed out — check your connection and retry.";
+  if (e.message.includes("401"))     return "Invalid API key — update your key via the key button in the nav bar.";
+  if (e.message.includes("429"))     return "Rate limited — wait a moment and try again.";
+  if (e.message.includes("500"))     return "Anthropic API error — try again shortly.";
+  return `AI unavailable (${e.message}) — try again.`;
+}
+
+async function probeApiKey(key) {
+  try {
+    const res = await fetch(API_URL, {
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":key},
+      body:JSON.stringify({ model:MODEL, max_tokens:1, messages:[{role:"user",content:"hi"}] }),
+      signal:AbortSignal.timeout(8000),
+    });
+    return res.status === 200 ? "valid" : res.status === 401 ? "invalid" : "limited";
+  } catch { return "unknown"; }
+}
+
 // ─── ProfileDropdown ──────────────────────────────────────────────────────────
 function ProfileDropdown({ t, profiles, activeProfile, onSwitch, onClose }) {
   return (
@@ -346,7 +377,7 @@ function ProfileDropdown({ t, profiles, activeProfile, onSwitch, onClose }) {
       {profiles.map(p => (
         <div key={p.id} onClick={() => onSwitch(p)}
           style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",background:p.id===activeProfile?.id?COLOR.primary+"18":"transparent",borderBottom:`1px solid ${t.border}`,transition:"background .15s" }}>
-          <div style={{ width:28,height:28,borderRadius:"50%",background:p.color||COLOR.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0 }}>
+          <div style={{ width:28,height:28,borderRadius:"50%",background:p.avatarColor||COLOR.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0 }}>
             {(p.name||"?").charAt(0).toUpperCase()}
           </div>
           <div style={{ flex:1 }}>
@@ -378,19 +409,23 @@ function ConfirmModal({ t, message, onConfirm, onCancel }) {
 // ─── ApiKeyModal ───────────────────────────────────────────────────────────────
 function ApiKeyModal({ t, apiKey, onSave, onClose }) {
   const [val, setVal] = useState(apiKey||"");
+  const [show, setShow] = useState(false);
   return (
     <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
       <div style={{ background:t.panelBg,borderRadius:20,width:"100%",maxWidth:440,padding:24,boxShadow:"0 20px 60px rgba(0,0,0,.5)" }}>
         <div style={{ fontWeight:800,fontSize:17,color:t.tx1,marginBottom:4 }}>Anthropic API Key</div>
         <div style={{ fontSize:13,color:t.tx2,marginBottom:16 }}>Required for AI categorization and rule suggestions.</div>
         <label style={{ fontSize:11,color:t.tx2,display:"block",marginBottom:4,fontWeight:600 }}>API KEY</label>
-        <input
-          type="password"
-          value={val}
-          onChange={e => setVal(e.target.value)}
-          placeholder="sk-ant-..."
-          style={{ width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box",marginBottom:16 }}
-        />
+        <div style={{ display:"flex",gap:8,marginBottom:16 }}>
+          <input
+            type={show ? "text" : "password"}
+            value={val}
+            onChange={e => setVal(e.target.value)}
+            placeholder="sk-ant-..."
+            style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box" }}
+          />
+          <button onClick={() => setShow(s => !s)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"9px 12px",color:t.tx2,cursor:"pointer",fontSize:12 }}>{show ? "🙈" : "👁"}</button>
+        </div>
         <div style={{ display:"flex",gap:10 }}>
           <button onClick={onClose} style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"9px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Cancel</button>
           <button onClick={() => onSave(val.trim())} style={{ flex:1,background:COLOR.primary,border:"none",borderRadius:10,padding:"9px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14 }}>Save</button>
@@ -401,7 +436,13 @@ function ApiKeyModal({ t, apiKey, onSave, onClose }) {
 }
 
 // ─── BackupModal ───────────────────────────────────────────────────────────────
-function BackupModal({ t, transactions, accounts, categories, onClose }) {
+function BackupModal({ t, transactions, accounts, categories, onClose, onImport }) {
+  const [tab, setTab] = useState("export");
+  const [importText, setImportText] = useState("");
+  const [importStatus, setImportStatus] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const fileRef = useRef(null);
+
   function exportJSON() {
     const data = { transactions, accounts, categories, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
@@ -426,20 +467,84 @@ function BackupModal({ t, transactions, accounts, categories, onClose }) {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
+
+  function handleFileSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setImportText(ev.target.result);
+    reader.readAsText(file);
+  }
+
+  function doImport() {
+    try {
+      const data = JSON.parse(importText);
+      if (!Array.isArray(data.transactions)) {
+        setImportStatus("Invalid backup: missing transactions array.");
+        return;
+      }
+      onImport(data);
+      setImportStatus("✅ Import successful!");
+      setShowConfirm(false);
+    } catch {
+      setImportStatus("Invalid JSON — check your file and try again.");
+    }
+  }
+
+  const tabBtn = (active) => ({
+    background: active ? COLOR.primary : t.surf,
+    color: active ? "#fff" : t.tx2,
+    border: `1px solid ${active ? COLOR.primary : t.border}`,
+    borderRadius: 8, padding: "7px 20px", cursor: "pointer", fontWeight: 600, fontSize: 13,
+  });
+
   return (
     <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
-      <div style={{ background:t.panelBg,borderRadius:20,width:"100%",maxWidth:380,padding:24,boxShadow:"0 20px 60px rgba(0,0,0,.5)" }}>
-        <div style={{ fontWeight:800,fontSize:17,color:t.tx1,marginBottom:16 }}>Backup & Export</div>
-        <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:16 }}>
-          <button onClick={exportJSON} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"11px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:14 }}>
-            📦 Full Backup (JSON)
-          </button>
-          <button onClick={exportCSV} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"11px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:14 }}>
-            📄 Export Transactions (CSV)
-          </button>
+      <div style={{ background:t.panelBg,borderRadius:20,width:"100%",maxWidth:420,padding:24,boxShadow:"0 20px 60px rgba(0,0,0,.5)" }}>
+        <div style={{ fontWeight:800,fontSize:17,color:t.tx1,marginBottom:16 }}>Backup & Restore</div>
+        <div style={{ display:"flex",gap:6,marginBottom:16 }}>
+          <button style={tabBtn(tab==="export")} onClick={() => setTab("export")}>Export</button>
+          <button style={tabBtn(tab==="import")} onClick={() => setTab("import")}>Import</button>
         </div>
+        {tab === "export" && (
+          <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:16 }}>
+            <button onClick={exportJSON} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"11px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:14 }}>
+              📦 Full Backup (JSON)
+            </button>
+            <button onClick={exportCSV} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"11px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:14 }}>
+              📄 Export Transactions (CSV)
+            </button>
+          </div>
+        )}
+        {tab === "import" && (
+          <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:16 }}>
+            <input ref={fileRef} type="file" accept=".json" style={{ display:"none" }} onChange={handleFileSelect} />
+            <button onClick={() => fileRef.current.click()} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"11px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:14 }}>
+              📂 Load from file
+            </button>
+            <textarea
+              value={importText}
+              onChange={e => setImportText(e.target.value)}
+              placeholder="Or paste JSON backup here…"
+              rows={5}
+              style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:12,fontFamily:"monospace",resize:"vertical",boxSizing:"border-box",width:"100%" }}
+            />
+            {importStatus && <div style={{ fontSize:12,color:importStatus.startsWith("✅")?COLOR.success:COLOR.danger }}>{importStatus}</div>}
+            <button
+              onClick={() => { if (!importText.trim()) return; setImportStatus(null); setShowConfirm(true); }}
+              style={{ background:COLOR.primary,border:"none",borderRadius:10,padding:"11px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14 }}>
+              Import & Replace
+            </button>
+          </div>
+        )}
         <button onClick={onClose} style={{ width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"9px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Close</button>
       </div>
+      {showConfirm && (
+        <ConfirmModal t={t}
+          message="This will replace all transactions and accounts with the imported data. This cannot be undone."
+          onConfirm={doImport}
+          onCancel={() => setShowConfirm(false)} />
+      )}
     </div>
   );
 }
@@ -1111,7 +1216,7 @@ Confidence: "high" (obvious), "medium" (likely), "low" (guess).`;
       setAssignments(next);
       setNeedsReview(next.filter(tx => tx.needsReview).map(tx => tx.id));
     } catch (e) {
-      setError("AI failed: " + e.message);
+      setError(aiErrorMsg(e));
       setAssignments(pending.map(tx => ({ ...tx, categoryId:"exp_057", categoryLocked:false, needsReview:true })));
       setNeedsReview(pending.map(tx => tx.id));
     }
@@ -1443,11 +1548,14 @@ function ImportWizard({ t, accounts, categories, rules, transactions, apiKey, on
 function FirstRunSetup({ t, onComplete }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(AVATAR_COLORS[0]);
+  const [pin, setPin] = useState("");
 
   function handleCreate() {
     if (!name.trim()) return;
-    const id = generateId();
-    onComplete({ id, name: name.trim(), color, avatar: name.trim().charAt(0).toUpperCase() });
+    const stableId = pin.trim()
+      ? "pin_" + pin.trim().toLowerCase().replace(/\s+/g, "_")
+      : generateId();
+    onComplete({ id: stableId, name: name.trim(), avatarColor: color, pin: pin.trim(), avatar: name.trim().charAt(0).toUpperCase() });
   }
 
   return (
@@ -1461,11 +1569,13 @@ function FirstRunSetup({ t, onComplete }) {
         <label style={{ fontSize:11,color:t.tx2,display:"block",marginBottom:4,fontWeight:600 }}>YOUR NAME</label>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Carter" style={{ width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:14,boxSizing:"border-box",marginBottom:16 }} />
         <label style={{ fontSize:11,color:t.tx2,display:"block",marginBottom:8,fontWeight:600 }}>AVATAR COLOR</label>
-        <div style={{ display:"flex",gap:8,marginBottom:24,flexWrap:"wrap" }}>
+        <div style={{ display:"flex",gap:8,marginBottom:16,flexWrap:"wrap" }}>
           {AVATAR_COLORS.map(c => (
             <div key={c} onClick={() => setColor(c)} style={{ width:28,height:28,borderRadius:"50%",background:c,cursor:"pointer",border:color===c?"3px solid #fff":"2px solid transparent",boxSizing:"border-box" }} />
           ))}
         </div>
+        <label style={{ fontSize:11,color:t.tx2,display:"block",marginBottom:4,fontWeight:600 }}>RECOVERY PIN <span style={{ color:t.tx3,fontWeight:400 }}>(optional)</span></label>
+        <input value={pin} onChange={e => setPin(e.target.value)} placeholder="e.g. smithfamily or john2024" style={{ width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:14,boxSizing:"border-box",marginBottom:16 }} />
         <button onClick={handleCreate} disabled={!name.trim()} style={{ width:"100%",background: name.trim() ? COLOR.primary : t.surf,border:"none",borderRadius:10,padding:"11px 0",color: name.trim() ? "#fff" : t.tx3,cursor: name.trim() ? "pointer" : "default",fontWeight:700,fontSize:15 }}>
           Get Started
         </button>
@@ -1834,6 +1944,7 @@ function SummaryTab({ t, transactions, categories, range, onRangeChange, onNavig
 
   const totalMonthlyIncome  = Object.values(incomeBycat).reduce((s,v) => s+v, 0);
   const totalMonthlyExpense = Object.values(expBycat).reduce((s,v) => s+v, 0);
+  const bp = useBreakpoint();
   const barBase = totalMonthlyIncome > 0 ? totalMonthlyIncome : totalMonthlyExpense;
 
   const incomeRows = Object.entries(incomeBycat)
@@ -1856,16 +1967,16 @@ function SummaryTab({ t, transactions, categories, range, onRangeChange, onNavig
 
       <RollupPanel t={t} transactions={transactions} range={range} onNavigateMonth={onNavigateMonth} />
 
-      <div style={{ display:"flex",gap:10,marginBottom:16,flexWrap:"wrap" }}>
-        <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
+      <div style={{ display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"1fr 1fr 1fr",gap:10,marginBottom:16 }}>
+        <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
           <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>INCOME</div>
           <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:COLOR.success }}>{fmt$(totalMonthlyIncome)}</div>
         </div>
-        <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
+        <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
           <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>EXPENSES</div>
           <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:COLOR.danger }}>{fmt$(totalMonthlyExpense)}</div>
         </div>
-        <div style={{ flex:1,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px" }}>
+        <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:12,padding:"12px 16px",gridColumn:bp.isMobile?"1 / -1":"auto" }}>
           <div style={{ fontSize:11,color:t.tx2,fontWeight:600 }}>3-MO AVG EXP</div>
           <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:t.tx1 }}>{fmt$(totalExpenseAvg)}</div>
         </div>
@@ -1958,7 +2069,7 @@ Only suggest rules you're confident about.`;
         setSuggestErr(`Added ${newRules.length} new rule${newRules.length>1?"s":""}.`);
       }
     } catch (e) {
-      setSuggestErr("AI failed: " + e.message);
+      setSuggestErr(aiErrorMsg(e));
     }
     setSuggesting(false);
   }
@@ -2227,7 +2338,7 @@ function TrendsTab({ t, transactions, categories, range, onNavigateToTxMonth }) 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [loading,      setLoading]      = useState(true);
-  const [darkMode,     setDarkMode]     = useState(() => localStorage.getItem("ffp_dark") !== "false");
+  const [darkMode,     setDarkMode]     = useState(() => localStorage.getItem("sp_dark") !== "false");
   const [apiKey,       setApiKey]       = useState("");
   const [profiles,     setProfiles]     = useState([]);
   const [activeProfile,setActiveProfile]= useState(null);
@@ -2242,15 +2353,20 @@ export default function App() {
   const [showBackup,     setShowBackup]     = useState(false);
   const [showAccounts,   setShowAccounts]   = useState(false);
   const [showProfileMenu,setShowProfileMenu]= useState(false);
+  const [apiKeyStatus,   setApiKeyStatus]   = useState("unchecked");
 
   const t = useTheme(darkMode);
+  const bp = useBreakpoint();
 
-  useEffect(() => { localStorage.setItem("ffp_dark", darkMode); }, [darkMode]);
+  useEffect(() => { localStorage.setItem("sp_dark", darkMode); }, [darkMode]);
 
   useEffect(() => {
     async function init() {
       const key = await storeGet("cc_apikey", true);
-      if (key) setApiKey(key);
+      if (key) {
+        setApiKey(key);
+        probeApiKey(key).then(status => setApiKeyStatus(status));
+      }
 
       const profs = await storeGet("cc_profiles", true) || [];
       setProfiles(profs);
@@ -2317,6 +2433,15 @@ export default function App() {
     setApiKey(key);
     await storeSet("cc_apikey", key, true);
     setShowApiKey(false);
+    if (key) probeApiKey(key).then(status => setApiKeyStatus(status));
+    else setApiKeyStatus("unchecked");
+  }
+
+  async function handleImport(data) {
+    const txns = data.transactions || [];
+    const accs = data.accounts || accounts;
+    await saveTransactions(txns);
+    await saveAccounts(accs);
   }
 
   async function handleFirstRun(profile) {
@@ -2403,7 +2528,7 @@ export default function App() {
       <div style={{ background:t.deepBg,borderBottom:`1px solid ${t.border}`,padding:"11px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100 }}>
         <div style={{ display:"flex",alignItems:"center",gap:10 }}>
           <div style={{ width:32,height:32,borderRadius:8,background:"linear-gradient(135deg,#6366f1,#ec4899)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16 }}>📊</div>
-          <span style={{ fontWeight:800,fontSize:18,color:t.tx1 }}>Spending Tracker</span>
+          {!bp.isMobile && <span style={{ fontWeight:800,fontSize:18,color:t.tx1 }}>Spending Tracker</span>}
           <span style={{ fontSize:10,color:t.tx2,background:t.surf,border:`1px solid ${t.border}`,borderRadius:6,padding:"2px 8px",fontFamily:"monospace" }}>{txCount} txns</span>
           <span style={{ fontSize:10,color:hasCloudStorage()?"#10b981":"#f59e0b",background:hasCloudStorage()?"#10b98118":"#f59e0b18",border:`1px solid ${hasCloudStorage()?"#10b98133":"#f59e0b33"}`,borderRadius:6,padding:"2px 8px" }}>
             {hasCloudStorage() ? "☁ Cloud Sync" : "💾 Local Only"}
@@ -2412,9 +2537,14 @@ export default function App() {
         <div style={{ display:"flex",alignItems:"center",gap:6 }}>
           <button onClick={() => setShowAccounts(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:13,fontWeight:600 }}>🏦 Accounts</button>
           <button onClick={() => setShowBackup(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:13 }}>💾</button>
-          <button onClick={() => setShowApiKey(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:13 }}>🔑</button>
+          <div style={{ display:"flex",alignItems:"center",gap:4 }}>
+            <button onClick={() => setShowApiKey(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:13 }}>🔑</button>
+            {apiKeyStatus==="valid"   && <div style={{ width:8,height:8,borderRadius:"50%",background:COLOR.success }} title="AI ready"/>}
+            {apiKeyStatus==="invalid" && <span style={{ fontSize:10,color:COLOR.warning,fontWeight:700 }}>Key invalid</span>}
+            {apiKeyStatus==="limited" && <div style={{ width:8,height:8,borderRadius:"50%",background:COLOR.warning }} title="Rate limited"/>}
+          </div>
           <div style={{ position:"relative" }}>
-            <div onClick={() => setShowProfileMenu(m => !m)} style={{ width:32,height:32,borderRadius:"50%",background:activeProfile.color||COLOR.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",cursor:"pointer",userSelect:"none" }}>
+            <div onClick={() => setShowProfileMenu(m => !m)} style={{ width:32,height:32,borderRadius:"50%",background:activeProfile.avatarColor||COLOR.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",cursor:"pointer",userSelect:"none" }}>
               {(activeProfile.name||"?").charAt(0).toUpperCase()}
             </div>
             {showProfileMenu && (
@@ -2430,7 +2560,7 @@ export default function App() {
       {/* Main */}
       <div style={{ maxWidth:1100,margin:"0 auto",padding:"20px 16px" }}>
         {/* Tabs */}
-        <div style={{ display:"flex",gap:8,marginBottom:20,flexWrap:"wrap" }}>
+        <div style={{ display:"flex",gap:8,marginBottom:20,flexWrap:"wrap",overflowX:bp.isMobile?"auto":"visible" }}>
           <button style={tabStyle(tab==="summary")} onClick={() => setTab("summary")}>Summary</button>
           <button style={tabStyle(tab==="transactions")} onClick={() => { setTxPresetCat(null); setTab("transactions"); }}>Transactions</button>
           <button style={tabStyle(tab==="rules")} onClick={() => setTab("rules")}>Rules</button>
@@ -2470,7 +2600,7 @@ export default function App() {
       </div>
 
       {showApiKey   && <ApiKeyModal   t={t} apiKey={apiKey} onSave={handleSaveApiKey} onClose={() => setShowApiKey(false)} />}
-      {showBackup   && <BackupModal   t={t} transactions={transactions} accounts={accounts} categories={categories} onClose={() => setShowBackup(false)} />}
+      {showBackup   && <BackupModal   t={t} transactions={transactions} accounts={accounts} categories={categories} onClose={() => setShowBackup(false)} onImport={handleImport} />}
       {showAccounts && <AccountsModal t={t} accounts={accounts} onSave={saveAccounts} onClose={() => setShowAccounts(false)} />}
     </div>
   );
