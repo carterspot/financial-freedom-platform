@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
+// SpendingTracker v1.5
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MODULE_PREFIX = "sp_";
 const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
@@ -836,14 +837,20 @@ function TransactionModal({ t, transaction, accounts, categories, rules, onSave,
   const [amount,       setAmount]       = useState(transaction ? String(transaction.amount) : "");
   const [accountId,    setAccountId]    = useState(transaction?.accountId||accounts[0]?.id||"");
   const [categoryId,   setCategoryId]   = useState(transaction?.categoryId||"exp_057");
-  const [notes,        setNotes]        = useState(transaction?.notes||"");
+  const [notes,             setNotes]             = useState(transaction?.notes||"");
+  const [recurrenceType,    setRecurrenceType]    = useState(transaction?.recurrenceType||null);
+  const [recurrencePattern, setRecurrencePattern] = useState(
+    transaction?.recurrencePattern ||
+    ((transaction?.description||"").replace(/\d{4,}/g, '').replace(/\s{2,}/g, ' ').trim())
+  );
   const [showRuleForm, setShowRuleForm] = useState(false);
   const [showNewCat,   setShowNewCat]   = useState(false);
 
   function handleSave() {
     const amt = parseAmount(amount);
     if (!date || !description.trim() || amt === null) return;
-    onSave({ ...(transaction||{}), id:transaction?.id||generateId(), date, description:description.trim(), amount:amt, accountId, categoryId, notes, categoryLocked:true, needsReview:false, importedAt:transaction?.importedAt||new Date().toISOString() });
+    const isSinkingFundCandidate = ["quarterly","biannual","annual","one-time"].includes(recurrenceType);
+    onSave({ ...(transaction||{}), id:transaction?.id||generateId(), date, description:description.trim(), amount:amt, accountId, categoryId, notes, recurrenceType: recurrenceType||null, recurrencePattern: (recurrenceType && recurrenceType !== "monthly") ? recurrencePattern.trim() : null, isSinkingFundCandidate, categoryLocked:true, needsReview:false, importedAt:transaction?.importedAt||new Date().toISOString() });
   }
   function handleSaveRuleLocal(rule) { onSaveRule && onSaveRule(rule); setShowRuleForm(false); }
   function handleSaveNewCategory(newCat) { onSaveCategory && onSaveCategory(newCat); setCategoryId(newCat.id); setShowNewCat(false); }
@@ -883,7 +890,23 @@ function TransactionModal({ t, transaction, accounts, categories, rules, onSave,
           + Create Rule from This
         </button>
         <label style={lbl}>NOTES</label>
-        <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional note..." style={{ ...inp,marginBottom:16 }} />
+        <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional note..." style={{ ...inp,marginBottom:12 }} />
+        <label style={lbl}>RECURRENCE</label>
+        <select value={recurrenceType||""} onChange={e => setRecurrenceType(e.target.value||null)} style={{ ...inp,marginBottom:12 }}>
+          <option value="">Not recurring</option>
+          <option value="monthly">Monthly</option>
+          <option value="quarterly">Quarterly</option>
+          <option value="biannual">Semi-Annual</option>
+          <option value="annual">Annual</option>
+          <option value="one-time">One-Time</option>
+        </select>
+        {recurrenceType && recurrenceType !== "monthly" && (
+          <div style={{ marginBottom:16 }}>
+            <label style={lbl}>PATTERN LABEL <span style={{ color:t.tx3,fontWeight:400 }}>Used to group this bill across months (e.g. "Geico Insurance")</span></label>
+            <input value={recurrencePattern} onChange={e => setRecurrencePattern(e.target.value.slice(0,60))} maxLength={60} style={inp} />
+          </div>
+        )}
+        {!(recurrenceType && recurrenceType !== "monthly") && <div style={{ marginBottom:16 }} />}
         <div style={{ display:"flex",gap:10 }}>
           <button onClick={onClose} style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"9px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Cancel</button>
           <button onClick={handleSave} style={{ flex:1,background:COLOR.primary,border:"none",borderRadius:10,padding:"9px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14 }}>Save</button>
@@ -1609,7 +1632,14 @@ function TransactionRow({ t, transaction, account, category, selectMode, selecte
           <span style={{ fontSize:13,color:t.tx1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{transaction.description}</span>
           {flagged && <span style={{ fontSize:9,fontWeight:700,color:COLOR.warning,background:COLOR.warning+"22",border:`1px solid ${COLOR.warning}55`,borderRadius:4,padding:"1px 5px",whiteSpace:"nowrap",flexShrink:0 }}>REVIEW</span>}
         </div>
-        <CategoryPill category={category} />
+        <div style={{ display:"flex",alignItems:"center",gap:5,flexWrap:"wrap" }}>
+          <CategoryPill category={category} />
+          {transaction.recurrenceType && (
+            <span style={{ fontSize:10,color:t.tx2,background:t.surf,border:`1px solid ${t.border2}`,borderRadius:4,padding:"2px 6px",whiteSpace:"nowrap" }}>
+              {{"monthly":"Monthly","quarterly":"Quarterly","biannual":"Semi-Annual","annual":"Annual","one-time":"One-Time"}[transaction.recurrenceType]}
+            </span>
+          )}
+        </div>
         {transaction.notes && <div style={{ fontSize:11,color:t.tx3,marginTop:2 }}>{transaction.notes}</div>}
       </div>
       <div style={{ textAlign:"right" }}>
@@ -1640,6 +1670,7 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
   const [selectMode,      setSelectMode]      = useState(false);
   const [selectedIds,     setSelectedIds]     = useState(new Set());
   const [confirmBatch,    setConfirmBatch]    = useState(false);
+  const [sinkingFilter,   setSinkingFilter]   = useState(false);
 
   useEffect(() => { if (presetCatId) setFilterCatIds([presetCatId]); }, [presetCatId]);
 
@@ -1656,6 +1687,7 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
     if (filterCatIds.length > 0 && !filterCatIds.includes(tx.categoryId)) return false;
     if (dcFilter === "debit"  && tx.amount >= 0) return false;
     if (dcFilter === "credit" && tx.amount <= 0) return false;
+    if (sinkingFilter && !tx.isSinkingFundCandidate) return false;
     if (search && !tx.description.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   }).sort((a,b) => b.date.localeCompare(a.date));
@@ -1828,6 +1860,11 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
           <button style={dcBtnStyle(dcFilter==="debit")}  onClick={() => setDcFilter("debit")}>Debit</button>
           <button style={dcBtnStyle(dcFilter==="credit")} onClick={() => setDcFilter("credit")}>Credit</button>
         </div>
+        <button
+          onClick={() => setSinkingFilter(f => !f)}
+          style={{ background:sinkingFilter?COLOR.warning:t.surf, color:sinkingFilter?"#fff":t.tx2, border:`1px solid ${sinkingFilter?COLOR.warning:t.border}`, borderRadius:7, padding:"5px 12px", cursor:"pointer", fontWeight:600, fontSize:12, whiteSpace:"nowrap" }}>
+          Sinking Funds 🎯
+        </button>
       </div>
 
       <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,padding:"0 16px" }}>
