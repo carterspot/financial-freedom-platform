@@ -445,6 +445,7 @@ function ConfirmDeleteModal({ open, onClose, onConfirm, itemName, t }) {
 // --- ApiKeyModal --------------------------------------------------------------
 function ApiKeyModal({ open, onClose, apiKey, onSave, t }) {
   const [val,setVal] = useState(apiKey||"");
+  const [show,setShow] = useState(false);
   useEffect(()=>{ if (open) setVal(apiKey||""); },[open,apiKey]);
   if (!open) return null;
   const s = overlayContainer(t,460);
@@ -460,8 +461,11 @@ function ApiKeyModal({ open, onClose, apiKey, onSave, t }) {
           Get one at <span style={{color:COLOR.primary}}>console.anthropic.com</span>.
         </div>
         <label style={labelSt(t)}>API Key</label>
-        <input type="password" value={val} onChange={e=>setVal(e.target.value)}
-          placeholder="sk-ant-..." style={inputStyle(t)} />
+        <div style={{display:"flex",gap:8}}>
+          <input type={show?"text":"password"} value={val} onChange={e=>setVal(e.target.value)}
+            placeholder="sk-ant-..." style={{...inputStyle(t),flex:1}} />
+          <button onClick={()=>setShow(s=>!s)} style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"9px 12px",color:t.tx2,cursor:"pointer",fontSize:12}}>{show?"🙈":"👁"}</button>
+        </div>
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button onClick={onClose} style={{...btnGhost(t,{flex:1})}}>Cancel</button>
           <button onClick={()=>onSave(val)} style={{...btnPrimary({flex:1})}}>Save Key</button>
@@ -657,6 +661,7 @@ function BackupModal({ open, onClose, cards, loans, logs, profileId, onImport, t
   const [importMode,setImportMode] = useState("replace");
   const [importError,setImportError] = useState("");
   const [tab,setTab] = useState("export");
+  const fileRef = useRef(null);
   if (!open) return null;
   const s = overlayContainer(t,540);
 
@@ -744,6 +749,15 @@ function BackupModal({ open, onClose, cards, loans, logs, profileId, onImport, t
               </div>
             </div>
             <div>
+              <input ref={fileRef} type="file" accept=".json" onChange={e=>{
+                const file=e.target.files?.[0]; if(!file) return;
+                const reader=new FileReader();
+                reader.onload=ev=>setImportText(ev.target.result);
+                reader.readAsText(file);
+              }} style={{display:"none"}}/>
+              <button onClick={()=>fileRef.current?.click()} style={{width:"100%",background:t.surf,border:`2px dashed ${t.border}`,borderRadius:10,padding:"10px",color:t.tx2,cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:8}}>
+                📂 Load from file
+              </button>
               <label style={labelSt(t)}>Paste JSON Backup</label>
               <textarea value={importText} onChange={e=>setImportText(e.target.value)}
                 rows={6} placeholder='{"version":"dt_1.0",...}'
@@ -3673,9 +3687,6 @@ export default function App() {
     }
   }
 
-  const schedule = computeUnifiedSchedule(cards, loans, method,
-    { extraMonthly:toNum(extra), lumpSums:lumps, recalcMins, lumpMode });
-
   if (loading) return (
     <div style={{minHeight:"100vh",background:t.bg,display:"flex",alignItems:"center",
       justifyContent:"center",flexDirection:"column",gap:16,padding:20}}>
@@ -3688,6 +3699,9 @@ export default function App() {
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
+
+  const schedule = computeUnifiedSchedule(cards, loans, method,
+    { extraMonthly:toNum(extra), lumpSums:lumps, recalcMins, lumpMode });
 
   if (!activeProfile && profiles.length===0) return (
     <FirstRunSetup darkMode={darkMode} setDarkMode={setDarkMode} onSave={handleCreateFirstProfile} />
