@@ -6,7 +6,7 @@
 | 💳 CardTracker | `modules/credit-card-tracker.jsx` | ✅ v3.1 |
 | 🏦 LoanTracker | `modules/loan-tracker.jsx` | ✅ v1.2 |
 | ⚡ DebtTracker | `modules/debt-tracker.jsx` | ✅ v1.1 |
-| 💰 IncomeTracker | `modules/income.jsx` | ✅ v1.0 |
+| 💰 IncomeTracker | `modules/income-tracker.jsx` | ✅ v1.1 |
 | 📊 SpendingModule | `modules/spending.jsx` | 🔄 In progress |
 | 🏦 SavingsModule | `modules/savings.jsx` | 📋 Planned |
 | 📈 RetirementModule | `modules/retirement.jsx` | 📋 Planned |

@@ -43,7 +43,7 @@ Modules are deployed as static builds via Vite to `docs/{module}/` subfolders. G
 ```
 https://carterspot.github.io/financial-freedom-platform/debt/       ← DebtTracker v1.4
 https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.3
-https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.0
+https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.1
 ```
 
 **Module filename clarification (critical for Code prompts):**
@@ -71,9 +71,6 @@ export default {
 - If worker goes down: swap `API_URL` back to `"https://api.anthropic.com/v1/messages"` and deploy from a server context (not browser)
 - Monitor at: `dash.cloudflare.com` → Workers → ffp-api-proxy → Analytics
 - This is a single point of failure for all AI features — monitor occasionally
-
-**Stub cleanup (do before Savings build):**
-Rename `modules/income.jsx` (2-line stub) to `modules/income-stub.jsx` in the repo to eliminate filename confusion. The real module is `modules/income-tracker.jsx`.
 
 ---
 
