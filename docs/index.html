@@ -413,28 +413,6 @@ const CONFIG = {
       flows:[{dir:"in",from:"All modules",label:"Reads all shared storage keys"}],
       artifactUrl:null, quickstartUrl:null, whatsNewUrl:null
     },
-    {
-      id:"card", icon:"💳", name:"CardTracker", ver:"v3.1", status:"legacy",
-      color:"#6366f1",
-      desc:"Original credit card tracker. Family migrated to DebtTracker. Available but no longer promoted.",
-      features:["Credit card CRUD with utilization bars","Avalanche/Snowball planner with lump sums","Calendar view + ICS export","Strategy Builder + What-If AI chat"],
-      ai:["Strategy Builder (dedicated tab)","What-If AI chat","AI Analysis tab"],
-      flows:[{dir:"out",to:"DebtTracker",label:"Import via cc_cards_{profileId}"}],
-      artifactUrl:"https://claude.ai/public/artifacts/67fac319-a7d6-442b-bed6-c8b6c4579ac3",
-      quickstartUrl:"user-quickstart.html",
-      whatsNewUrl:"whats-new.html#card-tracker"
-    },
-    {
-      id:"loan", icon:"🏦", name:"LoanTracker", ver:"v1.2", status:"legacy",
-      color:"#3b82f6",
-      desc:"Original loan tracker. Family migrated to DebtTracker. Available but no longer promoted.",
-      features:["5 loan types with amortization math","6-tab planner including Refinance AI","Single Loan tab with Payoff Accelerator","Quick Pay + progress tracking"],
-      ai:["Refinance AI — current vs refi comparison","What-If AI chat","Schedule AI Analysis"],
-      flows:[{dir:"out",to:"DebtTracker",label:"Import via lt_loans_{profileId}"}],
-      artifactUrl:"https://claude.ai/public/artifacts/b299eb32-cd52-4668-b3e9-f130d0fe5d27",
-      quickstartUrl:"loantracker-quickstart.html",
-      whatsNewUrl:"whats-new.html#loan-tracker"
-    },
   ]
 };
 
