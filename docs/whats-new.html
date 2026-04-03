@@ -79,8 +79,8 @@
 
   <!-- Jump links -->
   <div class="nav-pills">
-    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.3</a>
-    <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.0</a>
+    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.4</a>
+    <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.1</a>
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.4</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
     <a href="#loan-tracker" class="nav-pill">🏦 LoanTracker v1.2</a>
@@ -92,9 +92,50 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#f97316,#f59e0b)">📊</div>
       <div>
         <div class="module-name">SpendingTracker</div>
-        <div class="module-version">v1.3</div>
+        <div class="module-version">v1.4</div>
       </div>
-      <div class="module-date">March 2026</div>
+      <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-fix">🔧 Audit Remediation — v1.4</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>JSON backup restore path added</h4>
+            <p>The Backup modal now has a full restore tab. Load a JSON backup file via file picker or paste — your transactions, accounts, and categories are restored in one step. Previously the module was export-only with no way to recover data on a new device.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>Profile schema fix — avatarColor</h4>
+            <p>Profiles created in SpendingTracker now correctly store the avatar color as <code>avatarColor</code>, matching all other modules. Previously, profiles created here would show the default indigo avatar in DebtTracker, IncomeTracker, and other modules.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>Responsive layout</h4>
+            <p>SpendingTracker now adapts to mobile, tablet, and desktop screen sizes using the same responsive system as DebtTracker. Nav labels hide on small screens, stat rows reflow, and content columns stack on mobile.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>API key show/hide + status indicator</h4>
+            <p>The 🔑 API key field now has a show/hide toggle so you can verify your key before saving. The nav bar shows a colored dot indicating whether your key is valid, invalid, or rate-limited — no more guessing why AI isn't responding.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>Recovery PIN in profile setup</h4>
+            <p>The first-run profile creation screen now includes a Recovery PIN field, matching all other modules. Set a memorable word or phrase to recover your data on any device.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">
@@ -303,13 +344,47 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#10b981,#6366f1)">💰</div>
       <div>
         <div class="module-name">IncomeTracker</div>
-        <div class="module-version">v1.0 — Initial Release</div>
+        <div class="module-version">v1.1</div>
       </div>
-      <div class="module-date">March 2026</div>
+      <div class="module-date">April 2026</div>
     </div>
 
     <div class="release">
-      <div class="release-tag tag-new">✨ New Module</div>
+      <div class="release-tag tag-fix">🔧 Audit Remediation — v1.1</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>Responsive layout</h4>
+            <p>IncomeTracker now adapts to mobile, tablet, and desktop using the same responsive system as DebtTracker. Nav labels hide on small screens and content reflows correctly on any device.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>File upload for JSON import</h4>
+            <p>The backup import now accepts a file picker in addition to paste. Tap "Load from file," select your JSON backup, and it populates automatically — no more copying large JSON strings on mobile.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>CSV export</h4>
+            <p>Export your income streams as a CSV file — one row per stream with name, type, frequency, amount, monthly equivalent, stability rating, and dates. Open directly in Excel or Google Sheets.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>API key show/hide + status indicator</h4>
+            <p>The 🔑 key field now has a show/hide toggle and the nav bar shows a live status dot for your API key — valid, invalid, or rate-limited.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-new">✨ New Module — v1.0</div>
       <div class="changes">
         <div class="change">
           <div class="change-dot" style="background:var(--emerald)"></div>
@@ -372,11 +447,38 @@
         <div class="module-name">DebtTracker</div>
         <div class="module-version">v1.4</div>
       </div>
-      <div class="module-date">March 2026</div>
+      <div class="module-date">April 2026</div>
     </div>
 
     <div class="release">
-      <div class="release-tag tag-feature">🚀 Deployment — v1.4</div>
+      <div class="release-tag tag-fix">🔧 Audit Remediation — v1.4</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>File upload for JSON import</h4>
+            <p>The backup import now accepts a file picker alongside the paste option. Tap "Load from file," select your JSON backup, and it populates automatically — much easier on mobile than copying large JSON strings.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>API key show/hide toggle</h4>
+            <p>The 🔑 API key field now has a show/hide toggle so you can verify your key is entered correctly before saving.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--success)"></div>
+          <div class="change-body">
+            <h4>Loading performance fix</h4>
+            <p>The payoff schedule calculation no longer runs during the loading state, improving startup time on profiles with many debts.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-feature">🚀 Deployment — GitHub Pages</div>
       <div class="changes">
         <div class="change">
           <div class="change-dot" style="background:var(--emerald)"></div>

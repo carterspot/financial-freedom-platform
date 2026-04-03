@@ -13,9 +13,9 @@ The platform is built as a collection of standalone Claude artifacts (React .jsx
 Financial Freedom Platform
 ├── 💳 CardTracker       (BUILT — v3.1 complete)
 ├── 🏦 LoanTracker       (BUILT — v1.2 complete)
-├── ⚡ DebtTracker       (BUILT — v1.3 complete)
-├── 💰 IncomeTracker     (BUILT — v1.0 complete)
-├── 📊 SpendingTracker   (BUILT — v1.3 complete)
+├── ⚡ DebtTracker       (BUILT — v1.4 complete)
+├── 💰 IncomeTracker     (BUILT — v1.1 complete)
+├── 📊 SpendingTracker   (BUILT — v1.4 complete)
 ├── 🏦 Savings Module    (PLANNED — emergency fund, goals)
 ├── 📈 Retirement Module (PLANNED — 401k, IRA, projections)
 ├── 💹 Investment Module (PLANNED — taxable brokerage, stocks, ETFs)
@@ -50,7 +50,7 @@ https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTr
 ```
 modules/debt-tracker.jsx     ← DebtTracker
 modules/spending.jsx          ← SpendingTracker (no -tracker suffix)
-modules/income-tracker.jsx    ← IncomeTracker (has -tracker suffix, income.jsx is a stub)
+modules/income-tracker.jsx    ← IncomeTracker (has -tracker suffix, income-stub.jsx is a stub)
 modules/credit-card-tracker.jsx ← CardTracker (legacy)
 modules/loan-tracker.jsx      ← LoanTracker (legacy)
 ```
@@ -66,7 +66,14 @@ export default {
 }
 ```
 
-**Note:** `outDir` must be `"../docs/{module}"` (one level up from `preview/`), not `"../../docs/{module}"`.
+**Worker reliability:**
+- Free tier: 100,000 requests/day — sufficient for under 10 users
+- If worker goes down: swap `API_URL` back to `"https://api.anthropic.com/v1/messages"` and deploy from a server context (not browser)
+- Monitor at: `dash.cloudflare.com` → Workers → ffp-api-proxy → Analytics
+- This is a single point of failure for all AI features — monitor occasionally
+
+**Stub cleanup (do before Savings build):**
+Rename `modules/income.jsx` (2-line stub) to `modules/income-stub.jsx` in the repo to eliminate filename confusion. The real module is `modules/income-tracker.jsx`.
 
 ---
 
@@ -255,7 +262,7 @@ lt_dark                          (local)  — dark mode boolean
 
 ---
 
-## Module 3: DebtTracker (COMPLETE — v1.3)
+## Module 3: DebtTracker (COMPLETE — v1.4)
 
 ### What it is
 Unified merge of CardTracker + LoanTracker. All debt types in one artifact with a unified avalanche/snowball planner across cards and loans.
@@ -364,7 +371,7 @@ dt_dark                          (local)  — dark mode boolean
 
 ---
 
-## Module 4: IncomeTracker (COMPLETE — v1.0)
+## Module 4: IncomeTracker (COMPLETE — v1.1)
 
 ### What it is
 Tracks all income streams by type, stability, and frequency. Data-entry only at v1 — no AI tab, no planner. Seeds the shared FFP category system on first run.
@@ -426,7 +433,7 @@ ffp_categories_{profileId} (shared) — seeded on first run if empty
 
 ---
 
-## Module 5: SpendingTracker (COMPLETE — v1.0)
+## Module 5: SpendingTracker (COMPLETE — v1.4)
 
 ### What it is
 Tracks spending transactions via CSV import from any bank or credit card statement. Owns the shared rules engine (`ffp_cat_rules_`) and is the first module to provide full category management UI. AI batch categorization on import, actuals view with 3-month rolling average, and a full rules CRUD interface.
@@ -885,13 +892,16 @@ docs/
 - ✅ DebtTracker v1.1 — standalone profile creation screen (FirstRunSetup)
 - ✅ DebtTracker v1.2 — lump sum engine fix, Total Debt summary card, Single Debt CSV export, AI copy/save buttons
 - ✅ DebtTracker v1.4 — proxy API URL (Cloudflare Worker), GitHub Pages deployment at /debt/
+- ✅ DebtTracker — audit remediation: file upload import, API key show/hide, loading guard fix
 - ✅ IncomeTracker v1.0 — income stream CRUD, frequency normalization, stability ratings, category seeding
 - ✅ IncomeTracker — GitHub Pages deployment at /income/ (proxy API URL added)
+- ✅ IncomeTracker v1.1 — audit remediation: responsive layout, file upload import, CSV export, API key show/hide, probeApiKey, InfoModal
 - ✅ SpendingTracker v1.0 — CSV import, column mapper, AI batch categorization, rules engine, actuals + rolling average
 - ✅ SpendingTracker v1.1 — profile switcher fix, export anchor fix, needs review surfacing, retroactive rule apply
 - ✅ SpendingTracker v1.2 — Summary tab first, category bar charts, debit/credit filter, multi-category filter, dark mode contrast, create rule/category from edit modal, transfer category
 - ✅ SpendingTracker v1.3 — multi-month CSV import, dedup preview, batch delete, date range picker, Trends tab (SVG charts), 3-month rolling summary panel
 - ✅ SpendingTracker — GitHub Pages deployment at /spending/ (proxy API URL)
+- ✅ SpendingTracker v1.4 — audit remediation: profile schema fix (avatarColor), JSON restore, responsive layout, API key show/hide, probeApiKey, aiErrorMsg, Recovery PIN, sp_dark key
 - ✅ CLAUDE.md — trimmed for token efficiency, added to repo root
 - ✅ Vite preview server — localhost:5173 for local JSX testing
 - ✅ GitHub Pages landing page — docs/index.html with module cards, artifact links, QS + What's New buttons
@@ -902,7 +912,7 @@ docs/
 - ✅ context-mode installed — MCP context virtualization layer, ~98% context savings in Code sessions
 
 ### Up Next
-- [ ] Family migration deprecation — remove CardTracker + LoanTracker from landing page
+- ✅ Family migration deprecation — CardTracker + LoanTracker removed from landing page
 - [ ] Savings Module v1 — emergency fund + sinking fund goals
 - [ ] Retirement Module v1 — balances, contributions, projections
 - [ ] Investment Module v1 — taxable brokerage, stocks, ETFs

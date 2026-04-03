@@ -345,7 +345,7 @@ footer a:hover{text-decoration:underline}
 const CONFIG = {
   modules: [
     {
-      id:"spending", icon:"📊", name:"SpendingTracker", ver:"v1.3", status:"live",
+      id:"spending", icon:"📊", name:"SpendingTracker", ver:"v1.4", status:"live",
       color:"#f97316",
       desc:"Import bank + CC statements, AI-categorizes spending, and shows actuals vs rolling average. The platform's category and rules engine lives here.",
       features:["Multi-month CSV import with dedup preview","Column mapper remembered per account","Sign-flip toggle for CC statements","AI batch categorization on import","Needs Review queue with retroactive rules","Summary: bar charts as % of income","Date range picker + Trends tab (3-12 months)","Batch delete + multi-category filter","Transfer + custom category creation"],
@@ -356,7 +356,7 @@ const CONFIG = {
       whatsNewUrl:"whats-new.html#spending-tracker"
     },
     {
-      id:"income", icon:"💰", name:"IncomeTracker", ver:"v1.0", status:"live",
+      id:"income", icon:"💰", name:"IncomeTracker", ver:"v1.1", status:"live",
       color:"#10b981",
       desc:"Track all income streams by type, stability, and frequency. Seeds the shared FFP category system on first run.",
       features:["7 income types (W2, Self-Employment, Rental, etc.)","7 frequencies with automatic monthly normalization","4 stability ratings with color-coded badges","After-tax flag, start/end dates, notes","Summary: total monthly, annual, breakdown by type","Seeds 56 shared categories on first run"],
@@ -412,6 +412,28 @@ const CONFIG = {
       ai:["Holistic plan using all module data","Debt-to-income + cash flow analysis","Savings rate + retirement optimization","Natural language Q&A over full financial picture","Manual correction UI for misread transactions"],
       flows:[{dir:"in",from:"All modules",label:"Reads all shared storage keys"}],
       artifactUrl:null, quickstartUrl:null, whatsNewUrl:null
+    },
+    {
+      id:"card", icon:"💳", name:"CardTracker", ver:"v3.1", status:"legacy",
+      color:"#6366f1",
+      desc:"Original credit card tracker. Family migrated to DebtTracker. Available but no longer promoted.",
+      features:["Credit card CRUD with utilization bars","Avalanche/Snowball planner with lump sums","Calendar view + ICS export","Strategy Builder + What-If AI chat"],
+      ai:["Strategy Builder (dedicated tab)","What-If AI chat","AI Analysis tab"],
+      flows:[{dir:"out",to:"DebtTracker",label:"Import via cc_cards_{profileId}"}],
+      artifactUrl:"https://claude.ai/public/artifacts/67fac319-a7d6-442b-bed6-c8b6c4579ac3",
+      quickstartUrl:"user-quickstart.html",
+      whatsNewUrl:"whats-new.html#card-tracker"
+    },
+    {
+      id:"loan", icon:"🏦", name:"LoanTracker", ver:"v1.2", status:"legacy",
+      color:"#3b82f6",
+      desc:"Original loan tracker. Family migrated to DebtTracker. Available but no longer promoted.",
+      features:["5 loan types with amortization math","6-tab planner including Refinance AI","Single Loan tab with Payoff Accelerator","Quick Pay + progress tracking"],
+      ai:["Refinance AI — current vs refi comparison","What-If AI chat","Schedule AI Analysis"],
+      flows:[{dir:"out",to:"DebtTracker",label:"Import via lt_loans_{profileId}"}],
+      artifactUrl:"https://claude.ai/public/artifacts/b299eb32-cd52-4668-b3e9-f130d0fe5d27",
+      quickstartUrl:"loantracker-quickstart.html",
+      whatsNewUrl:"whats-new.html#loan-tracker"
     },
   ]
 };

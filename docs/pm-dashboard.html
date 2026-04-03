@@ -258,65 +258,68 @@ body{background:var(--bg);color:var(--tx1);font-family:'DM Sans','Segoe UI',sans
 // ═══════════════════════════════════════════════════════════════════════════════
 const CONFIG = {
 
-  lastUpdated: "2026-03-31",
+  lastUpdated: "2026-04-03",
 
   modules: [
     {
-      id: "spending", icon: "📊", name: "SpendingTracker", ver: "v1.3", status: "live",
+      id: "spending", icon: "📊", name: "SpendingTracker", ver: "v1.4", status: "live",
       url: "https://carterspot.github.io/financial-freedom-platform/spending/",
       piSection: "docs/project-instruction.md#module-5-spendingtracker",
       features: [
         "Multi-month CSV import with dedup preview",
-        "Column mapper remembered per account",
-        "AI batch categorization on import",
-        "Needs Review queue + retroactive rules",
-        "Summary: bar charts as % of income",
-        "Date range picker + Trends tab (3-12 months)",
-        "Batch delete with select mode",
-        "Transfer + custom category creation"
+        "JSON backup + full restore (file upload)",
+        "Responsive layout — mobile/tablet/desktop",
+        "AI batch categorization + probeApiKey status",
+        "API key show/hide toggle",
+        "Recovery PIN in profile creation",
+        "Trends tab + 3-month rolling summary panel",
+        "Profile schema fix (avatarColor)"
       ],
-      notes: "Category + rules engine owner for entire platform. SpendingTracker v1.3 backlog: add recurrenceType UI for Savings Module handoff."
+      notes: "v1.4 — full audit remediation complete. Category + rules engine owner for platform."
     },
     {
-      id: "income", icon: "💰", name: "IncomeTracker", ver: "v1.0", status: "live",
+      id: "income", icon: "💰", name: "IncomeTracker", ver: "v1.1", status: "live",
       url: "https://carterspot.github.io/financial-freedom-platform/income/",
       piSection: "docs/project-instruction.md#module-4-incometracker",
       features: [
         "7 income types with monthly normalization",
         "4 stability ratings with color-coded badges",
-        "After-tax flag, start/end dates, notes",
-        "Seeds 56 shared categories on first run",
-        "Export JSON + CSV"
+        "Responsive layout — mobile/tablet/desktop",
+        "File upload JSON import",
+        "CSV export",
+        "API key show/hide + probeApiKey status",
+        "InfoModal component added"
       ],
-      notes: "No AI at v1. Real file is income-tracker.jsx — income.jsx is a stub (rename to income-stub.jsx before Savings build)."
+      notes: "v1.1 — audit remediation complete. No AI features at v1."
     },
     {
       id: "debt", icon: "⚡", name: "DebtTracker", ver: "v1.4", status: "live",
       url: "https://carterspot.github.io/financial-freedom-platform/debt/",
       piSection: "docs/project-instruction.md#module-3-debttracker",
       features: [
-        "Unified cards + loans in one avalanche/snowball planner",
-        "Strategy Builder + What-If AI chat (working via proxy)",
+        "Unified cards + loans — avalanche/snowball planner",
+        "File upload JSON import",
+        "API key show/hide toggle",
+        "Loading guard placement fixed",
+        "Strategy Builder + What-If AI (working via proxy)",
         "Calendar modal + ICS export",
-        "0% APR promo support + morning affirmation",
-        "Closed account checkbox + portfolio progress bars",
-        "GitHub Pages deployment — AI fully working"
+        "0% APR promo support + morning affirmation"
       ],
-      notes: "v1.5 bugs open: loan card overflow, duplicate progress bars, vs tile, tab active state, AI spinner contrast, Schedule tab redesign."
+      notes: "v1.4 — audit remediation complete. v1.5 schedule tab redesign still pending."
     },
     {
       id: "card", icon: "💳", name: "CardTracker", ver: "v3.1", status: "legacy",
       url: "https://claude.ai/public/artifacts/67fac319-a7d6-442b-bed6-c8b6c4579ac3",
       piSection: "",
       features: ["Credit card CRUD + utilization bars", "Avalanche/Snowball planner", "Strategy Builder + What-If AI", "ICS calendar export"],
-      notes: "Family migrated to DebtTracker. Legacy artifact URL. Deprecating from landing page — no further development."
+      notes: "Deprecated — removed from landing page. Artifact URL preserved for reference. No further development."
     },
     {
       id: "loan", icon: "🏦", name: "LoanTracker", ver: "v1.2", status: "legacy",
       url: "https://claude.ai/public/artifacts/b299eb32-cd52-4668-b3e9-f130d0fe5d27",
       piSection: "",
       features: ["5 loan types with amortization math", "6-tab planner + Refinance AI", "Single Loan tab + Payoff Accelerator"],
-      notes: "Family migrated to DebtTracker. Legacy artifact URL. No further development."
+      notes: "Deprecated — removed from landing page. Artifact URL preserved for reference. No further development."
     },
     {
       id: "savings", icon: "🏦", name: "Savings Module", ver: "planned", status: "planned",
@@ -350,7 +353,8 @@ const CONFIG = {
     { label: "IncomeTracker v1",    date: "2026-03", done: true  },
     { label: "SpendingTracker v1.3",date: "2026-03", done: true  },
     { label: "DebtTracker v1.4",    date: "2026-03", done: true  },
-    { label: "NOW",                 date: "2026-03", now: true   },
+    { label: "Audit Remediation",   date: "2026-04", done: true  },
+    { label: "NOW",                 date: "2026-04", now: true   },
     { label: "DT v1.5",            date: "2026-04", done: false, target: "2026-04-15" },
     { label: "Savings v1",          date: "2026-05", done: false, target: "2026-05-31" },
     { label: "Retirement v1",       date: "2026-06", done: false, target: "2026-06-30" },
@@ -367,32 +371,32 @@ const CONFIG = {
     {
       sev: "red",
       title: "DebtTracker v1.5 — bugs open",
-      body: "Loan card balance overflow on large values, duplicate progress bars, vs tile not updating on method switch, Schedule tab still highlighted on other tabs, AI spinner low contrast in dark mode.",
+      body: "Loan card balance overflow on large values, duplicate progress bars, vs tile not updating on method switch, Schedule tab still highlighted on other tabs, AI spinner low contrast in dark mode. Schedule tab redesign pending.",
       meta: "Opened: 2026-03-30 · Owner: CTO"
     },
     {
       sev: "amber",
-      title: "income.jsx stub — filename collision risk",
-      body: "modules/income.jsx is a 2-line placeholder. Real module is modules/income-tracker.jsx. Stub should be renamed to income-stub.jsx before Savings build starts to prevent Code targeting wrong file.",
+      title: "income.jsx stub — rename before Savings build",
+      body: "modules/income.jsx is a 2-line placeholder. Real module is modules/income-tracker.jsx. Rename stub to income-stub.jsx before Savings build starts.",
       meta: "Opened: 2026-03-31 · Owner: Carter (1-line commit)"
     },
     {
       sev: "amber",
       title: "Cloudflare Worker — no rollback plan documented",
-      body: "If ffp-api-proxy.carterspot.workers.dev goes down, all AI features across all modules fail simultaneously. Rollback procedure should be documented in PI.",
+      body: "If ffp-api-proxy.carterspot.workers.dev goes down, all AI features across all modules fail simultaneously. Rollback: swap API_URL back to api.anthropic.com and serve from a server context.",
       meta: "Opened: 2026-03-31 · Owner: CTO"
     },
     {
       sev: "blue",
       title: "Investment Module — no v1 scope defined",
-      body: "Module added to roadmap but scope boundary not yet written. Needs a scope doc before it gets a build slot to prevent scope creep against Savings and Retirement.",
+      body: "Module added to roadmap but scope boundary not written. Needs scope doc before build slot to prevent creep against Savings and Retirement.",
       meta: "Opened: 2026-03-31 · Owner: CTO + Claudette"
     },
     {
       sev: "blue",
-      title: "GitHub MCP — not yet used in build workflow",
-      body: "GitHub MCP is deployed and confirmed working. Build prompts not yet updated to leverage direct repo read/write. Next build session should use it to eliminate file upload step.",
-      meta: "Opened: 2026-03-31 · Owner: CTO"
+      title: "Design System v2 — audit complete, remediation done, DS doc needs update",
+      body: "Cross-module audit (docs/design-audit.md) completed April 3. All High priority gaps remediated. design-system.md should be updated to reflect the current canonical patterns (callClaude, probeApiKey, useBreakpoint, file upload import).",
+      meta: "Opened: 2026-04-03 · Owner: CTO"
     },
   ]
 };
