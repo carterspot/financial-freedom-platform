@@ -15,7 +15,7 @@ Financial Freedom Platform
 ├── 🏦 LoanTracker       (BUILT — v1.2 complete)
 ├── ⚡ DebtTracker       (BUILT — v1.4 complete)
 ├── 💰 IncomeTracker     (BUILT — v1.1 complete)
-├── 📊 SpendingTracker   (BUILT — v1.4 complete)
+├── 📊 SpendingTracker   (BUILT — v1.5 complete)
 ├── 🏦 Savings Module    (PLANNED — emergency fund, goals)
 ├── 📈 Retirement Module (PLANNED — 401k, IRA, projections)
 ├── 💹 Investment Module (PLANNED — taxable brokerage, stocks, ETFs)
@@ -430,7 +430,7 @@ ffp_categories_{profileId} (shared) — seeded on first run if empty
 
 ---
 
-## Module 5: SpendingTracker (COMPLETE — v1.4)
+## Module 5: SpendingTracker (COMPLETE — v1.5)
 
 ### What it is
 Tracks spending transactions via CSV import from any bank or credit card statement. Owns the shared rules engine (`ffp_cat_rules_`) and is the first module to provide full category management UI. AI batch categorization on import, actuals view with 3-month rolling average, and a full rules CRUD interface.
@@ -457,7 +457,7 @@ Tracks spending transactions via CSV import from any bank or credit card stateme
 - Rules run before AI on every import — rule matches auto-assigned, skipped by AI
 - Rolling 3-month average computed at display time from stored transactions — never pre-aggregated
 - No budget targets at v1 — rolling average IS the implied budget
-- Transaction objects carry `isSinkingFundCandidate` and `recurrencePattern` fields for future Savings Module handoff
+- Transaction objects carry `isSinkingFundCandidate`, `recurrencePattern`, and `recurrenceType` fields for Savings Module handoff — fully populated as of v1.5
 - localStorage safe for alpha (1–2 accounts, 6–12 months); Supabase trigger at 3+ accounts or 6+ months
 - Export downloads use `document.body.appendChild(a)` before `a.click()` and `document.body.removeChild(a)` after — detached anchors never trigger downloads. **Apply this pattern to all modules.**
 
@@ -485,6 +485,14 @@ sp_selected_range_{profileId}  (shared) — date range when range mode is active
 - Dark mode contrast pass — account nickname, RulesTab headers, empty-state placeholders upgraded from `tx3` → `tx2`
 - Edit Transaction modal — "+ Create Rule from This" pre-fills RuleModal and applies retroactively on save; "+ New Category" (`NewCategoryModal`: name/icon/type/color) immediately selects new category and saves to `ffp_categories_`
 - Transfer category `trn_001` added to `DEFAULT_CATEGORIES` — seeded on init and profile switch if missing
+
+### v1.5 features (April 2026) — Savings Module handoff
+- Edit Transaction modal — Recurrence section added below Notes field:
+  - Recurrence Type dropdown: Not set / Monthly / Quarterly / Semi-Annual / Annual / One-Time
+  - Recurrence Pattern text input — only renders when type is non-null and non-monthly; pre-filled with cleaned description (strip trailing numbers/dates); max 60 chars
+  - `isSinkingFundCandidate` auto-set to `true` on save when type is quarterly/biannual/annual/one-time; `false` for null/monthly
+- Transaction row — recurrence type pill renders after category badge when `recurrenceType` is not null; styled t.surf/t.border2/t.tx2
+- Transactions tab — "Sinking Funds 🎯" toggle added to filter bar; filters to `isSinkingFundCandidate: true` rows; amber accent when active; AND-stacks with existing Debit/Credit filter; local state only, not persisted
 
 ### Storage keys (SpendingTracker)
 ```
