@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
+const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/"; // Reserved for future AI features
 const MODEL   = "claude-sonnet-4-20250514";
 const AVATAR_COLORS = ["#6366f1","#ec4899","#f97316","#10b981","#3b82f6","#8b5cf6","#f43f5e","#06b6d4"];
 const COLOR = {
@@ -124,6 +124,31 @@ function useTheme(dm) {
   };
 }
 
+// ─── Breakpoint ───────────────────────────────────────────────────────────────
+function useBreakpoint() {
+  const [w, setW] = useState(960);
+  useEffect(() => {
+    const fn = () => setW(typeof window !== "undefined" ? window.innerWidth : 960);
+    fn();
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return { isMobile: w < 640, isTablet: w < 960, isDesktop: w >= 960 };
+}
+
+// ─── API Key Probe ────────────────────────────────────────────────────────────
+async function probeApiKey(key) {
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": key },
+      body: JSON.stringify({ model: MODEL, max_tokens: 1, messages: [{ role: "user", content: "hi" }] }),
+      signal: AbortSignal.timeout(8000),
+    });
+    return res.status === 200 ? "valid" : res.status === 401 ? "invalid" : "limited";
+  } catch { return "unknown"; }
+}
+
 // ─── Storage ──────────────────────────────────────────────────────────────────
 let _cloudAvailable = null;
 async function probeCloudStorage() {
@@ -185,6 +210,24 @@ function overlayContainer(t, maxW=440) {
   };
 }
 
+// ─── InfoModal ────────────────────────────────────────────────────────────────
+function InfoModal({ open, onClose, title, body, t }) {
+  if (!open) return null;
+  const s = overlayContainer(t, 420);
+  return (
+    <div style={s.overlay} onClick={onClose}>
+      <div style={s.box} onClick={e => e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <span style={{fontWeight:800,fontSize:17,color:t.tx1}}>{title}</span>
+          <button onClick={onClose} style={{background:"none",border:"none",color:t.tx2,cursor:"pointer",fontSize:20}}>×</button>
+        </div>
+        <div style={{fontSize:13,color:t.tx2,lineHeight:1.7}}>{body}</div>
+        <button onClick={onClose} style={{...btnPrimary({width:"100%",marginTop:20})}}>Got it</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── ConfirmModal ─────────────────────────────────────────────────────────────
 function ConfirmModal({ open, onClose, onConfirm, title, body, confirmLabel, confirmColor, t }) {
   if (!open) return null;
@@ -210,7 +253,8 @@ function ConfirmModal({ open, onClose, onConfirm, title, body, confirmLabel, con
 // ─── ApiKeyModal ──────────────────────────────────────────────────────────────
 function ApiKeyModal({ open, onClose, apiKey, onSave, t }) {
   const [val, setVal] = useState(apiKey||"");
-  useEffect(() => { if (open) setVal(apiKey||""); }, [open, apiKey]);
+  const [show, setShow] = useState(false);
+  useEffect(() => { if (open) { setVal(apiKey||""); setShow(false); } }, [open, apiKey]);
   if (!open) return null;
   const s = overlayContainer(t, 460);
   return (
@@ -225,8 +269,15 @@ function ApiKeyModal({ open, onClose, apiKey, onSave, t }) {
           Get one at <span style={{color:COLOR.primary}}>console.anthropic.com</span>.
         </div>
         <label style={labelSt(t)}>API Key</label>
-        <input type="password" value={val} onChange={e => setVal(e.target.value)}
-          placeholder="sk-ant-..." style={inputStyle(t)} />
+        <div style={{display:"flex",gap:8}}>
+          <input type={show ? "text" : "password"} value={val} onChange={e => setVal(e.target.value)}
+            placeholder="sk-ant-..." style={{...inputStyle(t), flex:1}} />
+          <button onClick={() => setShow(s => !s)}
+            style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,
+              padding:"8px 12px",color:t.tx2,cursor:"pointer",fontSize:14}}>
+            {show ? "🙈" : "👁"}
+          </button>
+        </div>
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button onClick={onClose} style={{...btnGhost(t,{flex:1})}}>Cancel</button>
           <button onClick={() => onSave(val)} style={{...btnPrimary({flex:1})}}>Save Key</button>
@@ -247,8 +298,17 @@ function BackupModal({ open, onClose, streams, profileId, onImport, t }) {
   const [importMode, setImportMode] = useState("replace");
   const [importError, setImportError] = useState("");
   const [tab, setTab] = useState("export");
+  const fileRef = useRef(null);
 
   useEffect(() => { if (open) { setImportText(""); setImportError(""); setTab("export"); } }, [open]);
+
+  function handleFile(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setImportText(ev.target.result);
+    reader.readAsText(file);
+    e.target.value = "";
+  }
   if (!open) return null;
   const s = overlayContainer(t, 520);
 
@@ -261,18 +321,21 @@ function BackupModal({ open, onClose, streams, profileId, onImport, t }) {
   }
 
   function exportCSV() {
-    const headers = ["Name","Type","Amount","Frequency","Monthly Equivalent","Stability","After Tax","Start Date","End Date","Category ID","Notes","Color"];
+    const headers = ["Name","Type","Frequency","Amount","MonthlyEquivalent","StabilityRating","AfterTax","StartDate","EndDate","Notes"];
     const rows = streams.map(s => [
-      s.name, s.type, s.amount, s.frequency,
+      s.name, s.type, s.frequency, s.amount,
       toMonthly(s.amount, s.frequency).toFixed(2),
-      s.stabilityRating, s.afterTax?"Yes":"No",
-      s.startDate||"", s.endDate||"", s.categoryId||"", s.notes||"", s.color||"",
+      s.stabilityRating, s.afterTax ? "Yes" : "No",
+      s.startDate||"", s.endDate||"", s.notes||"",
     ]);
     const csv = [headers,...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], {type:"text/csv"});
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-    a.download = `income-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
+    const blob = new Blob([csv], { type:"text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `income-${new Date().toISOString().slice(0,10)}.csv`;
+    a.style.display = "none";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   }
 
   function handleImport() {
@@ -319,6 +382,13 @@ function BackupModal({ open, onClose, streams, profileId, onImport, t }) {
           </div>
         ) : (
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div>
+              <input ref={fileRef} type="file" accept=".json" onChange={handleFile} style={{display:"none"}} />
+              <button onClick={() => fileRef.current?.click()}
+                style={{...btnGhost(t,{width:"100%",padding:"10px",fontSize:13})}}>
+                📂 Load from file
+              </button>
+            </div>
             <div>
               <label style={labelSt(t)}>Paste JSON backup below</label>
               <textarea value={importText} onChange={e => setImportText(e.target.value)}
@@ -462,30 +532,33 @@ function FirstRunSetup({ darkMode, setDarkMode, onSave }) {
 }
 
 // ─── NavBar ───────────────────────────────────────────────────────────────────
-function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey,
+function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey, apiKeyStatus,
   onOpenApiKey, onOpenBackup, onSwitchProfile, streamCount, t }) {
   const [showProfiles, setShowProfiles] = useState(false);
   const cloud = hasCloudStorage();
+  const bp = useBreakpoint();
 
   return (
     <div style={{background:t.deepBg,borderBottom:`1px solid ${t.border}`,padding:"11px 20px",
       display:"flex",justifyContent:"space-between",alignItems:"center",
       position:"sticky",top:0,zIndex:100}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:bp.isMobile?6:10,flexWrap:"wrap"}}>
         <div style={{width:32,height:32,borderRadius:8,
           background:"linear-gradient(135deg,#10b981,#6366f1)",
           display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>💰</div>
-        <span style={{fontWeight:800,fontSize:18,color:t.tx1}}>Income Tracker</span>
+        {!bp.isMobile && <span style={{fontWeight:800,fontSize:18,color:t.tx1}}>Income Tracker</span>}
         <span style={{fontSize:10,color:COLOR.success,background:COLOR.success+"18",
           border:`1px solid ${COLOR.success}33`,borderRadius:6,padding:"2px 8px",fontWeight:700}}>
           {streamCount} stream{streamCount!==1?"s":""}
         </span>
-        <span style={{fontSize:10,color:cloud?COLOR.success:COLOR.warning,
-          background:cloud?COLOR.success+"18":COLOR.warning+"18",
-          border:`1px solid ${cloud?COLOR.success+"33":COLOR.warning+"33"}`,
-          borderRadius:6,padding:"2px 8px",fontWeight:600}}>
-          {cloud ? "☁ Cloud Sync" : "💾 Local Only"}
-        </span>
+        {!bp.isMobile && (
+          <span style={{fontSize:10,color:cloud?COLOR.success:COLOR.warning,
+            background:cloud?COLOR.success+"18":COLOR.warning+"18",
+            border:`1px solid ${cloud?COLOR.success+"33":COLOR.warning+"33"}`,
+            borderRadius:6,padding:"2px 8px",fontWeight:600}}>
+            {cloud ? "☁ Cloud Sync" : "💾 Local Only"}
+          </span>
+        )}
       </div>
       <div style={{display:"flex",alignItems:"center",gap:8}}>
         <button onClick={() => setDarkMode(d => !d)}
@@ -497,11 +570,22 @@ function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey,
           style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,
             padding:"6px 11px",color:t.tx2,cursor:"pointer",fontSize:14}}
           title="Backup & Restore">📦</button>
-        <button onClick={onOpenApiKey}
-          style={{background:apiKey?COLOR.purple+"18":t.surf,
-            border:`1px solid ${apiKey?COLOR.purple+"44":t.border}`,
-            borderRadius:8,padding:"6px 11px",color:apiKey?COLOR.purple:t.tx2,cursor:"pointer",fontSize:14}}
-          title="API Key">🔑</button>
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          <button onClick={onOpenApiKey}
+            style={{background:apiKey?COLOR.purple+"18":t.surf,
+              border:`1px solid ${apiKey?COLOR.purple+"44":t.border}`,
+              borderRadius:8,padding:"6px 11px",color:apiKey?COLOR.purple:t.tx2,cursor:"pointer",fontSize:14}}
+            title="API Key">🔑</button>
+          {apiKeyStatus==="valid" && (
+            <div style={{width:8,height:8,borderRadius:"50%",background:COLOR.success}} title="AI ready" />
+          )}
+          {apiKeyStatus==="invalid" && (
+            <span style={{fontSize:10,color:COLOR.warning,fontWeight:700}}>Key invalid</span>
+          )}
+          {apiKeyStatus==="limited" && (
+            <div style={{width:8,height:8,borderRadius:"50%",background:COLOR.warning}} title="Rate limited" />
+          )}
+        </div>
         {activeProfile && (
           <div style={{position:"relative"}}>
             <button onClick={() => setShowProfiles(s => !s)}
@@ -543,6 +627,7 @@ function SummaryDashboard({ streams, t }) {
   const oneTimeSums  = streams.filter(s => s.frequency === "One-Time");
   const totalMo      = recurring.reduce((sum,s) => sum + toMonthly(s.amount, s.frequency), 0);
   const totalOneTime = oneTimeSums.reduce((sum,s) => sum + toNum(s.amount), 0);
+  const bp = useBreakpoint();
 
   const byType = {};
   INCOME_TYPES.forEach(tp => { byType[tp] = 0; });
@@ -556,7 +641,7 @@ function SummaryDashboard({ streams, t }) {
     <div style={panelSt(t,{marginBottom:20})}>
       <div style={{fontWeight:700,fontSize:15,color:t.tx1,marginBottom:16}}>Income Summary</div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:20}}>
         <div style={{background:t.surf,borderRadius:12,padding:"14px 16px"}}>
           <div style={{fontSize:10,color:t.tx2,fontWeight:700,letterSpacing:.5,marginBottom:6}}>MONTHLY INCOME</div>
           <div style={{fontFamily:"monospace",fontSize:22,fontWeight:800,color:COLOR.success}}>{fmt$(totalMo)}</div>
@@ -880,8 +965,10 @@ export default function App() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showApiKey, setShowApiKey]   = useState(false);
   const [showBackup, setShowBackup]   = useState(false);
+  const [apiKeyStatus, setApiKeyStatus] = useState("unchecked");
 
   const t = useTheme(darkMode);
+  const bp = useBreakpoint();
   const activeProfile = profiles.find(p => p.id === activeProfileId) || null;
 
   useEffect(() => { localStorage.setItem("inc_dark", darkMode); }, [darkMode]);
@@ -891,7 +978,7 @@ export default function App() {
       const profs = await storeGet("cc_profiles", true) || [];
       const actId = await storeGet("cc_active_profile", true);
       const key   = await storeGet("cc_apikey", true);
-      if (key) setApiKey(key);
+      if (key) { setApiKey(key); probeApiKey(key).then(status => setApiKeyStatus(status)); }
       setProfiles(profs);
 
       const id = actId || profs[0]?.id || null;
@@ -976,6 +1063,8 @@ export default function App() {
     setApiKey(key);
     setShowApiKey(false);
     await storeSet("cc_apikey", key, true);
+    if (key) probeApiKey(key).then(status => setApiKeyStatus(status));
+    else setApiKeyStatus("unchecked");
   }
 
   async function handleImport(data, mode) {
@@ -1012,7 +1101,8 @@ export default function App() {
       <NavBar
         profiles={profiles} activeProfile={activeProfile}
         darkMode={darkMode} setDarkMode={setDarkMode}
-        apiKey={apiKey} onOpenApiKey={() => setShowApiKey(true)}
+        apiKey={apiKey} apiKeyStatus={apiKeyStatus}
+        onOpenApiKey={() => setShowApiKey(true)}
         onOpenBackup={() => setShowBackup(true)}
         onSwitchProfile={switchProfile}
         streamCount={streams.length} t={t} />
@@ -1049,7 +1139,7 @@ export default function App() {
             </button>
           </div>
         ) : (
-          <div>
+          <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":"1fr 1fr",gap:0}}>
             {streams.map(stream => (
               <StreamCard key={stream.id} stream={stream} categories={categories}
                 onEdit={handleEdit} onDelete={handleDeleteClick} t={t} />
