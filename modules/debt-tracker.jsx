@@ -1,3 +1,4 @@
+// DebtTracker v1.5
 import { useState, useEffect, useRef } from "react";
 
 // --- Constants ----------------------------------------------------------------
@@ -661,7 +662,12 @@ function BackupModal({ open, onClose, cards, loans, logs, profileId, onImport, t
   const [importMode,setImportMode] = useState("replace");
   const [importError,setImportError] = useState("");
   const [tab,setTab] = useState("export");
+  const [cardCsvMode,setCardCsvMode] = useState("replace");
+  const [loanCsvMode,setLoanCsvMode] = useState("replace");
+  const [csvStatus,setCsvStatus] = useState("");
   const fileRef = useRef(null);
+  const cardCsvRef = useRef(null);
+  const loanCsvRef = useRef(null);
   if (!open) return null;
   const s = overlayContainer(t,540);
 
@@ -702,6 +708,68 @@ function BackupModal({ open, onClose, cards, loans, logs, profileId, onImport, t
     document.body.removeChild(a);
   }
 
+  function parseCSVRows(text) {
+    const lines = text.trim().split(/\r?\n/);
+    const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g,"").trim());
+    return lines.slice(1).filter(l=>l.trim()).map(line => {
+      const vals = [];
+      let cur = "", inQ = false;
+      for (let i=0;i<line.length;i++) {
+        const ch = line[i];
+        if (ch==='"') { inQ=!inQ; } else if (ch==="," && !inQ) { vals.push(cur); cur=""; } else { cur+=ch; }
+      }
+      vals.push(cur);
+      const obj = {};
+      headers.forEach((h,i) => { obj[h]=(vals[i]||"").trim(); });
+      return obj;
+    });
+  }
+
+  function handleCardsCSV(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const COLS = ["id","name","issuer","type","color","balance","creditLimit","apr","minPayment","dueDay","statementDay","promoApr","promoEndDate","closed","notes"];
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const rows = parseCSVRows(ev.target.result);
+        const imported = rows.map(r => {
+          const card = {};
+          COLS.forEach(k => { card[k] = r[k]!==undefined ? r[k] : ""; });
+          card.closed = card.closed==="true" || card.closed===true;
+          if (!card.id) card.id = "card_"+Date.now()+Math.random().toString(36).slice(2,7);
+          return card;
+        });
+        onImport({ cards: imported }, cardCsvMode);
+        setCsvStatus(`Cards: ${imported.length} records imported (${cardCsvMode})`);
+        onClose();
+      } catch(err) { setCsvStatus("Cards CSV error: "+err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
+  function handleLoansCSV(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const COLS = ["id","name","lender","type","color","originalBalance","currentBalance","interestRate","monthlyPayment","termMonths","remainingMonths","nextPaymentDay","notes"];
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const rows = parseCSVRows(ev.target.result);
+        const imported = rows.map(r => {
+          const loan = {};
+          COLS.forEach(k => { loan[k] = r[k]!==undefined ? r[k] : ""; });
+          if (!loan.id) loan.id = "loan_"+Date.now()+Math.random().toString(36).slice(2,7);
+          return loan;
+        });
+        onImport({ loans: imported }, loanCsvMode);
+        setCsvStatus(`Loans: ${imported.length} records imported (${loanCsvMode})`);
+        onClose();
+      } catch(err) { setCsvStatus("Loans CSV error: "+err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
   function handleImport() {
     setImportError("");
     try {
@@ -731,8 +799,37 @@ function BackupModal({ open, onClose, cards, loans, logs, profileId, onImport, t
         {tab==="export" && (
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             <button onClick={exportJSON} style={btnPrimary({width:"100%"})}>⬇ Download JSON Backup</button>
-            <button onClick={exportCardsCSV} style={btnGhost(t,{width:"100%"})}>⬇ Export Cards CSV</button>
-            <button onClick={exportLoansCSV} style={btnGhost(t,{width:"100%"})}>⬇ Export Loans CSV</button>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              <button onClick={exportCardsCSV} style={btnGhost(t,{width:"100%"})}>⬇ Export Cards CSV</button>
+              <div style={{display:"flex",flexDirection:"column",gap:4,padding:"8px 10px",background:t.surf,borderRadius:8,border:`1px solid ${t.border}`}}>
+                <div style={{fontSize:11,color:t.tx2,fontWeight:600}}>Import Cards CSV</div>
+                <div style={{display:"flex",gap:6,marginBottom:4}}>
+                  {["replace","merge"].map(m=>(
+                    <button key={m} onClick={()=>setCardCsvMode(m)} style={tabBtn(cardCsvMode===m,t)}>
+                      {m==="replace"?"Replace All":"Merge"}
+                    </button>
+                  ))}
+                </div>
+                <input ref={cardCsvRef} type="file" accept=".csv" onChange={handleCardsCSV}
+                  style={{fontSize:12,color:t.tx1}} />
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              <button onClick={exportLoansCSV} style={btnGhost(t,{width:"100%"})}>⬇ Export Loans CSV</button>
+              <div style={{display:"flex",flexDirection:"column",gap:4,padding:"8px 10px",background:t.surf,borderRadius:8,border:`1px solid ${t.border}`}}>
+                <div style={{fontSize:11,color:t.tx2,fontWeight:600}}>Import Loans CSV</div>
+                <div style={{display:"flex",gap:6,marginBottom:4}}>
+                  {["replace","merge"].map(m=>(
+                    <button key={m} onClick={()=>setLoanCsvMode(m)} style={tabBtn(loanCsvMode===m,t)}>
+                      {m==="replace"?"Replace All":"Merge"}
+                    </button>
+                  ))}
+                </div>
+                <input ref={loanCsvRef} type="file" accept=".csv" onChange={handleLoansCSV}
+                  style={{fontSize:12,color:t.tx1}} />
+              </div>
+            </div>
+            {csvStatus && <div style={{fontSize:11,color:COLOR.success}}>{csvStatus}</div>}
             <div style={{fontSize:11,color:t.tx3,marginTop:4}}>JSON backup includes all data. CSV exports cards and loans separately.</div>
           </div>
         )}
@@ -756,7 +853,7 @@ function BackupModal({ open, onClose, cards, loans, logs, profileId, onImport, t
                 reader.readAsText(file);
               }} style={{display:"none"}}/>
               <button onClick={()=>fileRef.current?.click()} style={{width:"100%",background:t.surf,border:`2px dashed ${t.border}`,borderRadius:10,padding:"10px",color:t.tx2,cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:8}}>
-                📂 Load from file
+                📂 Restore Backup
               </button>
               <label style={labelSt(t)}>Paste JSON Backup</label>
               <textarea value={importText} onChange={e=>setImportText(e.target.value)}
@@ -3266,7 +3363,7 @@ function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey, apiKey
           borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:14}}>{darkMode?"☀️":"🌙"}</button>
         <button onClick={onOpenBackup} style={{background:t.surf,border:`1px solid ${t.border}`,
           borderRadius:8,padding:"6px 11px",color:t.tx2,cursor:"pointer",fontSize:14}}
-          title="Backup & Restore">📦</button>
+          title="Backup & Restore">💾</button>
         <div style={{display:"flex",alignItems:"center",gap:4}}>
           <button onClick={onOpenApiKey} style={{background:apiKey?COLOR.purple+"18":t.surf,
             border:`1px solid ${apiKey?COLOR.purple+"44":t.border}`,
