@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// SpendingTracker v1.5
+// SpendingTracker v1.6
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MODULE_PREFIX = "sp_";
 const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
@@ -369,7 +369,7 @@ async function probeApiKey(key) {
 }
 
 // ─── ProfileDropdown ──────────────────────────────────────────────────────────
-function ProfileDropdown({ t, profiles, activeProfile, onSwitch, onClose }) {
+function ProfileDropdown({ t, profiles, activeProfile, onSwitch, onClose, onEditProfile }) {
   return (
     <div style={{ position:"absolute",top:"calc(100% + 6px)",right:0,background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,.3)",minWidth:200,zIndex:300,overflow:"hidden" }}>
       <div style={{ padding:"8px 14px 6px",borderBottom:`1px solid ${t.border}` }}>
@@ -385,7 +385,13 @@ function ProfileDropdown({ t, profiles, activeProfile, onSwitch, onClose }) {
             <div style={{ fontWeight:700,fontSize:13,color:t.tx1 }}>{p.name}</div>
             {p.id===activeProfile?.id && <div style={{ fontSize:10,color:COLOR.primary,fontWeight:600 }}>Active</div>}
           </div>
-          {p.id===activeProfile?.id && <span style={{ fontSize:14,color:COLOR.primary }}>✓</span>}
+          {p.id===activeProfile?.id && (
+            <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+              <span style={{ fontSize:14,color:COLOR.primary }}>✓</span>
+              <button onClick={e => { e.stopPropagation(); onClose(); onEditProfile && onEditProfile(p); }}
+                style={{ background:"transparent",border:`1px solid ${t.border}`,borderRadius:6,padding:"2px 7px",color:t.tx2,cursor:"pointer",fontSize:12,lineHeight:1 }}>✏</button>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -437,7 +443,7 @@ function ApiKeyModal({ t, apiKey, onSave, onClose }) {
 }
 
 // ─── BackupModal ───────────────────────────────────────────────────────────────
-function BackupModal({ t, transactions, accounts, categories, onClose, onImport }) {
+function BackupModal({ t, transactions, accounts, categories, onClose, onImport, onOpenImport }) {
   const [tab, setTab] = useState("export");
   const [importText, setImportText] = useState("");
   const [importStatus, setImportStatus] = useState(null);
@@ -502,7 +508,10 @@ function BackupModal({ t, transactions, accounts, categories, onClose, onImport 
   return (
     <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
       <div style={{ background:t.panelBg,borderRadius:20,width:"100%",maxWidth:420,padding:24,boxShadow:"0 20px 60px rgba(0,0,0,.5)" }}>
-        <div style={{ fontWeight:800,fontSize:17,color:t.tx1,marginBottom:16 }}>Backup & Restore</div>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
+          <div style={{ fontWeight:800,fontSize:17,color:t.tx1 }}>Backup & Restore</div>
+          <button onClick={onClose} style={{ background:"transparent",border:`1px solid ${t.border}`,borderRadius:6,color:t.tx3,cursor:"pointer",fontSize:16,padding:"2px 9px",lineHeight:1 }}>×</button>
+        </div>
         <div style={{ display:"flex",gap:6,marginBottom:16 }}>
           <button style={tabBtn(tab==="export")} onClick={() => setTab("export")}>Export</button>
           <button style={tabBtn(tab==="import")} onClick={() => setTab("import")}>Import</button>
@@ -520,9 +529,14 @@ function BackupModal({ t, transactions, accounts, categories, onClose, onImport 
         {tab === "import" && (
           <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:16 }}>
             <input ref={fileRef} type="file" accept=".json" style={{ display:"none" }} onChange={handleFileSelect} />
-            <button onClick={() => fileRef.current.click()} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"11px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:14 }}>
-              📂 Load from file
-            </button>
+            <div style={{ display:"flex",gap:8 }}>
+              <button onClick={() => fileRef.current.click()} style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"11px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>
+                📂 Restore Backup
+              </button>
+              <button onClick={() => { onClose(); onOpenImport && onOpenImport(); }} style={{ flex:1,background:COLOR.primary,border:"none",borderRadius:10,padding:"11px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13 }}>
+                📥 Import Transactions
+              </button>
+            </div>
             <textarea
               value={importText}
               onChange={e => setImportText(e.target.value)}
@@ -699,7 +713,7 @@ function CategoryBarRow({ t, cat, value, avg, barBase, isIncome, onClick }) {
 }
 
 // ─── AccountModal ─────────────────────────────────────────────────────────────
-function AccountModal({ t, account, onSave, onClose }) {
+function AccountModal({ t, account, onSave, onClose, onSaveAndImport }) {
   const [nickname, setNickname] = useState(account?.nickname||"");
   const [type, setType]         = useState(account?.type||"Checking");
   const [color, setColor]       = useState(account?.color||AVATAR_COLORS[0]);
@@ -730,17 +744,26 @@ function AccountModal({ t, account, onSave, onClose }) {
           <input type="checkbox" checked={flipSign} onChange={e => setFlipSign(e.target.checked)} style={{ width:16,height:16,accentColor:COLOR.primary }} />
           <span style={{ fontSize:13,color:t.tx1 }}>Flip sign on import (for credit card statements where charges are positive)</span>
         </label>
-        <div style={{ display:"flex",gap:10 }}>
+        <div style={{ display:"flex",gap:10,marginBottom: onSaveAndImport ? 8 : 0 }}>
           <button onClick={onClose} style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"9px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Cancel</button>
           <button onClick={handleSave} style={{ flex:1,background:COLOR.primary,border:"none",borderRadius:10,padding:"9px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14 }}>Save</button>
         </div>
+        {onSaveAndImport && (
+          <button onClick={() => {
+            if (!nickname.trim()) return;
+            const acc = { ...(account||{}), id: account?.id||generateId(), nickname:nickname.trim(), type, color, flipSign, columnMap: account?.columnMap||{} };
+            onSaveAndImport(acc);
+          }} style={{ width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"9px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>
+            📥 Save & Import Transactions
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── AccountsModal ────────────────────────────────────────────────────────────
-function AccountsModal({ t, accounts, onSave, onClose }) {
+function AccountsModal({ t, accounts, onSave, onClose, onSaveAndImport }) {
   const [editing, setEditing] = useState(null);
   const [confirm, setConfirm] = useState(null);
 
@@ -783,7 +806,7 @@ function AccountsModal({ t, accounts, onSave, onClose }) {
         </div>
         <button onClick={onClose} style={{ width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"9px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Close</button>
       </div>
-      {editing !== null && <AccountModal t={t} account={editing.id ? editing : null} onSave={handleSaveAccount} onClose={() => setEditing(null)} />}
+      {editing !== null && <AccountModal t={t} account={editing.id ? editing : null} onSave={handleSaveAccount} onClose={() => setEditing(null)} onSaveAndImport={onSaveAndImport ? acc => { handleSaveAccount(acc); onSaveAndImport(acc); } : undefined} />}
       {confirm && <ConfirmModal t={t} message="Delete this account? This won't delete transactions." onConfirm={() => doDelete(confirm)} onCancel={() => setConfirm(null)} />}
     </div>
   );
@@ -1371,9 +1394,9 @@ function ImportSummaryScreen({ t, results, onClose }) {
 }
 
 // ─── ImportWizard ─────────────────────────────────────────────────────────────
-function ImportWizard({ t, accounts, categories, rules, transactions, apiKey, onComplete, onClose, onUpdateAccounts }) {
+function ImportWizard({ t, accounts, categories, rules, transactions, apiKey, onComplete, onClose, onUpdateAccounts, initialAccountId }) {
   const [step,           setStep]           = useState(1);
-  const [accountId,      setAccountId]      = useState(accounts[0]?.id||"");
+  const [accountId,      setAccountId]      = useState(initialAccountId || accounts[0]?.id||"");
   const [csvHeaders,     setCsvHeaders]     = useState([]);
   const [csvRows,        setCsvRows]        = useState([]);
   const [colMap,         setColMap]         = useState({});
@@ -2372,6 +2395,40 @@ function TrendsTab({ t, transactions, categories, range, onNavigateToTxMonth }) 
   );
 }
 
+// ─── EditProfileModal ─────────────────────────────────────────────────────────
+function EditProfileModal({ t, profile, onSave, onClose }) {
+  const [name,  setName]  = useState(profile?.name||"");
+  const [color, setColor] = useState(profile?.avatarColor||AVATAR_COLORS[0]);
+  const [pin,   setPin]   = useState(profile?.pin||"");
+  function handleSave() {
+    if (!name.trim()) return;
+    onSave({ ...profile, name: name.trim(), avatarColor: color, pin: pin.trim() });
+  }
+  const inp = { width:"100%",background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"8px 12px",color:t.tx1,fontSize:13,boxSizing:"border-box" };
+  const lbl = { fontSize:11,color:t.tx2,display:"block",marginBottom:4,fontWeight:600 };
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
+      <div style={{ background:t.panelBg,borderRadius:20,width:"100%",maxWidth:380,padding:24,boxShadow:"0 20px 60px rgba(0,0,0,.5)" }}>
+        <div style={{ fontWeight:800,fontSize:17,color:t.tx1,marginBottom:16 }}>Edit Profile</div>
+        <label style={lbl}>NAME</label>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={{ ...inp,marginBottom:12 }} />
+        <label style={{ ...lbl,marginBottom:8 }}>AVATAR COLOR</label>
+        <div style={{ display:"flex",gap:8,marginBottom:12,flexWrap:"wrap" }}>
+          {AVATAR_COLORS.map(c => (
+            <div key={c} onClick={() => setColor(c)} style={{ width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",border:color===c?"3px solid #fff":"2px solid transparent",boxSizing:"border-box" }} />
+          ))}
+        </div>
+        <label style={lbl}>RECOVERY PIN <span style={{ color:t.tx3,fontWeight:400 }}>(optional)</span></label>
+        <input value={pin} onChange={e => setPin(e.target.value)} placeholder="e.g. smithfamily" style={{ ...inp,marginBottom:16 }} />
+        <div style={{ display:"flex",gap:10 }}>
+          <button onClick={onClose} style={{ flex:1,background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"9px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Cancel</button>
+          <button onClick={handleSave} disabled={!name.trim()} style={{ flex:1,background:name.trim()?COLOR.primary:t.surf,border:"none",borderRadius:10,padding:"9px 0",color:name.trim()?"#fff":t.tx3,cursor:name.trim()?"pointer":"default",fontWeight:700,fontSize:14 }}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [loading,      setLoading]      = useState(true);
@@ -2386,11 +2443,15 @@ export default function App() {
   const [tab,          setTab]          = useState("summary");
   const [txPresetCat,  setTxPresetCat]  = useState(null);
   const [range,        setRange]        = useState(defaultRange);
-  const [showApiKey,     setShowApiKey]     = useState(false);
-  const [showBackup,     setShowBackup]     = useState(false);
-  const [showAccounts,   setShowAccounts]   = useState(false);
-  const [showProfileMenu,setShowProfileMenu]= useState(false);
-  const [apiKeyStatus,   setApiKeyStatus]   = useState("unchecked");
+  const [showApiKey,       setShowApiKey]       = useState(false);
+  const [showBackup,       setShowBackup]       = useState(false);
+  const [showAccounts,     setShowAccounts]     = useState(false);
+  const [showProfileMenu,  setShowProfileMenu]  = useState(false);
+  const [apiKeyStatus,     setApiKeyStatus]     = useState("unchecked");
+  const [showEditProfile,  setShowEditProfile]  = useState(false);
+  const [editingProfile,   setEditingProfile]   = useState(null);
+  const [showImportFromApp,setShowImportFromApp]= useState(false);
+  const [importInitAccId,  setImportInitAccId]  = useState(null);
 
   const t = useTheme(darkMode);
   const bp = useBreakpoint();
@@ -2472,6 +2533,35 @@ export default function App() {
     setShowApiKey(false);
     if (key) probeApiKey(key).then(status => setApiKeyStatus(status));
     else setApiKeyStatus("unchecked");
+  }
+
+  async function handleSaveProfile(updated) {
+    const next = profiles.map(p => p.id === updated.id ? updated : p);
+    setProfiles(next);
+    setActiveProfile(updated);
+    await storeSet("cc_profiles", next, true);
+    setShowEditProfile(false);
+    setEditingProfile(null);
+  }
+
+  async function handleImportFromApp(newTxns) {
+    const merged = [...transactions];
+    for (const tx of newTxns) {
+      const clean = { ...tx };
+      const replaceId = clean._replaceId;
+      delete clean._replaceId;
+      if (replaceId) {
+        const idx = merged.findIndex(ex => ex.id === replaceId);
+        if (idx >= 0) merged[idx] = clean; else merged.push(clean);
+      } else {
+        const dupeIdx = merged.findIndex(ex =>
+          ex.date===tx.date && ex.description.toLowerCase()===tx.description.toLowerCase() && Math.abs(ex.amount-tx.amount)<0.01
+        );
+        if (dupeIdx >= 0) merged[dupeIdx] = clean; else merged.push(clean);
+      }
+    }
+    await saveTransactions(merged);
+    setShowImportFromApp(false);
   }
 
   async function handleImport(data) {
@@ -2572,7 +2662,9 @@ export default function App() {
           </span>
         </div>
         <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-          <button onClick={() => setShowAccounts(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:13,fontWeight:600 }}>🏦 Accounts</button>
+          <button onClick={() => setDarkMode(d => !d)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:14 }}>
+            {darkMode ? "☀️" : "🌙"}
+          </button>
           <button onClick={() => setShowBackup(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:13 }}>💾</button>
           <div style={{ display:"flex",alignItems:"center",gap:4 }}>
             <button onClick={() => setShowApiKey(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:13 }}>🔑</button>
@@ -2585,12 +2677,9 @@ export default function App() {
               {(activeProfile.name||"?").charAt(0).toUpperCase()}
             </div>
             {showProfileMenu && (
-              <ProfileDropdown t={t} profiles={profiles} activeProfile={activeProfile} onSwitch={handleSwitchProfile} onClose={() => setShowProfileMenu(false)} />
+              <ProfileDropdown t={t} profiles={profiles} activeProfile={activeProfile} onSwitch={handleSwitchProfile} onClose={() => setShowProfileMenu(false)} onEditProfile={p => { setEditingProfile(p); setShowEditProfile(true); }} />
             )}
           </div>
-          <button onClick={() => setDarkMode(d => !d)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 11px",color:t.tx1,cursor:"pointer",fontSize:14 }}>
-            {darkMode ? "☀️" : "🌙"}
-          </button>
         </div>
       </div>
 
@@ -2605,12 +2694,18 @@ export default function App() {
         </div>
 
         {tab === "summary" && (
-          <SummaryTab
-            t={t} transactions={transactions} categories={categories}
-            range={range} onRangeChange={saveRange}
-            onNavigateToCategory={catId => { setTxPresetCat(catId); setTab("transactions"); }}
-            onNavigateMonth={handleSummaryNavigateMonth}
-          />
+          <div>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12 }}>
+              <div style={{ fontWeight:700,fontSize:15,color:t.tx1 }}>Summary</div>
+              <button onClick={() => setShowAccounts(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"6px 12px",color:t.tx1,cursor:"pointer",fontSize:13,fontWeight:600 }}>🏦 Accounts</button>
+            </div>
+            <SummaryTab
+              t={t} transactions={transactions} categories={categories}
+              range={range} onRangeChange={saveRange}
+              onNavigateToCategory={catId => { setTxPresetCat(catId); setTab("transactions"); }}
+              onNavigateMonth={handleSummaryNavigateMonth}
+            />
+          </div>
         )}
         {tab === "transactions" && (
           <TransactionsTab
@@ -2637,8 +2732,16 @@ export default function App() {
       </div>
 
       {showApiKey   && <ApiKeyModal   t={t} apiKey={apiKey} onSave={handleSaveApiKey} onClose={() => setShowApiKey(false)} />}
-      {showBackup   && <BackupModal   t={t} transactions={transactions} accounts={accounts} categories={categories} onClose={() => setShowBackup(false)} onImport={handleImport} />}
-      {showAccounts && <AccountsModal t={t} accounts={accounts} onSave={saveAccounts} onClose={() => setShowAccounts(false)} />}
+      {showBackup   && <BackupModal   t={t} transactions={transactions} accounts={accounts} categories={categories} onClose={() => setShowBackup(false)} onImport={handleImport} onOpenImport={() => { setShowImportFromApp(true); setImportInitAccId(null); }} />}
+      {showAccounts && <AccountsModal t={t} accounts={accounts} onSave={saveAccounts} onClose={() => setShowAccounts(false)} onSaveAndImport={acc => { setShowAccounts(false); setImportInitAccId(acc.id); setShowImportFromApp(true); }} />}
+      {showEditProfile && editingProfile && <EditProfileModal t={t} profile={editingProfile} onSave={handleSaveProfile} onClose={() => { setShowEditProfile(false); setEditingProfile(null); }} />}
+      {showImportFromApp && (
+        <ImportWizard t={t} accounts={accounts} categories={categories} rules={rules}
+          transactions={transactions} apiKey={apiKey}
+          initialAccountId={importInitAccId}
+          onComplete={handleImportFromApp} onClose={() => setShowImportFromApp(false)}
+          onUpdateAccounts={saveAccounts} />
+      )}
     </div>
   );
 }
