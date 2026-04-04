@@ -17,7 +17,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "../docs/income",
+    outDir: "../docs/debt",
     emptyOutDir: true,
   },
 })
