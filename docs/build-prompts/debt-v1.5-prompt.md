@@ -9,7 +9,7 @@ DebtTracker v1.4 is fully functional. You are fixing two UI inconsistencies.
 
 ### 1. Save/Backup icon → floppy disk
 The Backup/Restore toolbar button currently shows an incorrect icon (not a floppy disk).
-Change it to the standard floppy disk icon (💾 or an SVG floppy).
+Change it to the 💾 emoji (matches SpendingTracker).
 
 ### 2. Backup/Restore — rename + add CSV import
 The Backup/Restore panel already supports CSV export (cards and loans separately).
@@ -20,9 +20,9 @@ This button restores the full JSON backup. Name change only — no logic change.
 
 **b. Add CSV import (cards and loans separately)**
 The panel already has CSV export buttons for cards and loans.
-Add a matching CSV import button next to each export button:
-- **Import Cards CSV** — file input, accept=".csv"
-- **Import Loans CSV** — file input, accept=".csv"
+Add a matching CSV import row next to each export button:
+- **Import Cards CSV** — visible `<input type="file" accept=".csv">` with a label, do NOT hide it behind a button click
+- **Import Loans CSV** — visible `<input type="file" accept=".csv">` with a label, do NOT hide it behind a button click
 
 CSV column order must match the existing CSV export format for each type.
 
