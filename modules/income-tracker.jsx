@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+// IncomeTracker v1.2
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/"; // Reserved for future AI features
@@ -298,9 +299,13 @@ function BackupModal({ open, onClose, streams, profileId, onImport, t }) {
   const [importMode, setImportMode] = useState("replace");
   const [importError, setImportError] = useState("");
   const [tab, setTab] = useState("export");
+  const [csvText, setCsvText] = useState("");
+  const [csvMode, setCsvMode] = useState("replace");
+  const [csvError, setCsvError] = useState("");
   const fileRef = useRef(null);
+  const csvFileRef = useRef(null);
 
-  useEffect(() => { if (open) { setImportText(""); setImportError(""); setTab("export"); } }, [open]);
+  useEffect(() => { if (open) { setImportText(""); setImportError(""); setCsvText(""); setCsvError(""); setTab("export"); } }, [open]);
 
   function handleFile(e) {
     const file = e.target.files?.[0]; if (!file) return;
@@ -309,6 +314,44 @@ function BackupModal({ open, onClose, streams, profileId, onImport, t }) {
     reader.readAsText(file);
     e.target.value = "";
   }
+
+  function handleCSVFile(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setCsvText(ev.target.result);
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
+  function handleCSVImport() {
+    setCsvError("");
+    try {
+      const lines = csvText.trim().split("\n");
+      if (lines.length < 2) throw new Error("CSV appears empty.");
+      const parsed = lines.slice(1).map(line => {
+        const cols = [];
+        let cur = "", inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') { inQ = !inQ; }
+          else if (ch === ',' && !inQ) { cols.push(cur); cur = ""; }
+          else { cur += ch; }
+        }
+        cols.push(cur);
+        const [id, name, type, amount, frequency, stabilityRating, afterTaxStr, startDate, endDate, notes, categoryId, color] = cols;
+        return { id: id||generateId(), name, type, amount, frequency, stabilityRating,
+          afterTax: afterTaxStr === "Yes" || afterTaxStr === "true",
+          startDate: startDate||"", endDate: endDate||"", notes: notes||"",
+          categoryId: categoryId||"", color: color||"#6366f1" };
+      }).filter(s => s.name && s.name.trim());
+      if (parsed.length === 0) throw new Error("No valid records found in CSV.");
+      onImport({ version:"inc_1.0", streams: parsed }, csvMode);
+      onClose();
+    } catch(e) {
+      setCsvError(e.message || "Invalid CSV");
+    }
+  }
+
   if (!open) return null;
   const s = overlayContainer(t, 520);
 
@@ -321,18 +364,18 @@ function BackupModal({ open, onClose, streams, profileId, onImport, t }) {
   }
 
   function exportCSV() {
-    const headers = ["Name","Type","Frequency","Amount","MonthlyEquivalent","StabilityRating","AfterTax","StartDate","EndDate","Notes"];
+    const headers = ["id","name","type","amount","frequency","stabilityRating","afterTax","startDate","endDate","notes","categoryId","color"];
     const rows = streams.map(s => [
-      s.name, s.type, s.frequency, s.amount,
-      toMonthly(s.amount, s.frequency).toFixed(2),
+      s.id, s.name, s.type, s.amount, s.frequency,
       s.stabilityRating, s.afterTax ? "Yes" : "No",
       s.startDate||"", s.endDate||"", s.notes||"",
+      s.categoryId||"", s.color||"",
     ]);
     const csv = [headers,...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type:"text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `income-${new Date().toISOString().slice(0,10)}.csv`;
+    a.href = url; a.download = `income-streams-${profileId}-${new Date().toISOString().slice(0,10)}.csv`;
     a.style.display = "none";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 100);
@@ -386,7 +429,7 @@ function BackupModal({ open, onClose, streams, profileId, onImport, t }) {
               <input ref={fileRef} type="file" accept=".json" onChange={handleFile} style={{display:"none"}} />
               <button onClick={() => fileRef.current?.click()}
                 style={{...btnGhost(t,{width:"100%",padding:"10px",fontSize:13})}}>
-                📂 Load from file
+                📂 Restore Backup
               </button>
             </div>
             <div>
@@ -425,6 +468,47 @@ function BackupModal({ open, onClose, streams, profileId, onImport, t }) {
               })}}>
               Import Data
             </button>
+
+            <div style={{borderTop:`1px solid ${t.border}`,marginTop:8,paddingTop:16}}>
+              <div style={{fontSize:12,fontWeight:700,color:t.tx2,marginBottom:10}}>CSV Import</div>
+              <div>
+                <input ref={csvFileRef} type="file" accept=".csv" onChange={handleCSVFile} style={{display:"none"}} />
+                <button onClick={() => csvFileRef.current?.click()}
+                  style={{...btnGhost(t,{width:"100%",padding:"10px",fontSize:13})}}>
+                  📂 Load CSV File
+                </button>
+              </div>
+              {csvText.trim() && (
+                <div style={{marginTop:10}}>
+                  <label style={labelSt(t)}>Import Mode</label>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={() => setCsvMode("replace")}
+                      style={csvMode==="replace" ? btnPrimary({flex:1,fontSize:13,padding:"7px 0"}) : btnGhost(t,{flex:1,fontSize:13,padding:"7px 0"})}>
+                      Replace All
+                    </button>
+                    <button onClick={() => setCsvMode("merge")}
+                      style={csvMode==="merge" ? btnPrimary({flex:1,fontSize:13,padding:"7px 0"}) : btnGhost(t,{flex:1,fontSize:13,padding:"7px 0"})}>
+                      + Merge
+                    </button>
+                  </div>
+                  <div style={{fontSize:10,color:t.tx3,marginTop:5}}>
+                    {csvMode==="replace" ? "Replaces all existing income streams." : "Adds new streams, skips duplicates by id."}
+                  </div>
+                </div>
+              )}
+              {csvError && (
+                <div style={{fontSize:12,color:COLOR.danger,background:COLOR.danger+"11",
+                  border:`1px solid ${COLOR.danger}33`,borderRadius:8,padding:"8px 12px",marginTop:8}}>
+                  {csvError}
+                </div>
+              )}
+              {csvText.trim() && (
+                <button onClick={handleCSVImport}
+                  style={{...btnPrimary({background:COLOR.warning,marginTop:10,width:"100%"})}}>
+                  Import CSV
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -531,9 +615,155 @@ function FirstRunSetup({ darkMode, setDarkMode, onSave }) {
   );
 }
 
+// ─── EditProfileModal ─────────────────────────────────────────────────────────
+function EditProfileModal({ open, onClose, profile, profiles, onSave, t }) {
+  const [name, setName] = useState("");
+  const [avatarColor, setAvatarColor] = useState(AVATAR_COLORS[0]);
+  const [pin, setPin] = useState("");
+
+  useEffect(() => {
+    if (open && profile) {
+      setName(profile.name || "");
+      setAvatarColor(profile.avatarColor || AVATAR_COLORS[0]);
+      setPin(profile.pin || "");
+    }
+  }, [open, profile]);
+
+  if (!open) return null;
+  const s = overlayContainer(t, 420);
+
+  function handleSave() {
+    if (!name.trim()) return;
+    const updated = profiles.map(p => p.id === profile.id
+      ? { ...p, name: name.trim(), avatarColor, pin: pin.trim() }
+      : p
+    );
+    onSave(updated);
+    onClose();
+  }
+
+  return (
+    <div style={s.overlay} onClick={onClose}>
+      <div style={s.box} onClick={e => e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <span style={{fontWeight:800,fontSize:17,color:t.tx1}}>Edit Profile</span>
+          <button onClick={onClose} style={{background:"none",border:"none",color:t.tx2,cursor:"pointer",fontSize:20}}>x</button>
+        </div>
+        <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
+          <div style={{width:56,height:56,borderRadius:"50%",background:avatarColor,
+            display:"flex",alignItems:"center",justifyContent:"center",
+            fontSize:20,fontWeight:800,color:"#fff",boxShadow:`0 0 0 3px ${avatarColor}44`}}>
+            {getInitials(name)}
+          </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <div>
+            <label style={labelSt(t)}>Display Name</label>
+            <input style={inputStyle(t)} value={name} onChange={e => setName(e.target.value)} placeholder="Your Name" />
+          </div>
+          <div>
+            <label style={labelSt(t)}>Recovery PIN <span style={{color:t.tx3,fontWeight:400}}>(optional)</span></label>
+            <input style={inputStyle(t)} value={pin} onChange={e => setPin(e.target.value)} placeholder="e.g. smithfamily" />
+          </div>
+          <div>
+            <label style={labelSt(t)}>Avatar Color</label>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {AVATAR_COLORS.map(c => (
+                <div key={c} onClick={() => setAvatarColor(c)}
+                  style={{width:28,height:28,borderRadius:"50%",background:c,cursor:"pointer",
+                    border:avatarColor===c?"3px solid #fff":"2px solid transparent",
+                    boxShadow:avatarColor===c?`0 0 0 2px ${c}`:"none",transition:"all .15s"}} />
+              ))}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:10,marginTop:4}}>
+            <button onClick={onClose} style={{...btnGhost(t,{flex:1})}}>Cancel</button>
+            <button onClick={handleSave} disabled={!name.trim()}
+              style={{...btnPrimary({flex:1,background:name.trim()?COLOR.primary:t.surf,
+                color:name.trim()?"#fff":t.tx3,cursor:name.trim()?"pointer":"default"})}}>
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AddProfileModal ──────────────────────────────────────────────────────────
+function AddProfileModal({ open, onClose, profiles, onSave, t }) {
+  const [name, setName] = useState("");
+  const [avatarColor, setAvatarColor] = useState(AVATAR_COLORS[0]);
+  const [pin, setPin] = useState("");
+
+  useEffect(() => {
+    if (open) { setName(""); setAvatarColor(AVATAR_COLORS[0]); setPin(""); }
+  }, [open]);
+
+  if (!open) return null;
+  const s = overlayContainer(t, 420);
+
+  function handleCreate() {
+    if (!name.trim()) return;
+    const stableId = pin.trim()
+      ? "pin_" + pin.trim().toLowerCase().replace(/\s+/g,"_")
+      : generateId();
+    const profile = { id:stableId, name:name.trim(), avatarColor, pin:pin.trim(), createdAt:new Date().toISOString() };
+    onSave([...profiles, profile], profile.id);
+    onClose();
+  }
+
+  return (
+    <div style={s.overlay} onClick={onClose}>
+      <div style={s.box} onClick={e => e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <span style={{fontWeight:800,fontSize:17,color:t.tx1}}>Add New Profile</span>
+          <button onClick={onClose} style={{background:"none",border:"none",color:t.tx2,cursor:"pointer",fontSize:20}}>x</button>
+        </div>
+        <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
+          <div style={{width:56,height:56,borderRadius:"50%",background:avatarColor,
+            display:"flex",alignItems:"center",justifyContent:"center",
+            fontSize:20,fontWeight:800,color:"#fff",boxShadow:`0 0 0 3px ${avatarColor}44`}}>
+            {getInitials(name)}
+          </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <div>
+            <label style={labelSt(t)}>Display Name</label>
+            <input style={inputStyle(t)} value={name} onChange={e => setName(e.target.value)} placeholder="Your Name" />
+          </div>
+          <div>
+            <label style={labelSt(t)}>Recovery PIN <span style={{color:t.tx3,fontWeight:400}}>(optional)</span></label>
+            <input style={inputStyle(t)} value={pin} onChange={e => setPin(e.target.value)} placeholder="e.g. smithfamily" />
+          </div>
+          <div>
+            <label style={labelSt(t)}>Avatar Color</label>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {AVATAR_COLORS.map(c => (
+                <div key={c} onClick={() => setAvatarColor(c)}
+                  style={{width:28,height:28,borderRadius:"50%",background:c,cursor:"pointer",
+                    border:avatarColor===c?"3px solid #fff":"2px solid transparent",
+                    boxShadow:avatarColor===c?`0 0 0 2px ${c}`:"none",transition:"all .15s"}} />
+              ))}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:10,marginTop:4}}>
+            <button onClick={onClose} style={{...btnGhost(t,{flex:1})}}>Cancel</button>
+            <button onClick={handleCreate} disabled={!name.trim()}
+              style={{...btnPrimary({flex:1,background:name.trim()?avatarColor:t.surf,
+                color:name.trim()?"#fff":t.tx3,cursor:name.trim()?"pointer":"default"})}}>
+              Create Profile
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── NavBar ───────────────────────────────────────────────────────────────────
 function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey, apiKeyStatus,
-  onOpenApiKey, onOpenBackup, onSwitchProfile, streamCount, t }) {
+  onOpenApiKey, onOpenBackup, onSwitchProfile, onEditProfile, onAddProfile, streamCount, t }) {
   const [showProfiles, setShowProfiles] = useState(false);
   const cloud = hasCloudStorage();
   const bp = useBreakpoint();
@@ -569,7 +799,7 @@ function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey, apiKey
         <button onClick={onOpenBackup}
           style={{background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,
             padding:"6px 11px",color:t.tx2,cursor:"pointer",fontSize:14}}
-          title="Backup & Restore">📦</button>
+          title="Backup & Restore">💾</button>
         <div style={{display:"flex",alignItems:"center",gap:4}}>
           <button onClick={onOpenApiKey}
             style={{background:apiKey?COLOR.purple+"18":t.surf,
@@ -595,23 +825,41 @@ function NavBar({ profiles, activeProfile, darkMode, setDarkMode, apiKey, apiKey
                 display:"flex",alignItems:"center",justifyContent:"center"}}>
               {(activeProfile.name||"?")[0].toUpperCase()}
             </button>
-            {showProfiles && profiles.length>0 && (
+            {showProfiles && (
               <div style={{position:"absolute",right:0,top:40,background:t.panelBg,
                 border:`1px solid ${t.border}`,borderRadius:12,padding:8,
-                boxShadow:"0 8px 24px rgba(0,0,0,.3)",zIndex:200,minWidth:160}}>
+                boxShadow:"0 8px 24px rgba(0,0,0,.3)",zIndex:200,minWidth:180}}>
                 {profiles.map(p => (
-                  <button key={p.id} onClick={() => { onSwitchProfile(p.id); setShowProfiles(false); }}
-                    style={{display:"flex",alignItems:"center",gap:8,width:"100%",border:"none",
-                      padding:"8px 10px",cursor:"pointer",borderRadius:8,color:t.tx1,fontSize:13,
-                      background:p.id===activeProfile?.id?COLOR.primary+"18":"none",textAlign:"left"}}>
-                    <div style={{width:24,height:24,borderRadius:"50%",background:p.avatarColor||COLOR.primary,
-                      display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,
-                      fontWeight:800,color:"#fff",flexShrink:0}}>
-                      {(p.name||"?")[0].toUpperCase()}
-                    </div>
-                    <span>{p.name}</span>
-                  </button>
+                  <div key={p.id} style={{display:"flex",alignItems:"center",gap:4}}>
+                    <button onClick={() => { onSwitchProfile(p.id); setShowProfiles(false); }}
+                      style={{display:"flex",alignItems:"center",gap:8,flex:1,border:"none",
+                        padding:"8px 10px",cursor:"pointer",borderRadius:8,color:t.tx1,fontSize:13,
+                        background:p.id===activeProfile?.id?COLOR.primary+"18":"none",textAlign:"left"}}>
+                      <div style={{width:24,height:24,borderRadius:"50%",background:p.avatarColor||COLOR.primary,
+                        display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,
+                        fontWeight:800,color:"#fff",flexShrink:0}}>
+                        {(p.name||"?")[0].toUpperCase()}
+                      </div>
+                      <span>{p.name}</span>
+                    </button>
+                    {p.id===activeProfile?.id && (
+                      <button onClick={() => { setShowProfiles(false); onEditProfile(); }}
+                        style={{background:"none",border:"none",cursor:"pointer",color:t.tx2,
+                          padding:"4px 6px",borderRadius:6,fontSize:13}}
+                        title="Edit profile">
+                        ✏️
+                      </button>
+                    )}
+                  </div>
                 ))}
+                <div style={{borderTop:`1px solid ${t.border}`,marginTop:4,paddingTop:4}}>
+                  <button onClick={() => { setShowProfiles(false); onAddProfile(); }}
+                    style={{display:"flex",alignItems:"center",gap:8,width:"100%",border:"none",
+                      padding:"8px 10px",cursor:"pointer",borderRadius:8,color:COLOR.primary,
+                      fontSize:13,background:"none",textAlign:"left",fontWeight:600}}>
+                    + Add New Profile
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -965,6 +1213,8 @@ export default function App() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showApiKey, setShowApiKey]   = useState(false);
   const [showBackup, setShowBackup]   = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showAddProfile, setShowAddProfile]   = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState("unchecked");
 
   const t = useTheme(darkMode);
@@ -1067,6 +1317,17 @@ export default function App() {
     else setApiKeyStatus("unchecked");
   }
 
+  async function handleEditProfileSave(updatedProfiles) {
+    setProfiles(updatedProfiles);
+    await storeSet("cc_profiles", updatedProfiles, true);
+  }
+
+  async function handleAddProfileSave(updatedProfiles, newId) {
+    setProfiles(updatedProfiles);
+    await storeSet("cc_profiles", updatedProfiles, true);
+    switchProfile(newId);
+  }
+
   async function handleImport(data, mode) {
     if (!data.streams) return;
     if (mode === "replace") {
@@ -1105,6 +1366,8 @@ export default function App() {
         onOpenApiKey={() => setShowApiKey(true)}
         onOpenBackup={() => setShowBackup(true)}
         onSwitchProfile={switchProfile}
+        onEditProfile={() => setShowEditProfile(true)}
+        onAddProfile={() => setShowAddProfile(true)}
         streamCount={streams.length} t={t} />
 
       <div style={{maxWidth:900,margin:"0 auto",padding:"24px 16px"}}>
@@ -1184,6 +1447,21 @@ export default function App() {
         streams={streams}
         profileId={activeProfileId}
         onImport={handleImport}
+        t={t} />
+
+      <EditProfileModal
+        open={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        profile={activeProfile}
+        profiles={profiles}
+        onSave={handleEditProfileSave}
+        t={t} />
+
+      <AddProfileModal
+        open={showAddProfile}
+        onClose={() => setShowAddProfile(false)}
+        profiles={profiles}
+        onSave={handleAddProfileSave}
         t={t} />
 
     </div>
