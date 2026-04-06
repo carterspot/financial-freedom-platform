@@ -9,7 +9,7 @@
 | 💰 IncomeTracker | `modules/income-tracker.jsx` | ✅ v1.2 |
 | 📊 SpendingTracker | `modules/spending.jsx` | ✅ v1.6 |
 | 🏦 SavingsModule | `modules/savings.jsx` | ✅ v1.0 |
-| 📈 RetirementModule | `modules/retirement.jsx` | 📋 Planned |
+| 📈 RetirementModule | `modules/retirement.jsx` | ✅ v1.0 |
 | 🧠 AI Advisor | — | 📋 Capstone |
 
 ## Critical JSX Rules — violations crash the artifact
