@@ -281,7 +281,7 @@ footer a:hover{text-decoration:underline}
     <p>A modular platform that tracks your income, spending, debt, and savings — and uses AI to build your personalized plan.</p>
     <div class="hero-stats">
       <div class="hero-stat">
-        <div class="hero-stat-num" id="stat-live">6</div>
+        <div class="hero-stat-num" id="stat-live">7</div>
         <div class="hero-stat-label">Modules Live</div>
       </div>
       <div class="hero-stat">
@@ -289,7 +289,7 @@ footer a:hover{text-decoration:underline}
         <div class="hero-stat-label">Shared Categories</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num" id="stat-planned">3</div>
+        <div class="hero-stat-num" id="stat-planned">2</div>
         <div class="hero-stat-label">In Roadmap</div>
       </div>
     </div>
@@ -389,13 +389,15 @@ const CONFIG = {
       whatsNewUrl:"whats-new.html#savings-module"
     },
     {
-      id:"retirement", icon:"📈", name:"Retirement Module", ver:"planned", status:"planned",
+      id:"retirement", icon:"📈", name:"Retirement Module", ver:"v1.0", status:"live",
       color:"#f59e0b",
-      desc:"401k, IRA, Roth — am I on track? Contribution optimization, employer match calculator, and 30-year projections.",
-      features:["Account balances (401k, IRA, Roth, brokerage)","Contribution rates + employer match tracking","30-year projection charts","On-track assessment vs retirement goal","Contribution optimization suggestions"],
-      ai:["Projection analysis","Contribution rate optimization","Scenario modeling (early retirement, market returns)"],
+      desc:"Am I saving enough to retire at the age I want? 8 account types, 30-year projections, withdrawal plan comparison, and AI retirement readiness analysis.",
+      features:["8 account types: 401k, Roth 401k, IRA, Roth IRA, 403b, Pension, HSA, Social Security","Snapshot model — manual balance + contribution entry","Smart default assumptions (7% return, 3% inflation) with sliders","30-year SVG projection chart vs target nest egg line","4 withdrawal plans side-by-side: 4%, 3.3%, 5%, Custom — lock one as active","Social Security + pension as guaranteed income offset","On-track gauge with surplus/gap stats","JSON + CSV backup and restore"],
+      ai:["Full retirement readiness assessment","Top 3 actionable recommendations","Uses locked plan, all accounts, SS estimate, and projection data"],
       flows:[{dir:"out",to:"AI Advisor",label:"Retirement readiness + contribution data"}],
-      artifactUrl:null, quickstartUrl:null, whatsNewUrl:null
+      artifactUrl:"https://carterspot.github.io/financial-freedom-platform/retirement/",
+      quickstartUrl:"retirement-quickstart.html",
+      whatsNewUrl:"whats-new.html#retirement-module"
     },
     {
       id:"investment", icon:"💹", name:"Investment Module", ver:"planned", status:"planned",

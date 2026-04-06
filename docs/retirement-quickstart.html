@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Retirement Module — Quick Start Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#020617;--panel:#0f172a;--surf:#1e293b;
+    --indigo:#6366f1;--emerald:#10b981;--amber:#f59e0b;
+    --pink:#ec4899;--orange:#f97316;--purple:#8b5cf6;
+    --teal:#06b6d4;
+    --tx1:#f1f5f9;--tx2:#94a3b8;--tx3:#475569;
+    --border:#1e293b;
+  }
+  body{
+    background:var(--bg);color:var(--tx1);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;padding:32px 24px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 20% 10%,rgba(245,158,11,.10) 0%,transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 80%,rgba(249,115,22,.07) 0%,transparent 60%);
+  }
+  .page{max-width:960px;margin:0 auto}
+  .header{text-align:center;margin-bottom:40px}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:100px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
+  .header h1{font-size:clamp(28px,5vw,48px);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:10px}
+  .header h1 span{background:linear-gradient(135deg,#f59e0b,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header p{font-size:15px;color:var(--tx2);max-width:520px;margin:0 auto;line-height:1.6}
+  .grid{display:grid;gap:16px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:700px){.grid-2,.grid-3{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative}
+  .card-accent{border-left:3px solid var(--amber)}
+  .card-accent-orange{border-left:3px solid var(--orange)}
+  .card-accent-purple{border-left:3px solid var(--purple)}
+  .step-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+  .section-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .section-label::after{content:"";flex:1;height:1px;background:var(--border)}
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .step-body h3{font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:4px}
+  .step-body p{font-size:12px;color:var(--tx2);line-height:1.6}
+  .step-body code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surf);padding:1px 6px;border-radius:4px;color:var(--amber)}
+  .feat{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+  .feat:last-child{border:none;padding-bottom:0}
+  .feat-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;margin-top:1px}
+  .feat-body h4{font-size:13px;font-weight:700;color:var(--tx1);margin-bottom:2px}
+  .feat-body p{font-size:11px;color:var(--tx2);line-height:1.5}
+  .tip{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--tx2);line-height:1.6}
+  .tip strong{color:var(--amber)}
+  .tip-purple{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2)}
+  .tip-purple strong{color:var(--purple)}
+  .plan-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:12px}
+  @media(max-width:640px){.plan-row{grid-template-columns:1fr 1fr}}
+  .plan-card{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+  .plan-card.recommended{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.06)}
+  .plan-name{font-size:12px;font-weight:800;color:var(--tx1);margin-bottom:4px}
+  .plan-rate{font-size:20px;font-weight:800;color:var(--amber);font-family:'JetBrains Mono',monospace}
+  .plan-desc{font-size:10px;color:var(--tx3);margin-top:4px;line-height:1.4}
+  .acct-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+  @media(max-width:640px){.acct-grid{grid-template-columns:1fr 1fr}}
+  .acct-pill{background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700;color:var(--tx2)}
+  .acct-pill.tax-deferred{border-color:rgba(245,158,11,.3);color:var(--amber)}
+  .acct-pill.tax-free{border-color:rgba(16,185,129,.3);color:var(--emerald)}
+  .acct-pill.other{border-color:rgba(99,102,241,.3);color:var(--indigo)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .card{animation:fadeUp .5s ease both}
+  .card:nth-child(1){animation-delay:.05s}.card:nth-child(2){animation-delay:.1s}
+  .card:nth-child(3){animation-delay:.15s}.card:nth-child(4){animation-delay:.2s}
+  .card:nth-child(5){animation-delay:.25s}.card:nth-child(6){animation-delay:.3s}
+  @media print{body{background:#fff;color:#111;padding:16px}.card{background:#f8fafc;border:1px solid #e2e8f0;break-inside:avoid}:root{--tx1:#0f172a;--tx2:#475569;--tx3:#94a3b8;--border:#e2e8f0;--surf:#f1f5f9;--panel:#fff}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="badge">📈 Quick Start Guide · v1.0</div>
+    <h1>Get started with<br/><span>Retirement Module</span></h1>
+    <p>Enter your retirement accounts, set your target, and get an honest answer: am I saving enough to retire at the age I want?</p>
+  </div>
+
+  <!-- Account types -->
+  <div class="section-label" style="color:var(--amber)">Account Types</div>
+  <div class="grid" style="margin-bottom:16px">
+    <div class="card card-accent">
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:10px">All 8 account types are supported. Add as many accounts as you have.</p>
+      <div class="acct-grid">
+        <div class="acct-pill tax-deferred">401k</div>
+        <div class="acct-pill tax-free">Roth 401k</div>
+        <div class="acct-pill tax-deferred">Trad. IRA</div>
+        <div class="acct-pill tax-free">Roth IRA</div>
+        <div class="acct-pill tax-deferred">403b</div>
+        <div class="acct-pill other">Pension</div>
+        <div class="acct-pill other">HSA</div>
+        <div class="acct-pill other">Social Security</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--amber)">● Tax-deferred</span>
+        <span style="font-size:10px;color:var(--emerald)">● Tax-free (Roth)</span>
+        <span style="font-size:10px;color:var(--indigo)">● Guaranteed income</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Setup steps -->
+  <div class="section-label" style="color:var(--amber)">Getting Started</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(245,158,11,.2);color:var(--amber)">1</div>
+        <div class="step-body">
+          <h3>Add Your Retirement Accounts</h3>
+          <p>Tap <strong>+ Add Account</strong> in the Accounts tab. Select the type, enter the current balance and your annual contribution. For 401k/403b accounts, add your contribution rate (% of salary) and employer match — this significantly affects your projection.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(245,158,11,.2);color:var(--amber)">2</div>
+        <div class="step-body">
+          <h3>Enter Your Social Security Estimate</h3>
+          <p>In the Overview tab, enter your estimated monthly Social Security benefit from <code>ssa.gov/estimator</code> and the age you plan to claim. This counts as guaranteed income and reduces the nest egg you need — don't skip it.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(245,158,11,.2);color:var(--amber)">3</div>
+        <div class="step-body">
+          <h3>Set Your Retirement Target</h3>
+          <p>Enter your current age, target retirement age, annual salary, and the monthly income you want in retirement. These feed the projection math. Smart defaults handle the rest — return rate (7%), inflation (3%), salary growth (3%) are pre-set and explained.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(245,158,11,.2);color:var(--amber)">4</div>
+        <div class="step-body">
+          <h3>Pick and Lock a Withdrawal Plan</h3>
+          <p>Go to the Plan &amp; AI tab. Review the side-by-side comparison of all 4 withdrawal plans. Find the one that matches your situation and tap <strong>Lock This Plan</strong>. All projections, the on-track gauge, and AI analysis use the locked plan as the target.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Withdrawal plans -->
+  <div class="section-label" style="color:var(--amber)">Withdrawal Plans</div>
+  <div class="grid" style="margin-bottom:16px">
+    <div class="card card-accent-orange">
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:4px">How much can you safely withdraw from your nest egg each year without running out of money? Choose a plan and lock it in.</p>
+      <div class="plan-row">
+        <div class="plan-card recommended">
+          <div class="plan-name">4% Rule</div>
+          <div class="plan-rate">4%</div>
+          <div class="plan-desc">Recommended. Proven safe for 30-year retirements in most market conditions.</div>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">3.3% Rule</div>
+          <div class="plan-rate">3.3%</div>
+          <div class="plan-desc">Conservative. Best for early retirees or retirements of 35+ years.</div>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">5% Rule</div>
+          <div class="plan-rate">5%</div>
+          <div class="plan-desc">Aggressive. For shorter retirements or higher risk tolerance.</div>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Custom</div>
+          <div class="plan-rate">?%</div>
+          <div class="plan-desc">Set your own withdrawal rate for a fully custom target.</div>
+        </div>
+      </div>
+      <div class="tip" style="margin-top:12px">
+        <strong>The 4% rule and 25x rule are the same math.</strong> 4% withdrawal = you need 25× your annual spending. We call it the 4% Rule because that's how you think about it in retirement — "I'll withdraw 4% per year."
+      </div>
+    </div>
+  </div>
+
+  <!-- Projections + assumptions -->
+  <div class="section-label" style="color:var(--amber)">Projections &amp; Assumptions</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <div class="card">
+      <div class="feat">
+        <div class="feat-icon">📊</div>
+        <div class="feat-body">
+          <h4>30-Year Projection Chart</h4>
+          <p>SVG chart from today to your retirement age. Your projected balance (solid line) vs the target nest egg for your locked plan (dashed line). Shaded area shows surplus or gap at every age.</p>
+        </div>
+      </div>
+      <div class="feat" style="border:none;padding-bottom:0">
+        <div class="feat-icon">🎯</div>
+        <div class="feat-body">
+          <h4>On-Track Gauge</h4>
+          <p>The Overview tab shows a large green/amber/red gauge: are you on track, close, or behind? Plus four stats: projected balance, required nest egg, monthly gap/surplus, and years to retirement.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="feat">
+        <div class="feat-icon">🎚️</div>
+        <div class="feat-body">
+          <h4>Assumption Sliders</h4>
+          <p>Adjust expected return (1–15%), inflation (0–8%), and salary growth (0–10%) with sliders. Each has a plain-language explanation. Changes update the projection chart instantly — use them to stress-test your plan.</p>
+        </div>
+      </div>
+      <div class="tip" style="margin-top:12px">
+        <strong>Default assumptions:</strong> 7% return (historical US stock market average), 3% inflation (long-term US average), 3% salary growth. These are reasonable starting points — adjust for your situation.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- AI Analysis -->
+  <div class="section-label" style="color:var(--purple)">AI Analysis</div>
+  <div class="grid" style="margin-bottom:16px">
+    <div class="card card-accent-purple">
+      <div class="feat">
+        <div class="feat-icon">🧠</div>
+        <div class="feat-body">
+          <h4>Retirement Readiness Assessment</h4>
+          <p>Tap <strong>Analyze My Retirement</strong> in the Plan &amp; AI tab. AI reads all your accounts, your locked plan, your projection, and your surplus/gap. Returns a direct verdict — on track, ahead, or behind — plus three specific recommendations.</p>
+        </div>
+      </div>
+      <div class="tip tip-purple" style="margin-top:12px">
+        <strong>For the best analysis:</strong> Lock a withdrawal plan, enter your Social Security estimate, and make sure all accounts have accurate balances and contribution rates before running the analysis. The AI is only as accurate as the data you give it.
+      </div>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="section-label" style="color:var(--amber)">Tips</div>
+  <div class="grid grid-3" style="margin-bottom:40px">
+
+    <div class="card">
+      <div class="feat-icon" style="font-size:24px;margin-bottom:8px">🏦</div>
+      <h4 style="font-size:13px;font-weight:700;margin-bottom:6px">Don't forget employer match</h4>
+      <p style="font-size:11px;color:var(--tx2);line-height:1.55">Employer match is free money. If your employer matches 3% of salary, contributing less than that leaves money on the table. The projection math includes full match — make sure you've set it correctly.</p>
+    </div>
+
+    <div class="card">
+      <div class="feat-icon" style="font-size:24px;margin-bottom:8px">📋</div>
+      <h4 style="font-size:13px;font-weight:700;margin-bottom:6px">Get your SS estimate</h4>
+      <p style="font-size:11px;color:var(--tx2);line-height:1.55">Visit <strong>ssa.gov/estimator</strong> to get your personalized Social Security benefit estimate. It's free and takes 2 minutes. Even a rough estimate significantly improves the accuracy of your on-track assessment.</p>
+    </div>
+
+    <div class="card">
+      <div class="feat-icon" style="font-size:24px;margin-bottom:8px">🔒</div>
+      <h4 style="font-size:13px;font-weight:700;margin-bottom:6px">Lock your plan</h4>
+      <p style="font-size:11px;color:var(--tx2);line-height:1.55">Until you lock a withdrawal plan, you're planning toward a moving target. Pick one — even if you change it later — so your on-track gauge and AI analysis have a clear benchmark to work with.</p>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

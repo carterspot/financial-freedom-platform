@@ -17,7 +17,7 @@ Financial Freedom Platform
 ├── 💰 IncomeTracker     (BUILT — v1.2 complete)
 ├── 📊 SpendingTracker   (BUILT — v1.6 complete)
 ├── 🏦 SavingsModule     (BUILT — v1.0 complete)
-├── 📈 Retirement Module (PLANNED — 401k, IRA, projections)
+├── 📈 RetirementModule  (BUILT — v1.0 complete)
 ├── 💹 Investment Module (PLANNED — taxable brokerage, stocks, ETFs)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
 ```
@@ -44,7 +44,8 @@ Modules are deployed as static builds via Vite to `docs/{module}/` subfolders. G
 https://carterspot.github.io/financial-freedom-platform/debt/       ← DebtTracker v1.4
 https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.3
 https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.2
-https://carterspot.github.io/financial-freedom-platform/savings/    ← SavingsModule v1.0
+https://carterspot.github.io/financial-freedom-platform/savings/     ← SavingsModule v1.0
+https://carterspot.github.io/financial-freedom-platform/retirement/  ← RetirementModule v1.0
 ```
 
 **Module filename clarification (critical for Code prompts):**
@@ -628,7 +629,7 @@ sav_goals_{profileId}    (shared) — array of goal objects
 
 ---
 
-## Module 7: Retirement Module (PLANNED — v1.0 in build)
+## Module 7: Retirement Module (COMPLETE — v1.0)
 
 Retirement readiness — "Am I saving enough to retire at the age I want?"
 
