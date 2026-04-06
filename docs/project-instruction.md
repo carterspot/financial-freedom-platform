@@ -13,9 +13,9 @@ The platform is built as a collection of standalone Claude artifacts (React .jsx
 Financial Freedom Platform
 ├── 💳 CardTracker       (BUILT — v3.1 complete)
 ├── 🏦 LoanTracker       (BUILT — v1.2 complete)
-├── ⚡ DebtTracker       (BUILT — v1.4 complete)
-├── 💰 IncomeTracker     (BUILT — v1.1 complete)
-├── 📊 SpendingTracker   (BUILT — v1.5 complete)
+├── ⚡ DebtTracker       (BUILT — v1.5 complete)
+├── 💰 IncomeTracker     (BUILT — v1.2 complete)
+├── 📊 SpendingTracker   (BUILT — v1.6 complete)
 ├── 🏦 Savings Module    (PLANNED — emergency fund, goals)
 ├── 📈 Retirement Module (PLANNED — 401k, IRA, projections)
 ├── 💹 Investment Module (PLANNED — taxable brokerage, stocks, ETFs)
@@ -259,7 +259,7 @@ lt_dark                          (local)  — dark mode boolean
 
 ---
 
-## Module 3: DebtTracker (COMPLETE — v1.4)
+## Module 3: DebtTracker (COMPLETE — v1.5)
 
 ### What it is
 Unified merge of CardTracker + LoanTracker. All debt types in one artifact with a unified avalanche/snowball planner across cards and loans.
@@ -364,11 +364,16 @@ dt_dark                          (local)  — dark mode boolean
 }
 ```
 
+### v1.5 features (April 2026) — UI consistency pass
+- Backup/Restore toolbar icon → floppy disk (matches platform standard)
+- "Load from File" renamed to **"Restore Backup"** (JSON full backup, no logic change)
+- CSV import added for cards and loans separately — visible file inputs with labels; Replace or Merge modal (same UX as JSON import); deduplicates by `id` on merge
+
 **Artifact:** `modules/debt-tracker.jsx`
 
 ---
 
-## Module 4: IncomeTracker (COMPLETE — v1.1)
+## Module 4: IncomeTracker (COMPLETE — v1.2)
 
 ### What it is
 Tracks all income streams by type, stability, and frequency. Data-entry only at v1 — no AI tab, no planner. Seeds the shared FFP category system on first run.
@@ -426,11 +431,19 @@ ffp_categories_{profileId} (shared) — seeded on first run if empty
 }
 ```
 
+### v1.2 features (April 2026) — UI consistency pass
+- Backup/Restore toolbar icon → floppy disk (matches platform standard)
+- Toolbar reordered to platform standard: Screen → Backup/Restore → API → Profile Initials
+- Profile panel: Edit Pencil (opens edit modal: name, avatar color, PIN) + Add New Profile option added
+- "Load from File" renamed to **"Restore Backup"**
+- CSV export added — tabular export of `inc_streams_{profileId}`; columns: `id, name, type, amount, frequency, stabilityRating, afterTax, startDate, endDate, notes, categoryId, color`
+- CSV import added — Replace or Merge modal (same UX as JSON); deduplicates by `id` on merge
+
 **Artifact:** `modules/income-tracker.jsx`
 
 ---
 
-## Module 5: SpendingTracker (COMPLETE — v1.5)
+## Module 5: SpendingTracker (COMPLETE — v1.6)
 
 ### What it is
 Tracks spending transactions via CSV import from any bank or credit card statement. Owns the shared rules engine (`ffp_cat_rules_`) and is the first module to provide full category management UI. AI batch categorization on import, actuals view with 3-month rolling average, and a full rules CRUD interface.
@@ -485,6 +498,13 @@ sp_selected_range_{profileId}  (shared) — date range when range mode is active
 - Dark mode contrast pass — account nickname, RulesTab headers, empty-state placeholders upgraded from `tx3` → `tx2`
 - Edit Transaction modal — "+ Create Rule from This" pre-fills RuleModal and applies retroactively on save; "+ New Category" (`NewCategoryModal`: name/icon/type/color) immediately selects new category and saves to `ffp_categories_`
 - Transfer category `trn_001` added to `DEFAULT_CATEGORIES` — seeded on init and profile switch if missing
+
+### v1.6 features (April 2026) — UI consistency pass
+- Toolbar reordered to platform standard: Screen → Backup/Restore → API → Profile Initials
+- Accounts button removed from toolbar — moved to Summary tab header row, right-justified
+- Profile panel: Edit Pencil wired up to open edit profile modal (was previously non-functional)
+- Backup/Restore panel: "Load from File" renamed to **"Restore Backup"**; "Import Transactions" button added — closes panel and opens existing CSV import modal; close X added to panel
+- Add Account modal: "Import Transactions" button added — saves account then opens CSV import modal
 
 ### v1.5 features (April 2026) — Savings Module handoff
 - Edit Transaction modal — Recurrence section added below Notes field:

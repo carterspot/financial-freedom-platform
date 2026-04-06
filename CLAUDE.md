@@ -5,9 +5,9 @@
 |--------|------|--------|
 | 💳 CardTracker | `modules/credit-card-tracker.jsx` | ✅ v3.1 |
 | 🏦 LoanTracker | `modules/loan-tracker.jsx` | ✅ v1.2 |
-| ⚡ DebtTracker | `modules/debt-tracker.jsx` | ✅ v1.1 |
-| 💰 IncomeTracker | `modules/income-tracker.jsx` | ✅ v1.1 |
-| 📊 SpendingTracker | `modules/spending.jsx` | ✅ v1.5 |
+| ⚡ DebtTracker | `modules/debt-tracker.jsx` | ✅ v1.5 |
+| 💰 IncomeTracker | `modules/income-tracker.jsx` | ✅ v1.2 |
+| 📊 SpendingTracker | `modules/spending.jsx` | ✅ v1.6 |
 | 🏦 SavingsModule | `modules/savings.jsx` | 📋 Planned |
 | 📈 RetirementModule | `modules/retirement.jsx` | 📋 Planned |
 | 🧠 AI Advisor | — | 📋 Capstone |
