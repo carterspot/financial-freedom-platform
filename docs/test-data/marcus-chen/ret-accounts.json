@@ -1,0 +1,32 @@
+[
+  {
+    "id": "ret_acct_mc001",
+    "type": "401k",
+    "name": "Fidelity 401k",
+    "color": "#6366f1",
+    "currentBalance": 87500,
+    "contribType": "percent",
+    "contribRate": "8",
+    "employerMatch": "4",
+    "employerMatchLimit": "8",
+    "monthlyBenefit": "",
+    "estimatedMonthlyBenefit": "",
+    "ssBenefitAge": "",
+    "notes": ""
+  },
+  {
+    "id": "ret_acct_mc002",
+    "type": "rothira",
+    "name": "Fidelity Roth IRA",
+    "color": "#f59e0b",
+    "currentBalance": 24200,
+    "contribType": "fixed",
+    "contribRate": "500",
+    "employerMatch": "",
+    "employerMatchLimit": "",
+    "monthlyBenefit": "",
+    "estimatedMonthlyBenefit": "",
+    "ssBenefitAge": "",
+    "notes": ""
+  }
+]

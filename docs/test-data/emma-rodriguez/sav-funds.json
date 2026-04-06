@@ -1,0 +1,14 @@
+[
+  {
+    "id": "sav_fund_er001",
+    "name": "Emergency Fund",
+    "accountNickname": "Emma HYSA",
+    "color": "#10b981",
+    "balance": 2200.00,
+    "deposits": [
+      { "id": "dep_er001", "amount": 200, "date": "2026-01-15", "note": "January contribution" },
+      { "id": "dep_er002", "amount": 200, "date": "2026-02-15", "note": "February contribution" },
+      { "id": "dep_er003", "amount": 200, "date": "2026-03-15", "note": "March contribution" }
+    ]
+  }
+]

@@ -1,0 +1,25 @@
+[
+  {
+    "id": "sav_fund_sm001",
+    "name": "Emergency Fund",
+    "accountNickname": "Sarah HYSA",
+    "color": "#10b981",
+    "balance": 31000.00,
+    "deposits": [
+      { "id": "dep_sm001", "amount": 2000, "date": "2026-01-10", "note": "January contribution" },
+      { "id": "dep_sm002", "amount": 1500, "date": "2026-03-10", "note": "March contribution — February skipped (slow season)" }
+    ]
+  },
+  {
+    "id": "sav_fund_sm002",
+    "name": "Property & Business Fund",
+    "accountNickname": "Sarah Property HYSA",
+    "color": "#f97316",
+    "balance": 14200.00,
+    "deposits": [
+      { "id": "dep_sm003", "amount": 800, "date": "2026-01-15", "note": "January contribution" },
+      { "id": "dep_sm004", "amount": 800, "date": "2026-02-15", "note": "February contribution" },
+      { "id": "dep_sm005", "amount": 800, "date": "2026-03-15", "note": "March contribution" }
+    ]
+  }
+]
