@@ -281,7 +281,7 @@ footer a:hover{text-decoration:underline}
     <p>A modular platform that tracks your income, spending, debt, and savings — and uses AI to build your personalized plan.</p>
     <div class="hero-stats">
       <div class="hero-stat">
-        <div class="hero-stat-num" id="stat-live">5</div>
+        <div class="hero-stat-num" id="stat-live">6</div>
         <div class="hero-stat-label">Modules Live</div>
       </div>
       <div class="hero-stat">
@@ -289,7 +289,7 @@ footer a:hover{text-decoration:underline}
         <div class="hero-stat-label">Shared Categories</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num" id="stat-planned">4</div>
+        <div class="hero-stat-num" id="stat-planned">3</div>
         <div class="hero-stat-label">In Roadmap</div>
       </div>
     </div>
@@ -345,7 +345,7 @@ footer a:hover{text-decoration:underline}
 const CONFIG = {
   modules: [
     {
-      id:"spending", icon:"📊", name:"SpendingTracker", ver:"v1.4", status:"live",
+      id:"spending", icon:"📊", name:"SpendingTracker", ver:"v1.6", status:"live",
       color:"#f97316",
       desc:"Import bank + CC statements, AI-categorizes spending, and shows actuals vs rolling average. The platform's category and rules engine lives here.",
       features:["Multi-month CSV import with dedup preview","Column mapper remembered per account","Sign-flip toggle for CC statements","AI batch categorization on import","Needs Review queue with retroactive rules","Summary: bar charts as % of income","Date range picker + Trends tab (3-12 months)","Batch delete + multi-category filter","Transfer + custom category creation"],
@@ -356,7 +356,7 @@ const CONFIG = {
       whatsNewUrl:"whats-new.html#spending-tracker"
     },
     {
-      id:"income", icon:"💰", name:"IncomeTracker", ver:"v1.1", status:"live",
+      id:"income", icon:"💰", name:"IncomeTracker", ver:"v1.2", status:"live",
       color:"#10b981",
       desc:"Track all income streams by type, stability, and frequency. Seeds the shared FFP category system on first run.",
       features:["7 income types (W2, Self-Employment, Rental, etc.)","7 frequencies with automatic monthly normalization","4 stability ratings with color-coded badges","After-tax flag, start/end dates, notes","Summary: total monthly, annual, breakdown by type","Seeds 56 shared categories on first run"],
@@ -367,7 +367,7 @@ const CONFIG = {
       whatsNewUrl:"whats-new.html#income-tracker"
     },
     {
-      id:"debt", icon:"⚡", name:"DebtTracker", ver:"v1.4", status:"live",
+      id:"debt", icon:"⚡", name:"DebtTracker", ver:"v1.5", status:"live",
       color:"#8b5cf6",
       desc:"Unified credit cards + loans in one avalanche/snowball planner. Replaced CardTracker and LoanTracker after family migration.",
       features:["Credit card + loan CRUD in one view","Unified avalanche/snowball engine across all debt","Lump sum Priority and Split modes","Strategy Builder + What-If AI chat","Single Debt tab with amortization + CSV export","Charts: comparison + per-debt curves","Quick Pay + milestone progress tracking","One-click import from CardTracker/LoanTracker"],
@@ -378,13 +378,15 @@ const CONFIG = {
       whatsNewUrl:"whats-new.html#debt-tracker"
     },
     {
-      id:"savings", icon:"🏦", name:"Savings Module", ver:"planned", status:"planned",
+      id:"savings", icon:"🏦", name:"Savings Module", ver:"v1.0", status:"live",
       color:"#06b6d4",
-      desc:"Emergency fund + sinking fund goals. Two-layer model: physical funds containing individual goal allocations with monthly contribution targets.",
-      features:["Fund layer — represents a physical savings account","Goal layer — individual allocations within a fund","Accumulation goals (emergency fund, vacation, down payment)","Sinking fund goals tied to recurring expenses","Required monthly contribution calculator","Due date alerts when fund is underfunded"],
-      ai:["Suggests goals from SpendingTracker recurring expenses","Underfunding alerts approaching due dates"],
-      flows:[{dir:"in",from:"SpendingTracker",label:"isSinkingFundCandidate transactions"},{dir:"out",to:"AI Advisor",label:"Savings rate + goal progress"}],
-      artifactUrl:null, quickstartUrl:null, whatsNewUrl:null
+      desc:"Emergency fund + sinking fund goals. Two-layer model: physical funds containing individual goal allocations with auto-calculated monthly contribution targets and 30-day due date alerts.",
+      features:["Fund layer — represents a physical savings account","Goal layer — individual allocations within a fund","Accumulation goals (emergency fund, vacation, down payment)","Sinking fund goals tied to recurring expenses","Auto-calculated monthly contribution: (target − saved) ÷ months remaining","30-day due date alerts — green if funded, amber with shortfall if not","Deposit log at fund level + contribution log per goal","JSON + CSV backup and restore (replace or merge)"],
+      ai:["Suggests sinking fund goals from SpendingTracker recurring transactions","Mark-as-paid detection — spots bill in SpendingTracker and resets cycle"],
+      flows:[{dir:"in",from:"SpendingTracker",label:"isSinkingFundCandidate transactions + recurrencePattern"},{dir:"out",to:"AI Advisor",label:"Savings rate + goal progress"}],
+      artifactUrl:"https://carterspot.github.io/financial-freedom-platform/savings/",
+      quickstartUrl:"savings-quickstart.html",
+      whatsNewUrl:"whats-new.html#savings-module"
     },
     {
       id:"retirement", icon:"📈", name:"Retirement Module", ver:"planned", status:"planned",

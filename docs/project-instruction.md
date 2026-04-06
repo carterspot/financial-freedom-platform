@@ -16,7 +16,7 @@ Financial Freedom Platform
 ├── ⚡ DebtTracker       (BUILT — v1.5 complete)
 ├── 💰 IncomeTracker     (BUILT — v1.2 complete)
 ├── 📊 SpendingTracker   (BUILT — v1.6 complete)
-├── 🏦 Savings Module    (PLANNED — emergency fund, goals)
+├── 🏦 SavingsModule     (BUILT — v1.0 complete)
 ├── 📈 Retirement Module (PLANNED — 401k, IRA, projections)
 ├── 💹 Investment Module (PLANNED — taxable brokerage, stocks, ETFs)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
@@ -43,7 +43,8 @@ Modules are deployed as static builds via Vite to `docs/{module}/` subfolders. G
 ```
 https://carterspot.github.io/financial-freedom-platform/debt/       ← DebtTracker v1.4
 https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.3
-https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.1
+https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.2
+https://carterspot.github.io/financial-freedom-platform/savings/    ← SavingsModule v1.0
 ```
 
 **Module filename clarification (critical for Code prompts):**
@@ -576,7 +577,7 @@ Note: `recurrenceType` is a **v1.1 addition** — transaction-level (not categor
 
 ---
 
-## Module 6: Savings Module (PLANNED)
+## Module 6: Savings Module (COMPLETE — v1.0)
 
 Emergency fund tracker and named savings goals ("sinking funds") with target dates and required monthly amounts.
 

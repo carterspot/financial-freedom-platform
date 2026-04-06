@@ -8,7 +8,7 @@
 | ⚡ DebtTracker | `modules/debt-tracker.jsx` | ✅ v1.5 |
 | 💰 IncomeTracker | `modules/income-tracker.jsx` | ✅ v1.2 |
 | 📊 SpendingTracker | `modules/spending.jsx` | ✅ v1.6 |
-| 🏦 SavingsModule | `modules/savings.jsx` | 📋 Planned |
+| 🏦 SavingsModule | `modules/savings.jsx` | ✅ v1.0 |
 | 📈 RetirementModule | `modules/retirement.jsx` | 📋 Planned |
 | 🧠 AI Advisor | — | 📋 Capstone |
 
@@ -39,6 +39,7 @@
 - [ ] `cd preview && npm run build` — must pass clean
 - [ ] JSX rules audit — check all 8 rules above
 - [ ] No nested JSX-returning functions
+- [ ] Vite deploy — set correct `base` + `outDir` in `preview/vite.config.js`, build, commit `docs/{module}/`, push
 
 ## Full Context
 At session start, read docs/internal/ffp-cto-SKILL.md for platform constraints and patterns.
