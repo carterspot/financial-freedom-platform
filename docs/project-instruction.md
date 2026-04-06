@@ -589,26 +589,40 @@ Emergency fund tracker and named savings goals ("sinking funds") with target dat
 Both use the same schema with a `goalType` field. UI surfaces them differently.
 
 **Fund + goal two-layer model:**
-- **Fund** — represents a physical savings account (e.g. "Sinking Fund Account"). User names it, assigns a color. App tracks running balance.
-- **Goals inside a fund** — individual line items allocated within that account (Car Registration $200, Home Insurance $1,400, etc.). Each has target amount, due date, required monthly contribution.
+- **Fund** — represents a physical savings account (e.g. "Sinking Fund Account"). User names it, assigns a color. App tracks running balance via manual deposits recorded at the fund level.
+- **Goals inside a fund** — individual line items allocated within that account (Car Registration $200, Home Insurance $1,400, etc.). Each goal tracks its own accumulated contributions separately.
 - Fund balance sheet shows total fund balance vs sum of goal allocations.
 
+**Balance / deposit model (confirmed):**
+- User logs deposits at the fund level (e.g. "I put $300 into this account this month")
+- Fund balance = sum of all deposits minus paid-out goals
+- Each goal tracks contributions independently — `currentAmount` accumulates per goal as user logs progress
+
+**Monthly contribution — calculated, user-overridable (confirmed):**
+- App calculates required monthly contribution: `(targetAmount − currentAmount) ÷ monthsUntilDue`
+- Displayed as a recommendation; user can override with a manual value
+- `monthlyContrib` on the goal schema stores the override if set, otherwise derived at display time
+
 **Alert system:**
-- Due date within 30 days + fund balance covers it → green "Ready to pay [Goal Name]"
+- Due date within 30 days + goal fully funded → green "Ready to pay [Goal Name]"
 - Due date within 30 days + underfunded → amber alert with shortfall amount
 - Display logic only — no new storage keys needed
 
-**Spending → Savings handoff:**
-- Savings reads `sp_transactions_{profileId}` filtered by `isSinkingFundCandidate: true`
+**Spending → Savings handoff (confirmed v1 approach):**
+- Savings reads `sp_transactions_{profileId}` on load, filtered by `isSinkingFundCandidate: true`
 - Groups by `recurrencePattern` to surface goal suggestions on first run
-- When a sinking fund bill hits in Spending, app prompts "this looks like your [Goal Name] — mark as paid?" and resets the accumulation cycle
+- On each load, Savings scans recent SpendingTracker transactions for matches against goal `categoryId` or `recurrencePattern` — if a recent match is found and the goal has not been marked paid this cycle, surfaces a prompt inside Savings: "Looks like [Goal Name] was paid — mark as paid and reset cycle?"
+- No cross-module communication required — all reads happen within Savings on load
 
 **Storage prefix:** `sav_`
 
 ```
-sav_funds_{profileId}    (shared) — array of fund objects (name, accountNickname, color, balance)
-sav_goals_{profileId}    (shared) — array of goal objects (fundId, name, goalType, targetAmount,
-                                    dueDate, monthlyContrib, categoryId, linkedTransactionId)
+sav_funds_{profileId}    (shared) — array of fund objects
+                                    { id, name, accountNickname, color, balance, deposits[] }
+sav_goals_{profileId}    (shared) — array of goal objects
+                                    { id, fundId, name, goalType, targetAmount, currentAmount,
+                                      dueDate, monthlyContrib, categoryId, recurrencePattern,
+                                      linkedTransactionId, lastPaidDate }
 ```
 
 ---
