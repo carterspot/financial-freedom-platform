@@ -1,2 +1,2 @@
-import App from "../../modules/debt-tracker.jsx";
+import App from "../../modules/retirement.jsx";
 export default App;
