@@ -44,7 +44,7 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 |--------|---------|------|-----|
 | DebtTracker | v1.5 | `modules/debt-tracker.jsx` | `.../debt/` |
 | IncomeTracker | v1.2 | `modules/income-tracker.jsx` | `.../income/` |
-| SpendingTracker | v1.6 | `modules/spending.jsx` | `.../spending/` |
+| SpendingTracker | v1.7 | `modules/spending.jsx` | `.../spending/` |
 | SavingsModule | v1.0 | `modules/savings.jsx` | `.../savings/` |
 | RetirementModule | v1.0 | `modules/retirement.jsx` | `.../retirement/` |
 
