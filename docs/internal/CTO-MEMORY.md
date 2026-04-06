@@ -1,7 +1,7 @@
 # CTO Memory — Financial Freedom Platform
 **Location:** `docs/internal/CTO-MEMORY.md`  
 **Purpose:** Bootstraps CTO identity and project context in a cold Claude Code session.  
-**Updated:** 2026-04-06  
+**Updated:** 2026-04-06 (post-Retirement v1.0 ship)  
 **Read this file + docs/internal/ffp-cto-SKILL.md + docs/project-instruction.md at every CTO session start.**
 
 ---
@@ -45,20 +45,18 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 | DebtTracker | v1.5 | `modules/debt-tracker.jsx` | `.../debt/` |
 | IncomeTracker | v1.2 | `modules/income-tracker.jsx` | `.../income/` |
 | SpendingTracker | v1.6 | `modules/spending.jsx` | `.../spending/` |
+| SavingsModule | v1.0 | `modules/savings.jsx` | `.../savings/` |
+| RetirementModule | v1.0 | `modules/retirement.jsx` | `.../retirement/` |
 
 ### Deprecated (artifact URLs preserved, not promoted)
 | Module | Version | Status |
 |--------|---------|--------|
 | CardTracker | v3.1 | Removed from landing page. Family migrated to DebtTracker. No further dev. |
-| LoanTracker | v1.2 | Removed from landing page. Family migrated to DebtTracker. No further dev. |
+| LoanTracker | v1.2 | Removed from landing page. Family migrated to DebtTradate. No further dev. |
 
 **CT and LT are deprecated.** Do not propose fixes or features for them. Do not reference them as active modules.
 
-### In Progress
-- 🏦 Savings Module v1.0 — Code Clone building now (`docs/build-prompts/savings-v1.0-prompt.md`)
-
 ### Planned
-- 📈 Retirement Module — architecture not yet scoped
 - 💹 Investment Module — needs v1 scope doc before build slot
 - 🧠 AI Advisor — capstone, all modules must be stable first
 
@@ -130,13 +128,14 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 - ✅ UI consistency pass — DebtTracker v1.5, IncomeTracker v1.2, SpendingTracker v1.6 all standardized (floppy icon, toolbar order, Restore Backup label, CSV import/export, profile panel)
 - ✅ Savings Module architecture decisions locked and documented in PI
 
-**🔨 Active**
-- Savings Module v1.0 — Code Clone building now
-
-**🟡 Amber — post-Savings ship tasks**
-- `docs/whats-new.html` — needs Savings v1.0 entry
-- `docs/savings-quickstart.html` — needs to be written
-- Savings deploy prompt — Vite build + push to `docs/savings/`
+**🟢 Resolved since last update**
+- ✅ Savings Module v1.0 — shipped, deployed to `.../savings/`, docs live
+- ✅ whats-new.html — Savings v1.0 + Retirement v1.0 entries added
+- ✅ savings-quickstart.html — written and committed
+- ✅ Retirement Module architecture scoped + build prompt written
+- ✅ RetirementModule v1.0 — shipped, deployed to `.../retirement/`, docs live
+- ✅ retirement-quickstart.html — written and committed
+- ✅ Design System v2 — canonical patterns added (callClaude, probeApiKey, useBreakpoint, file upload import)
 
 **🟡 Amber — Cloudflare Worker no rollback documented**
 - Rollback plan not formally written in PI yet
@@ -146,17 +145,6 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 - Added to roadmap but no scope boundary written
 - Must have a scope doc before getting a build slot
 - Owner: CTO
-
-**🔵 Blue — Design System v2 needs update**
-- Cross-module audit completed April 3 (`docs/design-audit.md`)
-- All High priority gaps remediated in audit pass
-- `docs/design-system.md` needs canonical patterns updated to reflect current reality
-- Patterns to add: callClaude, probeApiKey, useBreakpoint, file upload import
-- Owner: CTO
-
-**🔵 Blue — Retirement Module architecture not yet scoped**
-- No scope doc, no build prompt
-- Next architecture session after Savings ships
 
 ---
 
@@ -219,13 +207,11 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 
 ## Next Up (in order)
 
-1. **Savings Module v1.0 ship** — Code building; deploy to `docs/savings/` when done
-2. **whats-new.html** — Savings v1.0 release notes entry
-3. **savings-quickstart.html** — user guide for Savings Module
-4. **Retirement Module v1** — architecture review + scope decisions + build prompt
-5. **Investment Module v1 scope doc** — before it gets a build slot
-6. **Design System v2 update** — design-system.md canonical patterns
-7. **AI Advisor** — capstone; all modules must be stable first
+1. **Investment Module v1 scope doc** — CTO writes scope boundary before Code gets a build slot
+2. **Savings ↔ Retirement cross-module link** — Savings goals should optionally map to a retirement account; design the handoff
+3. **AI Advisor pre-work** — define what data each module must expose for the Advisor to consume; write the data contract
+4. **AI Advisor v1** — capstone; all modules must be stable first
+5. **Cloudflare Worker rollback doc** — write formal rollback plan in PI
 
 ---
 
