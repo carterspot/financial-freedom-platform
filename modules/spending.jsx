@@ -2494,7 +2494,19 @@ export default function App() {
         setRules(rs);
 
         const savedRange = await storeGet(`sp_selected_range_${profile.id}`);
-        if (savedRange && savedRange.mode) setRange(savedRange);
+        if (savedRange && savedRange.mode) {
+          setRange(savedRange);
+        } else if (txns.length > 0) {
+          const latestMonth = txns
+            .map(tx => tx.date && tx.date.slice(0,7))
+            .filter(Boolean)
+            .sort()
+            .at(-1);
+          if (latestMonth && latestMonth < currentYYYYMM()) {
+            const r = { mode:"month", month:latestMonth, start:latestMonth, end:latestMonth };
+            setRange(r);
+          }
+        }
       }
 
       setLoading(false);
@@ -2605,7 +2617,21 @@ export default function App() {
     const rs = await storeGet(`ffp_cat_rules_${profile.id}`, true) || [];
     setRules(rs);
     const savedRange = await storeGet(`sp_selected_range_${profile.id}`);
-    setRange(savedRange && savedRange.mode ? savedRange : defaultRange());
+    if (savedRange && savedRange.mode) {
+      setRange(savedRange);
+    } else if (txns.length > 0) {
+      const latestMonth = txns
+        .map(tx => tx.date && tx.date.slice(0,7))
+        .filter(Boolean)
+        .sort()
+        .at(-1);
+      const r = latestMonth && latestMonth < currentYYYYMM()
+        ? { mode:"month", month:latestMonth, start:latestMonth, end:latestMonth }
+        : defaultRange();
+      setRange(r);
+    } else {
+      setRange(defaultRange());
+    }
   }
 
   // Navigate to a specific month in Transactions tab (from Trends click)
