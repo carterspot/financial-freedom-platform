@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Savings Module — Quick Start Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#020617;--panel:#0f172a;--surf:#1e293b;
+    --indigo:#6366f1;--emerald:#10b981;--amber:#f59e0b;
+    --pink:#ec4899;--orange:#f97316;--purple:#8b5cf6;
+    --teal:#06b6d4;
+    --tx1:#f1f5f9;--tx2:#94a3b8;--tx3:#475569;
+    --border:#1e293b;
+  }
+  body{
+    background:var(--bg);color:var(--tx1);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;padding:32px 24px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 20% 10%,rgba(16,185,129,.10) 0%,transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 80%,rgba(6,182,212,.07) 0%,transparent 60%);
+  }
+  .page{max-width:960px;margin:0 auto}
+
+  .header{text-align:center;margin-bottom:40px}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:100px;padding:6px 16px;font-size:11px;font-weight:700;color:var(--emerald);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
+  .header h1{font-size:clamp(28px,5vw,48px);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:10px}
+  .header h1 span{background:linear-gradient(135deg,#10b981,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header p{font-size:15px;color:var(--tx2);max-width:520px;margin:0 auto;line-height:1.6}
+
+  .grid{display:grid;gap:16px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:700px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden}
+  .card-accent{border-left:3px solid var(--emerald)}
+  .card-accent-teal{border-left:3px solid var(--teal)}
+  .card-accent-amber{border-left:3px solid var(--amber)}
+
+  .step-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+  .section-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .section-label::after{content:"";flex:1;height:1px;background:var(--border)}
+
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .step-body h3{font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:4px}
+  .step-body p{font-size:12px;color:var(--tx2);line-height:1.6}
+  .step-body code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surf);padding:1px 6px;border-radius:4px;color:var(--emerald)}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+  .pill-emerald{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:var(--emerald)}
+  .pill-teal{background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.25);color:var(--teal)}
+  .pill-amber{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);color:var(--amber)}
+
+  .feat{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+  .feat:last-child{border:none;padding-bottom:0}
+  .feat-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;margin-top:1px}
+  .feat-body h4{font-size:13px;font-weight:700;color:var(--tx1);margin-bottom:2px}
+  .feat-body p{font-size:11px;color:var(--tx2);line-height:1.5}
+
+  .tip{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--tx2);line-height:1.6}
+  .tip strong{color:var(--emerald)}
+  .tip-amber{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2)}
+  .tip-amber strong{color:var(--amber)}
+
+  .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .flow-step{background:var(--surf);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--tx1)}
+  .flow-arrow{color:var(--tx3);font-size:14px}
+
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:600px){.two-col{grid-template-columns:1fr}}
+
+  .goal-type{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+  .goal-type h4{font-size:13px;font-weight:800;color:var(--tx1)}
+  .goal-type p{font-size:11px;color:var(--tx2);line-height:1.55}
+  .goal-type ul{font-size:11px;color:var(--tx2);line-height:1.8;padding-left:16px}
+
+  .alert-row{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:8px}
+  .alert-green{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);color:var(--tx1)}
+  .alert-amber{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:var(--tx1)}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .card{animation:fadeUp .5s ease both}
+  .card:nth-child(1){animation-delay:.05s}
+  .card:nth-child(2){animation-delay:.1s}
+  .card:nth-child(3){animation-delay:.15s}
+  .card:nth-child(4){animation-delay:.2s}
+  .card:nth-child(5){animation-delay:.25s}
+
+  @media print{
+    body{background:#fff;color:#111;padding:16px}
+    .card{background:#f8fafc;border:1px solid #e2e8f0;break-inside:avoid}
+    :root{--tx1:#0f172a;--tx2:#475569;--tx3:#94a3b8;--border:#e2e8f0;--surf:#f1f5f9;--panel:#fff}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="badge">🏦 Quick Start Guide · v1.0</div>
+    <h1>Get started with<br/><span>Savings Module</span></h1>
+    <p>Track savings funds and goals — from emergency funds to sinking funds for annual bills. Never be caught off guard by a predictable expense again.</p>
+  </div>
+
+  <!-- Concepts -->
+  <div class="section-label" style="color:var(--emerald)">How It Works</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <div class="card card-accent">
+      <div class="feat">
+        <div class="feat-icon">🏦</div>
+        <div class="feat-body">
+          <h4>Funds = Physical Accounts</h4>
+          <p>A Fund represents a real savings account (e.g. "Ally Savings"). You name it, give it a color, and log deposits as money moves in. The fund tracks your running balance.</p>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🎯</div>
+        <div class="feat-body">
+          <h4>Goals = Line Items Inside a Fund</h4>
+          <p>Goals live inside a fund — like buckets of money earmarked for specific purposes. Car registration, emergency fund, vacation — each is a separate goal with its own target and progress.</p>
+        </div>
+      </div>
+      <div class="feat" style="border:none;padding-bottom:0">
+        <div class="feat-icon">📊</div>
+        <div class="feat-body">
+          <h4>Fund Balance vs Goal Allocations</h4>
+          <p>Each fund shows total balance vs the sum of goal allocations. A progress bar turns red if your goals exceed what's in the account.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent-teal">
+      <div style="margin-bottom:12px">
+        <div class="section-label" style="color:var(--teal);font-size:9px">Two Goal Types</div>
+        <div class="two-col">
+          <div class="goal-type">
+            <span class="pill pill-emerald">Accumulation</span>
+            <h4>Manual savings</h4>
+            <p>You control contributions. Use for:</p>
+            <ul>
+              <li>Emergency fund</li>
+              <li>Vacation</li>
+              <li>Down payment</li>
+            </ul>
+          </div>
+          <div class="goal-type">
+            <span class="pill pill-teal">Sinking Fund</span>
+            <h4>Predictable bills</h4>
+            <p>Tied to a known recurring expense. App calculates required monthly contribution. Use for:</p>
+            <ul>
+              <li>Car registration</li>
+              <li>Home insurance</li>
+              <li>Annual subscriptions</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="tip">
+        <strong>Monthly contribution is calculated automatically:</strong> (Target − Saved) ÷ Months until due date. You can override it if you want to contribute more or less.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Setup Steps -->
+  <div class="section-label" style="color:var(--emerald)">Getting Started</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(16,185,129,.2);color:var(--emerald)">1</div>
+        <div class="step-body">
+          <h3>Create Your First Fund</h3>
+          <p>Tap <strong>+ Add Fund</strong> at the bottom of the screen. Give it a name (e.g. "Sinking Fund Account"), an optional account nickname (e.g. "Ally Savings"), and a color. The fund is your container — goals go inside it.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(16,185,129,.2);color:var(--emerald)">2</div>
+        <div class="step-body">
+          <h3>Add a Goal Inside the Fund</h3>
+          <p>Tap <strong>+ Add Goal</strong> inside a fund card. Choose Accumulation or Sinking Fund, set a target amount, and add a due date. For sinking funds, the app shows you the required monthly contribution automatically.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(16,185,129,.2);color:var(--emerald)">3</div>
+        <div class="step-body">
+          <h3>Log a Deposit to the Fund</h3>
+          <p>When you transfer money into your savings account, tap <strong>+ Log Deposit</strong> on the fund card. Enter the amount and an optional note. The fund balance updates immediately.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-accent">
+      <div class="step">
+        <div class="step-num" style="background:rgba(16,185,129,.2);color:var(--emerald)">4</div>
+        <div class="step-body">
+          <h3>Log a Contribution to a Goal</h3>
+          <p>When you allocate part of a deposit toward a specific goal, tap <strong>Log Contribution</strong> on the goal row. This tracks how much of your fund is earmarked for each goal and updates the progress bar.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SpendingTracker Handoff -->
+  <div class="section-label" style="color:var(--teal)">SpendingTracker Integration</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <div class="card card-accent-teal">
+      <div class="feat">
+        <div class="feat-icon">💡</div>
+        <div class="feat-body">
+          <h4>Automatic Sinking Fund Suggestions</h4>
+          <p>On first run, Savings scans your SpendingTracker transactions for recurring annual or irregular expenses (marked with the recurrence tags you set). It groups them and suggests them as sinking fund goals — one tap to add.</p>
+        </div>
+      </div>
+      <div class="tip" style="margin-top:12px">
+        <strong>To get better suggestions:</strong> In SpendingTracker, edit your recurring bills (car insurance, registration, etc.) and set their Recurrence Type to Annual, Quarterly, or Semi-Annual. Savings reads these tags.
+      </div>
+    </div>
+
+    <div class="card card-accent-teal">
+      <div class="feat">
+        <div class="feat-icon">✅</div>
+        <div class="feat-body">
+          <h4>Mark as Paid Detection</h4>
+          <p>When a sinking fund bill shows up in your SpendingTracker transactions, Savings detects it on load and prompts you: <em>"Looks like Car Registration was paid — mark as paid and reset cycle?"</em></p>
+        </div>
+      </div>
+      <div class="feat" style="border:none;padding-bottom:0">
+        <div class="feat-icon">🔄</div>
+        <div class="feat-body">
+          <h4>Cycle Reset</h4>
+          <p>Confirming the payment resets the goal's progress to zero and records the pay date. The monthly contribution recalculates automatically for the next cycle.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Alerts -->
+  <div class="section-label" style="color:var(--amber)">Alert System</div>
+  <div class="grid" style="margin-bottom:16px">
+    <div class="card card-accent-amber">
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:12px">When a goal has a due date within 30 days, an alert banner appears at the top of the app:</p>
+      <div class="alert-row alert-green">
+        <span style="font-size:16px">✅</span>
+        <div><strong>Car Registration</strong> is fully funded and due in 12 days. You're ready to pay.</div>
+      </div>
+      <div class="alert-row alert-amber">
+        <span style="font-size:16px">⚠️</span>
+        <div><strong>Home Insurance</strong> is due in 18 days — <strong>$240 short</strong>. Consider making an extra contribution.</div>
+      </div>
+      <div class="tip tip-amber" style="margin-top:8px">
+        <strong>No action needed to set up alerts.</strong> They appear automatically based on goal due dates. No extra storage keys or configuration required.
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup -->
+  <div class="section-label" style="color:var(--emerald)">Backup &amp; Restore</div>
+  <div class="grid grid-2" style="margin-bottom:16px">
+
+    <div class="card">
+      <div class="feat">
+        <div class="feat-icon">💾</div>
+        <div class="feat-body">
+          <h4>JSON Full Backup</h4>
+          <p>Exports all funds and goals together in a single file. Use <strong>Restore Backup</strong> to reload — choose Replace (overwrites everything) or Merge (appends new records, skips duplicates by ID).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="feat">
+        <div class="feat-icon">📄</div>
+        <div class="feat-body">
+          <h4>CSV Export / Import</h4>
+          <p>Export funds and goals as separate CSV files — open in Excel or Google Sheets. Import CSVs back in with the same Replace or Merge options. Useful for bulk edits outside the app.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Tips -->
+  <div class="section-label" style="color:var(--emerald)">Tips</div>
+  <div class="grid grid-3" style="margin-bottom:40px">
+
+    <div class="card">
+      <div class="feat-icon" style="font-size:24px;margin-bottom:8px">🏦</div>
+      <h4 style="font-size:13px;font-weight:700;margin-bottom:6px">One fund, many goals</h4>
+      <p style="font-size:11px;color:var(--tx2);line-height:1.55">You don't need a separate savings account for each goal. One sinking fund account can hold multiple goals — just keep the total allocations under the fund balance.</p>
+    </div>
+
+    <div class="card">
+      <div class="feat-icon" style="font-size:24px;margin-bottom:8px">📅</div>
+      <h4 style="font-size:13px;font-weight:700;margin-bottom:6px">Set due dates early</h4>
+      <p style="font-size:11px;color:var(--tx2);line-height:1.55">Even rough due dates (e.g. December for annual bills) give the app enough signal to calculate a monthly contribution and fire alerts. You can refine them anytime.</p>
+    </div>
+
+    <div class="card">
+      <div class="feat-icon" style="font-size:24px;margin-bottom:8px">🔗</div>
+      <h4 style="font-size:13px;font-weight:700;margin-bottom:6px">Tag bills in SpendingTracker first</h4>
+      <p style="font-size:11px;color:var(--tx2);line-height:1.55">Before setting up Savings, go to SpendingTracker and tag your recurring annual/quarterly bills with a Recurrence Type. Savings will auto-suggest them as sinking fund goals on first load.</p>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

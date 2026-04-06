@@ -74,16 +74,91 @@
   <div class="header">
     <div class="badge">📋 Release Notes</div>
     <h1>What's <span>New</span></h1>
-    <p>Latest updates across the Financial Freedom Platform. March 2026.</p>
+    <p>Latest updates across the Financial Freedom Platform. April 2026.</p>
   </div>
 
   <!-- Jump links -->
   <div class="nav-pills">
-    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.4</a>
-    <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.1</a>
-    <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.4</a>
+    <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.0</a>
+    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.6</a>
+    <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.2</a>
+    <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.5</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
     <a href="#loan-tracker" class="nav-pill">🏦 LoanTracker v1.2</a>
+  </div>
+
+  <!-- ── Savings Module ── -->
+  <div class="module-section" id="savings-module">
+    <div class="module-header">
+      <div class="module-icon" style="background:linear-gradient(135deg,#10b981,#06b6d4)">🏦</div>
+      <div>
+        <div class="module-name">Savings Module</div>
+        <div class="module-version">v1.0</div>
+      </div>
+      <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-new">🆕 New Module — v1.0</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Fund + goal two-layer model</h4>
+            <p>A Fund represents a physical savings account. Goals live inside it as named line items — each with its own target amount, progress bar, and due date. One account can hold multiple goals (car registration, home insurance, vacation) without needing separate bank accounts.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Two goal types — Accumulation and Sinking Fund</h4>
+            <p>Accumulation goals are for open-ended saving toward a target (emergency fund, down payment). Sinking fund goals are for predictable recurring expenses — the app calculates the exact monthly contribution needed based on target amount and due date.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Calculated monthly contribution</h4>
+            <p>For any goal with a due date, the app shows the required monthly contribution: (target − saved) ÷ months remaining. You can override it with a custom amount — the calculated value stays visible as a reference so you always know if you're on track.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>30-day alert system</h4>
+            <p>When a goal's due date is within 30 days, an alert banner appears automatically at the top of the app. Green if you're fully funded and ready to pay. Amber if you're short — with the exact shortfall amount so you know what to transfer before the bill hits.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--teal)"></div>
+          <div class="change-body">
+            <h4>SpendingTracker integration — automatic suggestions</h4>
+            <p>On first load, Savings scans your SpendingTracker transactions for recurring annual and irregular expenses (tagged with Recurrence Type). It groups them by pattern and suggests them as sinking fund goals — one tap to add with the target amount and category pre-filled.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--teal)"></div>
+          <div class="change-body">
+            <h4>Mark-as-paid detection</h4>
+            <p>When a sinking fund bill shows up in SpendingTracker, Savings detects it automatically on load and prompts you to mark the goal as paid. Confirming resets the goal's progress to zero and restarts the accumulation cycle — no manual reset needed.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Deposit and contribution logging</h4>
+            <p>Log deposits at the fund level as money moves into your account. Log contributions per goal to track how much of the fund is allocated toward each target. Fund balance and goal progress update immediately.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>JSON + CSV backup and restore</h4>
+            <p>Full JSON backup exports funds and goals together. CSV export produces separate files for funds and goals — open in Excel or Google Sheets. Both formats support Replace or Merge on import.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ── SpendingTracker ── -->
@@ -92,7 +167,7 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#f97316,#f59e0b)">📊</div>
       <div>
         <div class="module-name">SpendingTracker</div>
-        <div class="module-version">v1.4</div>
+        <div class="module-version">v1.6</div>
       </div>
       <div class="module-date">April 2026</div>
     </div>
@@ -344,7 +419,7 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#10b981,#6366f1)">💰</div>
       <div>
         <div class="module-name">IncomeTracker</div>
-        <div class="module-version">v1.1</div>
+        <div class="module-version">v1.2</div>
       </div>
       <div class="module-date">April 2026</div>
     </div>
@@ -445,7 +520,7 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)">⚡</div>
       <div>
         <div class="module-name">DebtTracker</div>
-        <div class="module-version">v1.4</div>
+        <div class="module-version">v1.5</div>
       </div>
       <div class="module-date">April 2026</div>
     </div>
