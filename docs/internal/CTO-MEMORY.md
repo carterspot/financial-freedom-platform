@@ -1,7 +1,7 @@
 # CTO Memory — Financial Freedom Platform
 **Location:** `docs/internal/CTO-MEMORY.md`  
 **Purpose:** Bootstraps CTO identity and project context in a cold Claude Code session.  
-**Updated:** 2026-04-03  
+**Updated:** 2026-04-06  
 **Read this file + docs/internal/ffp-cto-SKILL.md + docs/project-instruction.md at every CTO session start.**
 
 ---
@@ -42,9 +42,9 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 ### Live Modules — GitHub Pages
 | Module | Version | File | URL |
 |--------|---------|------|-----|
-| DebtTracker | v1.4 | `modules/debt-tracker.jsx` | `.../debt/` |
-| IncomeTracker | v1.1 | `modules/income-tracker.jsx` | `.../income/` |
-| SpendingTracker | v1.4 | `modules/spending.jsx` | `.../spending/` |
+| DebtTracker | v1.5 | `modules/debt-tracker.jsx` | `.../debt/` |
+| IncomeTracker | v1.2 | `modules/income-tracker.jsx` | `.../income/` |
+| SpendingTracker | v1.6 | `modules/spending.jsx` | `.../spending/` |
 
 ### Deprecated (artifact URLs preserved, not promoted)
 | Module | Version | Status |
@@ -54,9 +54,11 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 
 **CT and LT are deprecated.** Do not propose fixes or features for them. Do not reference them as active modules.
 
+### In Progress
+- 🏦 Savings Module v1.0 — Code Clone building now (`docs/build-prompts/savings-v1.0-prompt.md`)
+
 ### Planned
-- 🏦 Savings Module — next build slot (blocked on DT v1.5 + clean week)
-- 📈 Retirement Module
+- 📈 Retirement Module — architecture not yet scoped
 - 💹 Investment Module — needs v1 scope doc before build slot
 - 🧠 AI Advisor — capstone, all modules must be stable first
 
@@ -109,31 +111,32 @@ Build via Vite → output to `docs/{module}/` → push → auto-deploys in ~60s.
 
 ### Module Filename Clarification
 ```
-modules/debt-tracker.jsx      ← DebtTracker (active)
-modules/spending.jsx           ← SpendingTracker (active, no -tracker suffix)
-modules/income-tracker.jsx     ← IncomeTracker (active)
-modules/income.jsx             ← 2-LINE STUB — rename to income-stub.jsx before Savings build
-modules/credit-card-tracker.jsx ← CardTracker (deprecated, do not touch)
-modules/loan-tracker.jsx       ← LoanTracker (deprecated, do not touch)
+modules/debt-tracker.jsx        ← DebtTracker (active)
+modules/spending.jsx             ← SpendingTracker (active, no -tracker suffix)
+modules/income-tracker.jsx       ← IncomeTracker (active)
+modules/income-stub.jsx          ← 2-LINE STUB — renamed from income.jsx (April 2026), ignore
+modules/savings.jsx              ← SavingsModule (building)
+modules/credit-card-tracker.jsx  ← CardTracker (deprecated, do not touch)
+modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 ```
 
 ---
 
-## Open Flags (as of 2026-04-03)
+## Open Flags (as of 2026-04-06)
 
-**🔴 Red — DebtTracker v1.5 bugs**
-- Loan card balance overflow on large values
-- Duplicate progress bars
-- vs tile not updating on method switch
-- Schedule tab active state stays highlighted on other tabs
-- AI spinner low contrast in dark mode
-- Schedule tab redesign pending (strategy tiles as selectors, ExtraLumpModal, AnalyzeModal, M2M filter)
-Blocked on: v1.5 must ship + clean week before Savings build starts
+**🟢 Resolved since last update**
+- ✅ income.jsx → income-stub.jsx — done (April 2026)
+- ✅ recurrenceType UI gap — closed, SpendingTracker v1.5 ships full recurrence tagging
+- ✅ UI consistency pass — DebtTracker v1.5, IncomeTracker v1.2, SpendingTracker v1.6 all standardized (floppy icon, toolbar order, Restore Backup label, CSV import/export, profile panel)
+- ✅ Savings Module architecture decisions locked and documented in PI
 
-**🟡 Amber — income.jsx stub rename**
-- `modules/income.jsx` is a 2-line placeholder that will confuse Code if targeted
-- One-line git commit: rename to `income-stub.jsx`
-- Must happen before any build that touches the `modules/` directory
+**🔨 Active**
+- Savings Module v1.0 — Code Clone building now
+
+**🟡 Amber — post-Savings ship tasks**
+- `docs/whats-new.html` — needs Savings v1.0 entry
+- `docs/savings-quickstart.html` — needs to be written
+- Savings deploy prompt — Vite build + push to `docs/savings/`
 
 **🟡 Amber — Cloudflare Worker no rollback documented**
 - Rollback plan not formally written in PI yet
@@ -142,7 +145,7 @@ Blocked on: v1.5 must ship + clean week before Savings build starts
 **🔵 Blue — Investment Module no v1 scope**
 - Added to roadmap but no scope boundary written
 - Must have a scope doc before getting a build slot
-- Owner: CTO + Claudette
+- Owner: CTO
 
 **🔵 Blue — Design System v2 needs update**
 - Cross-module audit completed April 3 (`docs/design-audit.md`)
@@ -150,6 +153,10 @@ Blocked on: v1.5 must ship + clean week before Savings build starts
 - `docs/design-system.md` needs canonical patterns updated to reflect current reality
 - Patterns to add: callClaude, probeApiKey, useBreakpoint, file upload import
 - Owner: CTO
+
+**🔵 Blue — Retirement Module architecture not yet scoped**
+- No scope doc, no build prompt
+- Next architecture session after Savings ships
 
 ---
 
@@ -212,14 +219,13 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 
 ## Next Up (in order)
 
-1. **income.jsx → income-stub.jsx** — one commit, any time
-2. **DebtTracker v1.5** — bug fixes + Schedule tab redesign (prompt ready to write)
-3. **Clean week on DT after v1.5** — Claudette signals go
-4. **SpendingTracker recurrenceType UI** — resolve before or during Savings build
-5. **Savings Module v1** — architecture pre-scoped in PI, build prompt not yet written
-6. **Design System v2 update** — design-system.md update with canonical patterns
-7. **Technical documentation** — project charter, formal tech spec, user guides
-8. **Investment Module v1 scope doc** — before it gets a build slot
+1. **Savings Module v1.0 ship** — Code building; deploy to `docs/savings/` when done
+2. **whats-new.html** — Savings v1.0 release notes entry
+3. **savings-quickstart.html** — user guide for Savings Module
+4. **Retirement Module v1** — architecture review + scope decisions + build prompt
+5. **Investment Module v1 scope doc** — before it gets a build slot
+6. **Design System v2 update** — design-system.md canonical patterns
+7. **AI Advisor** — capstone; all modules must be stable first
 
 ---
 
