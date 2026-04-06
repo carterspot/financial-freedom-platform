@@ -628,11 +628,67 @@ sav_goals_{profileId}    (shared) — array of goal objects
 
 ---
 
-## Module 7: Retirement Module (PLANNED)
+## Module 7: Retirement Module (PLANNED — v1.0 in build)
 
-Retirement readiness — balances, contribution rates, employer match, projections, "am I on track?"
+Retirement readiness — "Am I saving enough to retire at the age I want?"
 
-- Storage prefix: `ret_`
+### Architecture decisions (locked 2026-04-06)
+
+**Account types (all in v1):**
+401k · Roth 401k · Traditional IRA · Roth IRA · 403b · Pension · HSA · Social Security
+
+**Data model:** Snapshot — manual entry of current balance + contribution rate. No transaction history at v1. Connect to Income/Spending in a future version.
+
+**Projection assumptions — smart defaults + slider overrides:**
+- Expected annual return: 7% default (slider 1–15%)
+- Inflation rate: 3% default (slider 0–8%)
+- Salary growth rate: 3% default (slider 0–10%)
+- User always inputs: current age + target retirement age
+
+**Withdrawal plans — side-by-side comparison + lock one as active:**
+- 4% Rule (default/recommended) — nest egg = annual income × 25; withdraw 4%/year
+- 3.3% Rule (conservative) — for 35+ year retirements; nest egg = annual income × 30
+- 5% Rule (aggressive) — shorter retirements; nest egg = annual income × 20
+- Custom % — user-defined withdrawal rate
+User locks one plan as active → all projections and AI use locked plan as primary
+
+**Social Security:** User enters SSA.gov monthly estimate + claim age. Treated as guaranteed income — subtracted from nest egg gap. Shown separately in dashboard.
+
+**AI tab:** Yes, in v1 — retirement readiness assessment + top 3 recommendations.
+
+### Storage keys (Retirement Module)
+```
+ret_accounts_{profileId}     (shared) — array of account objects
+ret_profile_{profileId}      (shared) — { currentAge, retirementAge, annualSalary, targetMonthlyIncome, lockedPlan }
+ret_assumptions_{profileId}  (shared) — { returnRate, inflationRate, salaryGrowthRate }
+ret_ai_results_{profileId}   (shared) — saved AI analysis
+ret_dark                     (local)  — dark mode boolean
+cc_profiles                  (shared) — SHARED across all modules
+cc_active_profile            (shared) — SHARED across all modules
+cc_apikey                    (shared) — SHARED across all modules
+```
+
+### Account schema
+```json
+{
+  "id": "ret_acct_abc123",
+  "type": "401k",
+  "name": "Fidelity 401k",
+  "color": "#6366f1",
+  "currentBalance": "125000",
+  "contribType": "percent",
+  "contribRate": "6",
+  "employerMatch": "3",
+  "employerMatchLimit": "6",
+  "monthlyBenefit": "",
+  "estimatedMonthlyBenefit": "",
+  "ssBenefitAge": "67",
+  "notes": ""
+}
+```
+`type` values: `"401k" | "roth401k" | "ira" | "rothira" | "403b" | "pension" | "hsa" | "socialsecurity"`
+
+**Artifact:** `modules/retirement.jsx`
 
 ---
 
