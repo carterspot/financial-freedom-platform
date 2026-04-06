@@ -316,17 +316,17 @@ Every new module starts from this shell:
 ```jsx
 import { useState, useEffect, useRef } from "react";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// --- Constants ---
 const MODULE_PREFIX = "xxx_";  // change per module
-const API_URL = "https://api.anthropic.com/v1/messages";
+const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";  // NEVER api.anthropic.com directly
 const MODEL   = "claude-sonnet-4-20250514";
 const AVATAR_COLORS = ["#6366f1","#ec4899","#f97316","#10b981","#3b82f6","#8b5cf6","#f43f5e","#06b6d4"];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// --- Helpers ---
 const generateId  = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
 const fmt$        = (n) => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n||0);
 
-// ─── Theme ───────────────────────────────────────────────────────────────────
+// --- Theme ---
 function useTheme(dm) {
   return {
     bg: dm?"#020617":"#f1f5f9", panelBg: dm?"#0f172a":"#ffffff",
@@ -336,7 +336,7 @@ function useTheme(dm) {
   };
 }
 
-// ─── Storage ─────────────────────────────────────────────────────────────────
+// --- Storage ---
 let _cloudAvailable = null;
 async function probeCloudStorage() {
   if (_cloudAvailable !== null) return _cloudAvailable;
@@ -366,19 +366,24 @@ async function storeSet(key, value, shared=false) {
 }
 const hasCloudStorage = () => _cloudAvailable === true;
 
-// ─── AI ──────────────────────────────────────────────────────────────────────
+// --- AI ---
 async function callClaude(apiKey, body) {
-  const headers = { "Content-Type": "application/json" };
+  const headers = { "Content-Type":"application/json", "anthropic-version":"2023-06-01" };
   if (apiKey?.trim()) headers["x-api-key"] = apiKey.trim();
-  const res = await fetch(API_URL, { method:"POST", headers, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  return res;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(API_URL, { method:"POST", headers, body:JSON.stringify(body), signal:controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return res;
+  } catch(e) { clearTimeout(timeoutId); throw e; }
 }
 
-// ─── [Module-specific components go here] ────────────────────────────────────
+// --- Module-specific components go here ---
 
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
+// --- Main App ---
 export default function App() {
   const [loading, setLoading]   = useState(true);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("ffp_dark") !== "false");
@@ -430,3 +435,164 @@ export default function App() {
   );
 }
 ```
+
+---
+
+## Canonical Patterns
+
+These patterns are mandatory in every module. Copy exactly — do not improvise.
+
+### callClaude — AI API call
+
+**Never call `api.anthropic.com` directly** — CORS is blocked in all browser contexts.
+Always use the Cloudflare Worker proxy. Both headers are required; omitting `anthropic-version` causes silent failures.
+
+```javascript
+const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
+const MODEL   = "claude-sonnet-4-20250514";
+
+async function callClaude(apiKey, body) {
+  const headers = { "Content-Type":"application/json", "anthropic-version":"2023-06-01" };
+  if (apiKey?.trim()) headers["x-api-key"] = apiKey.trim();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(API_URL, { method:"POST", headers, body:JSON.stringify(body), signal:controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return res;
+  } catch(e) { clearTimeout(timeoutId); throw e; }
+}
+```
+
+Usage:
+```javascript
+const res = await callClaude(apiKey, {
+  model: MODEL, max_tokens: 1024,
+  messages: [{ role:"user", content: "..." }]
+});
+const data = await res.json();  // NEVER stream — always res.json()
+const text = data.content[0].text;
+```
+
+---
+
+### useBreakpoint — responsive layout
+
+**Never use `window.innerWidth` directly in `useState()`** — crashes the artifact renderer.
+Always use the lazy initializer guard.
+
+```javascript
+function useBreakpoint() {
+  const [w, setW] = useState(() => typeof window !== "undefined" ? window.innerWidth : 1280);
+  useEffect(() => {
+    const fn = () => setW(typeof window !== "undefined" ? window.innerWidth : 1280);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return { isMobile: w < 640, isTablet: w < 960, isDesktop: w >= 960 };
+}
+```
+
+---
+
+### API key probe — show/hide + status indicator
+
+```javascript
+// In component state
+const [apiKey, setApiKey] = useState("");
+const [apiKeyStatus, setApiKeyStatus] = useState("unknown"); // "valid" | "invalid" | "unknown"
+
+// Status dot in nav bar
+const statusColor = { valid:"#10b981", invalid:"#ef4444", unknown:"#f59e0b" }[apiKeyStatus];
+<span style={{ width:8, height:8, borderRadius:"50%", background:statusColor, display:"inline-block" }} />
+
+// Validate on save (lightweight — just check format)
+function saveApiKey(key) {
+  const trimmed = key.trim();
+  setApiKey(trimmed);
+  setApiKeyStatus(trimmed.startsWith("sk-ant-") ? "valid" : trimmed ? "invalid" : "unknown");
+  storeSet("cc_apikey", trimmed, true);
+}
+```
+
+---
+
+### File export — anchor pattern
+
+**Never use a detached anchor** — `a.click()` without appending to the DOM silently fails on some browsers.
+
+```javascript
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+// JSON export
+downloadFile(JSON.stringify(data, null, 2), "backup.json", "application/json");
+
+// CSV export
+const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${v}"`).join(","))].join("\n");
+downloadFile(csv, "export.csv", "text/csv");
+```
+
+---
+
+### File import — CSV + JSON via file input
+
+```javascript
+// File input (hidden, triggered by button click)
+const fileRef = useRef(null);
+
+<input
+  ref={fileRef}
+  type="file"
+  accept=".json,.csv"
+  style={{ display:"none" }}
+  onChange={e => handleFileImport(e.target.files[0])}
+/>
+<button onClick={() => fileRef.current?.click()}>Import</button>
+
+// Handler
+function handleFileImport(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      if (file.name.endsWith(".json")) {
+        const data = JSON.parse(e.target.result);
+        // show Replace or Merge modal
+        setPendingImport(data);
+        setShowImportModal(true);
+      } else if (file.name.endsWith(".csv")) {
+        const lines = e.target.result.split("\n").filter(l => l.trim());
+        const headers = lines[0].split(",").map(h => h.replace(/"/g,"").trim());
+        const rows = lines.slice(1).map(line => {
+          const vals = line.split(",").map(v => v.replace(/"/g,"").trim());
+          return Object.fromEntries(headers.map((h, i) => [h, vals[i] ?? ""]));
+        });
+        setPendingImport(rows);
+        setShowImportModal(true);
+      }
+    } catch { /* show error state */ }
+    e.target.value = ""; // reset so same file can be re-selected
+  };
+  reader.readAsText(file);
+}
+```
+
+**Replace or Merge modal pattern:**
+- **Replace**: `storeSet(key, importedData, true)`
+- **Merge**: dedup by `id`, append new records only:
+  ```javascript
+  const existing = await storeGet(key, true) || [];
+  const existingIds = new Set(existing.map(r => r.id));
+  const merged = [...existing, ...importedData.filter(r => !existingIds.has(r.id))];
+  storeSet(key, merged, true);
+  ```
