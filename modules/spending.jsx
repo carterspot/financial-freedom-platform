@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// SpendingTracker v1.6
+// SpendingTracker v1.8
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MODULE_PREFIX = "sp_";
 const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
@@ -22,85 +22,94 @@ const ACCOUNT_TYPES = ["Checking","Savings","Credit Card","Cash","Other"];
 // ─── Default Categories ───────────────────────────────────────────────────────
 const DEFAULT_CATEGORIES = [
   // Income
-  { id:"inc_001", name:"Paycheck / Salary",    section:"Income",        icon:"💵", color:"#10b981" },
-  { id:"inc_002", name:"Freelance / Side Income", section:"Income",     icon:"💻", color:"#10b981" },
-  { id:"inc_003", name:"Investment Income",    section:"Income",        icon:"📈", color:"#10b981" },
-  { id:"inc_004", name:"Transfer In",          section:"Income",        icon:"🔄", color:"#10b981" },
-  { id:"inc_005", name:"Other Income",         section:"Income",        icon:"💰", color:"#10b981" },
+  { id:"inc_001", name:"Paycheck / Salary",    section:"Income",        icon:"💵", color:"#10b981", isEssential:false },
+  { id:"inc_002", name:"Freelance / Side Income", section:"Income",     icon:"💻", color:"#10b981", isEssential:false },
+  { id:"inc_003", name:"Investment Income",    section:"Income",        icon:"📈", color:"#10b981", isEssential:false },
+  { id:"inc_004", name:"Transfer In",          section:"Income",        icon:"🔄", color:"#10b981", isEssential:false },
+  { id:"inc_005", name:"Other Income",         section:"Income",        icon:"💰", color:"#10b981", isEssential:false },
   // Housing
-  { id:"exp_001", name:"Rent / Mortgage",      section:"Housing",       icon:"🏠", color:"#6366f1" },
-  { id:"exp_002", name:"HOA Fees",             section:"Housing",       icon:"🏘", color:"#6366f1" },
-  { id:"exp_003", name:"Home Maintenance",     section:"Housing",       icon:"🔧", color:"#6366f1" },
-  { id:"exp_004", name:"Home Insurance",       section:"Housing",       icon:"🛡", color:"#6366f1" },
-  { id:"exp_005", name:"Property Tax",         section:"Housing",       icon:"🏛", color:"#6366f1" },
+  { id:"exp_001", name:"Rent / Mortgage",      section:"Housing",       icon:"🏠", color:"#6366f1", isEssential:true },
+  { id:"exp_002", name:"HOA Fees",             section:"Housing",       icon:"🏘", color:"#6366f1", isEssential:true },
+  { id:"exp_003", name:"Home Maintenance",     section:"Housing",       icon:"🔧", color:"#6366f1", isEssential:false },
+  { id:"exp_004", name:"Home Insurance",       section:"Housing",       icon:"🛡", color:"#6366f1", isEssential:true },
+  { id:"exp_005", name:"Property Tax",         section:"Housing",       icon:"🏛", color:"#6366f1", isEssential:true },
   // Food
-  { id:"exp_006", name:"Groceries",            section:"Food",          icon:"🛒", color:"#f97316" },
-  { id:"exp_007", name:"Restaurants / Dining", section:"Food",          icon:"🍽", color:"#f97316" },
-  { id:"exp_008", name:"Coffee / Cafes",       section:"Food",          icon:"☕", color:"#f97316" },
-  { id:"exp_009", name:"Alcohol / Bars",       section:"Food",          icon:"🍺", color:"#f97316" },
+  { id:"exp_006", name:"Groceries",            section:"Food",          icon:"🛒", color:"#f97316", isEssential:true },
+  { id:"exp_007", name:"Restaurants / Dining", section:"Food",          icon:"🍽", color:"#f97316", isEssential:false },
+  { id:"exp_008", name:"Coffee / Cafes",       section:"Food",          icon:"☕", color:"#f97316", isEssential:false },
+  { id:"exp_009", name:"Alcohol / Bars",       section:"Food",          icon:"🍺", color:"#f97316", isEssential:false },
   // Transportation
-  { id:"exp_010", name:"Gas / Fuel",           section:"Transportation",icon:"⛽", color:"#ec4899" },
-  { id:"exp_011", name:"Car Payment",          section:"Transportation",icon:"🚗", color:"#ec4899" },
-  { id:"exp_012", name:"Car Insurance",        section:"Transportation",icon:"🛡", color:"#ec4899" },
-  { id:"exp_013", name:"Car Maintenance",      section:"Transportation",icon:"🔧", color:"#ec4899" },
-  { id:"exp_014", name:"Parking / Tolls",      section:"Transportation",icon:"🅿", color:"#ec4899" },
-  { id:"exp_015", name:"Public Transit / Rideshare", section:"Transportation", icon:"🚌", color:"#ec4899" },
+  { id:"exp_010", name:"Gas / Fuel",           section:"Transportation",icon:"⛽", color:"#ec4899", isEssential:true },
+  { id:"exp_011", name:"Car Payment",          section:"Transportation",icon:"🚗", color:"#ec4899", isEssential:true },
+  { id:"exp_012", name:"Car Insurance",        section:"Transportation",icon:"🛡", color:"#ec4899", isEssential:true },
+  { id:"exp_013", name:"Car Maintenance",      section:"Transportation",icon:"🔧", color:"#ec4899", isEssential:false },
+  { id:"exp_014", name:"Parking / Tolls",      section:"Transportation",icon:"🅿", color:"#ec4899", isEssential:false },
+  { id:"exp_015", name:"Public Transit / Rideshare", section:"Transportation", icon:"🚌", color:"#ec4899", isEssential:false },
   // Utilities
-  { id:"exp_016", name:"Electric",             section:"Utilities",     icon:"⚡", color:"#f59e0b" },
-  { id:"exp_017", name:"Water / Sewer",        section:"Utilities",     icon:"💧", color:"#f59e0b" },
-  { id:"exp_018", name:"Gas / Heat",           section:"Utilities",     icon:"🔥", color:"#f59e0b" },
-  { id:"exp_019", name:"Internet",             section:"Utilities",     icon:"📶", color:"#f59e0b" },
-  { id:"exp_020", name:"Phone / Mobile",       section:"Utilities",     icon:"📱", color:"#f59e0b" },
+  { id:"exp_016", name:"Electric",             section:"Utilities",     icon:"⚡", color:"#f59e0b", isEssential:true },
+  { id:"exp_017", name:"Water / Sewer",        section:"Utilities",     icon:"💧", color:"#f59e0b", isEssential:true },
+  { id:"exp_018", name:"Gas / Heat",           section:"Utilities",     icon:"🔥", color:"#f59e0b", isEssential:true },
+  { id:"exp_019", name:"Internet",             section:"Utilities",     icon:"📶", color:"#f59e0b", isEssential:true },
+  { id:"exp_020", name:"Phone / Mobile",       section:"Utilities",     icon:"📱", color:"#f59e0b", isEssential:true },
   // Health
-  { id:"exp_021", name:"Health Insurance",     section:"Health",        icon:"🏥", color:"#06b6d4" },
-  { id:"exp_022", name:"Doctor / Medical",     section:"Health",        icon:"👨‍⚕️", color:"#06b6d4" },
-  { id:"exp_023", name:"Pharmacy / Rx",        section:"Health",        icon:"💊", color:"#06b6d4" },
-  { id:"exp_024", name:"Dental / Vision",      section:"Health",        icon:"🦷", color:"#06b6d4" },
-  { id:"exp_025", name:"Gym / Fitness",        section:"Health",        icon:"💪", color:"#06b6d4" },
+  { id:"exp_021", name:"Health Insurance",     section:"Health",        icon:"🏥", color:"#06b6d4", isEssential:true },
+  { id:"exp_022", name:"Doctor / Medical",     section:"Health",        icon:"👨‍⚕️", color:"#06b6d4", isEssential:true },
+  { id:"exp_023", name:"Pharmacy / Rx",        section:"Health",        icon:"💊", color:"#06b6d4", isEssential:true },
+  { id:"exp_024", name:"Dental / Vision",      section:"Health",        icon:"🦷", color:"#06b6d4", isEssential:false },
+  { id:"exp_025", name:"Gym / Fitness",        section:"Health",        icon:"💪", color:"#06b6d4", isEssential:false },
   // Personal
-  { id:"exp_026", name:"Clothing / Apparel",   section:"Personal",      icon:"👕", color:"#8b5cf6" },
-  { id:"exp_027", name:"Hair / Grooming",      section:"Personal",      icon:"✂️", color:"#8b5cf6" },
-  { id:"exp_028", name:"Personal Care",        section:"Personal",      icon:"🧴", color:"#8b5cf6" },
-  { id:"exp_029", name:"Education / Books",    section:"Personal",      icon:"📚", color:"#8b5cf6" },
+  { id:"exp_026", name:"Clothing / Apparel",   section:"Personal",      icon:"👕", color:"#8b5cf6", isEssential:false },
+  { id:"exp_027", name:"Hair / Grooming",      section:"Personal",      icon:"✂️", color:"#8b5cf6", isEssential:false },
+  { id:"exp_028", name:"Personal Care",        section:"Personal",      icon:"🧴", color:"#8b5cf6", isEssential:false },
+  { id:"exp_029", name:"Education / Books",    section:"Personal",      icon:"📚", color:"#8b5cf6", isEssential:false },
   // Entertainment
-  { id:"exp_030", name:"Streaming Services",   section:"Entertainment", icon:"📺", color:"#3b82f6" },
-  { id:"exp_031", name:"Games / Hobbies",      section:"Entertainment", icon:"🎮", color:"#3b82f6" },
-  { id:"exp_032", name:"Movies / Events",      section:"Entertainment", icon:"🎬", color:"#3b82f6" },
-  { id:"exp_033", name:"Subscriptions",        section:"Entertainment", icon:"🔔", color:"#3b82f6" },
+  { id:"exp_030", name:"Streaming Services",   section:"Entertainment", icon:"📺", color:"#3b82f6", isEssential:false },
+  { id:"exp_031", name:"Games / Hobbies",      section:"Entertainment", icon:"🎮", color:"#3b82f6", isEssential:false },
+  { id:"exp_032", name:"Movies / Events",      section:"Entertainment", icon:"🎬", color:"#3b82f6", isEssential:false },
+  { id:"exp_033", name:"Subscriptions",        section:"Entertainment", icon:"🔔", color:"#3b82f6", isEssential:false },
   // Shopping
-  { id:"exp_034", name:"Amazon / Online",      section:"Shopping",      icon:"📦", color:"#f43f5e" },
-  { id:"exp_035", name:"Electronics",          section:"Shopping",      icon:"💻", color:"#f43f5e" },
-  { id:"exp_036", name:"Home Goods",           section:"Shopping",      icon:"🛋", color:"#f43f5e" },
-  { id:"exp_037", name:"Gifts",                section:"Shopping",      icon:"🎁", color:"#f43f5e" },
+  { id:"exp_034", name:"Amazon / Online",      section:"Shopping",      icon:"📦", color:"#f43f5e", isEssential:false },
+  { id:"exp_035", name:"Electronics",          section:"Shopping",      icon:"💻", color:"#f43f5e", isEssential:false },
+  { id:"exp_036", name:"Home Goods",           section:"Shopping",      icon:"🛋", color:"#f43f5e", isEssential:false },
+  { id:"exp_037", name:"Gifts",                section:"Shopping",      icon:"🎁", color:"#f43f5e", isEssential:false },
   // Giving
-  { id:"exp_038", name:"Charitable Giving",    section:"Giving",        icon:"❤️", color:"#ef4444" },
-  { id:"exp_039", name:"Church / Tithe",       section:"Giving",        icon:"⛪", color:"#ef4444" },
-  { id:"exp_040", name:"Family Support",       section:"Giving",        icon:"👨‍👩‍👧", color:"#ef4444" },
+  { id:"exp_038", name:"Charitable Giving",    section:"Giving",        icon:"❤️", color:"#ef4444", isEssential:false },
+  { id:"exp_039", name:"Church / Tithe",       section:"Giving",        icon:"⛪", color:"#ef4444", isEssential:false },
+  { id:"exp_040", name:"Family Support",       section:"Giving",        icon:"👨‍👩‍👧", color:"#ef4444", isEssential:false },
   // Savings
-  { id:"exp_041", name:"Emergency Fund",       section:"Savings",       icon:"🏦", color:"#10b981" },
-  { id:"exp_042", name:"Sinking Fund",         section:"Savings",       icon:"🪣", color:"#10b981" },
-  { id:"exp_043", name:"Investment / Brokerage",section:"Savings",      icon:"📊", color:"#10b981" },
-  { id:"exp_044", name:"Retirement (401k/IRA)",section:"Savings",       icon:"🏖", color:"#10b981" },
+  { id:"exp_041", name:"Emergency Fund",       section:"Savings",       icon:"🏦", color:"#10b981", isEssential:false },
+  { id:"exp_042", name:"Sinking Fund",         section:"Savings",       icon:"🪣", color:"#10b981", isEssential:false },
+  { id:"exp_043", name:"Investment / Brokerage",section:"Savings",      icon:"📊", color:"#10b981", isEssential:false },
+  { id:"exp_044", name:"Retirement (401k/IRA)",section:"Savings",       icon:"🏖", color:"#10b981", isEssential:false },
   // Debt Payments
-  { id:"exp_045", name:"Credit Card Payment",  section:"Debt Payments", icon:"💳", color:"#ef4444" },
-  { id:"exp_046", name:"Student Loan",         section:"Debt Payments", icon:"🎓", color:"#ef4444" },
-  { id:"exp_047", name:"Personal Loan",        section:"Debt Payments", icon:"🏦", color:"#ef4444" },
+  { id:"exp_045", name:"Credit Card Payment",  section:"Debt Payments", icon:"💳", color:"#ef4444", isEssential:true },
+  { id:"exp_046", name:"Student Loan",         section:"Debt Payments", icon:"🎓", color:"#ef4444", isEssential:true },
+  { id:"exp_047", name:"Personal Loan",        section:"Debt Payments", icon:"🏦", color:"#ef4444", isEssential:true },
   // Kids
-  { id:"exp_048", name:"Childcare / Daycare",  section:"Kids",          icon:"👶", color:"#ec4899" },
-  { id:"exp_049", name:"School / Tuition",     section:"Kids",          icon:"🏫", color:"#ec4899" },
-  { id:"exp_050", name:"Kids Activities",      section:"Kids",          icon:"⚽", color:"#ec4899" },
-  { id:"exp_051", name:"Baby Supplies",        section:"Kids",          icon:"🧸", color:"#ec4899" },
+  { id:"exp_048", name:"Childcare / Daycare",  section:"Kids",          icon:"👶", color:"#ec4899", isEssential:true },
+  { id:"exp_049", name:"School / Tuition",     section:"Kids",          icon:"🏫", color:"#ec4899", isEssential:true },
+  { id:"exp_050", name:"Kids Activities",      section:"Kids",          icon:"⚽", color:"#ec4899", isEssential:false },
+  { id:"exp_051", name:"Baby Supplies",        section:"Kids",          icon:"🧸", color:"#ec4899", isEssential:true },
   // Travel
-  { id:"exp_052", name:"Flights",              section:"Travel",        icon:"✈️", color:"#06b6d4" },
-  { id:"exp_053", name:"Hotels / Lodging",     section:"Travel",        icon:"🏨", color:"#06b6d4" },
-  { id:"exp_054", name:"Vacation / Travel",    section:"Travel",        icon:"🏝", color:"#06b6d4" },
+  { id:"exp_052", name:"Flights",              section:"Travel",        icon:"✈️", color:"#06b6d4", isEssential:false },
+  { id:"exp_053", name:"Hotels / Lodging",     section:"Travel",        icon:"🏨", color:"#06b6d4", isEssential:false },
+  { id:"exp_054", name:"Vacation / Travel",    section:"Travel",        icon:"🏝", color:"#06b6d4", isEssential:false },
   // Business
-  { id:"exp_055", name:"Business Expense",     section:"Business",      icon:"💼", color:"#8b5cf6" },
-  { id:"exp_056", name:"Software / Tools",     section:"Business",      icon:"🛠", color:"#8b5cf6" },
+  { id:"exp_055", name:"Business Expense",     section:"Business",      icon:"💼", color:"#8b5cf6", isEssential:false },
+  { id:"exp_056", name:"Software / Tools",     section:"Business",      icon:"🛠", color:"#8b5cf6", isEssential:false },
   // Misc
-  { id:"exp_057", name:"Uncategorized",        section:"Misc",          icon:"❓", color:"#94a3b8" },
-  { id:"trn_001", name:"Transfer",             section:"Transfer",      icon:"↔️", color:"#94a3b8", type:"both", parentId:null, isDefault:true, hidden:false, alertEnabled:false, alertConfig:{}, sortOrder:57 },
+  { id:"exp_057", name:"Uncategorized",        section:"Misc",          icon:"❓", color:"#94a3b8", isEssential:false },
+  { id:"trn_001", name:"Transfer",             section:"Transfer",      icon:"↔️", color:"#94a3b8", type:"both", parentId:null, isDefault:true, hidden:false, alertEnabled:false, alertConfig:{}, sortOrder:57, isEssential:false },
 ];
+
+// IDs treated as essential cost-of-living — used by migration + baseline
+const ESSENTIAL_IDS = new Set([
+  "exp_001","exp_002","exp_004","exp_005","exp_006",
+  "exp_010","exp_011","exp_012","exp_016","exp_017",
+  "exp_018","exp_019","exp_020","exp_021","exp_022",
+  "exp_023","exp_045","exp_046","exp_047","exp_048",
+  "exp_049","exp_051"
+]);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -238,6 +247,34 @@ function computeRollingAvgIncome(transactions, categoryId, selectedMonth, months
     totals.push(total);
   }
   return totals.reduce((a, b) => a + b, 0) / months;
+}
+
+function computeBaseline(transactions, categories) {
+  const essentialIds = new Set(categories.filter(c => c.isEssential).map(c => c.id));
+  const now = new Date();
+  const months = [];
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+  }
+  const catTotals = {};
+  for (const tx of transactions) {
+    if (!tx.date || !tx.categoryId) continue;
+    if (!essentialIds.has(tx.categoryId)) continue;
+    if (tx.amount >= 0) continue;
+    const m = tx.date.slice(0,7);
+    if (!months.includes(m)) continue;
+    catTotals[tx.categoryId] = (catTotals[tx.categoryId] || 0) + Math.abs(tx.amount);
+  }
+  const breakdown = [];
+  for (const [catId, total] of Object.entries(catTotals)) {
+    const cat = categories.find(c => c.id === catId);
+    if (!cat) continue;
+    breakdown.push({ catId, catName: cat.name, icon: cat.icon, color: cat.color, avg: total / 3 });
+  }
+  breakdown.sort((a, b) => b.avg - a.avg);
+  const amount = breakdown.reduce((s, c) => s + c.avg, 0);
+  return { amount, breakdown, calculatedOn: new Date().toISOString(), monthsUsed: months };
 }
 
 // ─── Range helpers ────────────────────────────────────────────────────────────
@@ -1987,8 +2024,233 @@ function RollupPanel({ t, transactions, range, onNavigateMonth }) {
   );
 }
 
+// ─── EssentialTagsModal ───────────────────────────────────────────────────────
+function EssentialTagsModal({ t, categories, onUpdateCategories, onRecalcBaseline, onClose }) {
+  const taggable = categories.filter(c => c.section !== "Income" && c.id !== "trn_001");
+  function toggle(catId) {
+    const updated = categories.map(c => c.id === catId ? { ...c, isEssential: !c.isEssential } : c);
+    onUpdateCategories(updated);
+    onRecalcBaseline(updated);
+  }
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16 }}>
+      <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:18,padding:24,width:"100%",maxWidth:520,maxHeight:"80vh",display:"flex",flexDirection:"column",gap:0 }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
+          <div style={{ fontWeight:700,fontSize:15,color:t.tx1 }}>Edit Essential Tags</div>
+          <button onClick={onClose} style={{ background:"transparent",border:"none",color:t.tx2,cursor:"pointer",fontSize:20,lineHeight:1,padding:"0 4px" }}>×</button>
+        </div>
+        <div style={{ fontSize:12,color:t.tx2,marginBottom:12 }}>Toggle which categories count toward your minimum cost of living baseline.</div>
+        <div style={{ overflowY:"auto",flex:1 }}>
+          {taggable.map(c => (
+            <div key={c.id} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 4px",borderBottom:`1px solid ${t.border}` }}>
+              <span style={{ fontSize:13,color:t.tx1 }}>{c.icon} {c.name}</span>
+              <button onClick={() => toggle(c.id)} style={{
+                background: c.isEssential ? "#10b981" : t.surf,
+                color: c.isEssential ? "#fff" : t.tx2,
+                border: `1px solid ${c.isEssential ? "#10b981" : t.border2}`,
+                borderRadius: 20, padding: "3px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600,
+              }}>{c.isEssential ? "Essential" : "Discretionary"}</button>
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose} style={{ marginTop:16,background:COLOR.primary,border:"none",borderRadius:10,padding:"10px 0",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer" }}>Done</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── AiTagModal ───────────────────────────────────────────────────────────────
+function AiTagModal({ t, categories, apiKey, onUpdateCategories, onRecalcBaseline, onClose }) {
+  const [stage, setStage] = useState("confirm"); // "confirm" | "loading" | "review" | "error"
+  const [suggestions, setSuggestions] = useState([]);
+  const [selected, setSelected] = useState(new Set());
+  const [errMsg, setErrMsg] = useState(null);
+
+  async function runAnalysis() {
+    if (!apiKey) { setErrMsg("No API key configured."); setStage("error"); return; }
+    setStage("loading");
+    try {
+      const taggable = categories.filter(c => c.section !== "Income" && c.id !== "trn_001");
+      const systemPrompt = `You are a personal finance assistant. The user has a list of spending categories. Your job is to classify each one as "essential" (minimum cost of living — housing, utilities, food, insurance, required debt payments) or "discretionary" (nice-to-have, reducible in a financial emergency). Return ONLY a JSON array. No explanation. Format: [{"id":"exp_001","essential":true}, ...]`;
+      const userPrompt = `Classify these spending categories:\n${taggable.map(c => `{"id":"${c.id}","name":"${c.name}","section":"${c.section}"}`).join("\n")}`;
+      const res = await callClaude(apiKey, {
+        model: MODEL, max_tokens: 1500,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }]
+      });
+      const data = await res.json();
+      const text = data?.content?.[0]?.text || "";
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("no JSON array in response");
+      const parsed = JSON.parse(jsonMatch[0]);
+      const diffs = parsed.filter(item => {
+        const cat = categories.find(c => c.id === item.id);
+        return cat && cat.isEssential !== item.essential;
+      }).map(item => {
+        const cat = categories.find(c => c.id === item.id);
+        return { id: item.id, name: cat.name, icon: cat.icon, current: cat.isEssential, suggested: item.essential };
+      });
+      setSuggestions(diffs);
+      setSelected(new Set(diffs.map(d => d.id)));
+      setStage("review");
+    } catch(e) {
+      setErrMsg(e.message.includes("no JSON") ? "Couldn't parse AI response. Try again." : `AI error: ${e.message}`);
+      setStage("error");
+    }
+  }
+
+  function applySelected() {
+    const updated = categories.map(c => {
+      const s = suggestions.find(d => d.id === c.id && selected.has(c.id));
+      return s ? { ...c, isEssential: s.suggested } : c;
+    });
+    onUpdateCategories(updated);
+    onRecalcBaseline(updated);
+    onClose();
+  }
+
+  if (stage === "confirm") return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16 }}>
+      <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:18,padding:28,width:"100%",maxWidth:420 }}>
+        <div style={{ fontWeight:700,fontSize:15,color:t.tx1,marginBottom:10 }}>Let AI review your categories</div>
+        <div style={{ fontSize:13,color:t.tx2,marginBottom:20,lineHeight:1.6 }}>Claude will look at your category names and suggest which ones are essential (minimum cost of living) vs. discretionary. You review and confirm before anything changes.</div>
+        <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
+          <button onClick={onClose} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:9,padding:"8px 20px",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Cancel</button>
+          <button onClick={runAnalysis} style={{ background:COLOR.primary,border:"none",borderRadius:9,padding:"8px 20px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13 }}>Analyze My Categories</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (stage === "loading") return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400 }}>
+      <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:18,padding:36,display:"flex",flexDirection:"column",alignItems:"center",gap:16 }}>
+        <div style={{ width:36,height:36,border:"3px solid #6366f1",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite" }} />
+        <div style={{ color:t.tx2,fontSize:13 }}>Analyzing categories…</div>
+      </div>
+    </div>
+  );
+
+  if (stage === "error") return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16 }}>
+      <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:18,padding:28,width:"100%",maxWidth:380 }}>
+        <div style={{ color:COLOR.danger,fontWeight:700,marginBottom:12 }}>{errMsg}</div>
+        <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
+          <button onClick={onClose} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:9,padding:"8px 20px",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Close</button>
+          <button onClick={() => setStage("confirm")} style={{ background:COLOR.primary,border:"none",borderRadius:9,padding:"8px 20px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13 }}>Try Again</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // stage === "review"
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:16 }}>
+      <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:18,padding:24,width:"100%",maxWidth:560,maxHeight:"80vh",display:"flex",flexDirection:"column" }}>
+        <div style={{ fontWeight:700,fontSize:15,color:t.tx1,marginBottom:4 }}>Review AI Suggestions</div>
+        <div style={{ fontSize:12,color:t.tx2,marginBottom:12 }}>{suggestions.length} change{suggestions.length!==1?"s":""} suggested — select which to apply</div>
+        {suggestions.length === 0 ? (
+          <div style={{ color:t.tx2,fontSize:13,padding:"16px 0" }}>No changes suggested — your tags look good!</div>
+        ) : (
+          <div style={{ overflowY:"auto",flex:1,marginBottom:12 }}>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr auto auto",gap:"6px 12px",fontSize:12,color:t.tx3,fontWeight:700,padding:"4px 4px 8px",borderBottom:`1px solid ${t.border}` }}>
+              <span>Category</span><span>Current</span><span>AI Suggests</span>
+            </div>
+            {suggestions.map(s => (
+              <div key={s.id} onClick={() => setSelected(sel => { const n = new Set(sel); n.has(s.id)?n.delete(s.id):n.add(s.id); return n; })}
+                style={{ display:"grid",gridTemplateColumns:"1fr auto auto",gap:"6px 12px",alignItems:"center",padding:"8px 4px",borderBottom:`1px solid ${t.border}`,cursor:"pointer",background:selected.has(s.id)?COLOR.primary+"12":"transparent" }}>
+                <span style={{ fontSize:13,color:t.tx1 }}><input type="checkbox" readOnly checked={selected.has(s.id)} style={{ accentColor:COLOR.primary,marginRight:8,pointerEvents:"none" }} />{s.icon} {s.name}</span>
+                <span style={{ fontSize:11,color:s.current?"#10b981":t.tx3,fontWeight:600 }}>{s.current?"Essential":"Discret."}</span>
+                <span style={{ fontSize:11,color:s.suggested?"#10b981":t.tx3,fontWeight:700 }}>→ {s.suggested?"Essential":"Discret."}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap" }}>
+          <button onClick={onClose} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:9,padding:"8px 16px",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Cancel</button>
+          {suggestions.length > 0 && (
+            <>
+              <button onClick={() => setSelected(new Set(suggestions.map(s=>s.id)))} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:9,padding:"8px 16px",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>Select All</button>
+              <button onClick={applySelected} disabled={selected.size===0} style={{ background:selected.size>0?COLOR.primary:"#334155",border:"none",borderRadius:9,padding:"8px 16px",color:"#fff",cursor:selected.size>0?"pointer":"default",fontWeight:700,fontSize:13 }}>Apply {selected.size > 0 ? `(${selected.size})` : ""}</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── BaselinePanel ────────────────────────────────────────────────────────────
+function BaselinePanel({ t, transactions, categories, apiKey, onUpdateCategories, onRecalcBaseline }) {
+  const [showTags, setShowTags]   = useState(false);
+  const [showAi, setShowAi]       = useState(false);
+  const [expanded, setExpanded]   = useState(false);
+
+  const baseline = computeBaseline(transactions, categories);
+  const { amount, breakdown } = baseline;
+  const top5 = breakdown.slice(0, 5);
+  const rest = breakdown.slice(5);
+
+  return (
+    <div style={{ background:t.panelBg,border:`1px solid ${"#10b981"}44`,borderRadius:14,padding:16,marginBottom:16 }}>
+      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8,marginBottom:amount>0?14:0 }}>
+        <div>
+          <div style={{ fontSize:11,color:"#10b981",fontWeight:700,letterSpacing:0.5 }}>BASELINE MONTHLY EXPENSES</div>
+          <div style={{ fontSize:10,color:t.tx3,marginTop:1 }}>Estimated minimum cost of living · 3-month rolling avg · essential categories</div>
+        </div>
+        <div style={{ display:"flex",gap:8 }}>
+          <button onClick={() => setShowTags(true)} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"5px 12px",color:t.tx1,cursor:"pointer",fontSize:12,fontWeight:600 }}>Edit Essential Tags</button>
+          <button onClick={() => setShowAi(true)} style={{ background:"#10b981"+"18",border:`1px solid ${"#10b981"}44`,borderRadius:8,padding:"5px 12px",color:"#10b981",cursor:"pointer",fontSize:12,fontWeight:600 }}>AI Tag Help</button>
+        </div>
+      </div>
+
+      {amount === 0 ? (
+        <div style={{ fontSize:13,color:t.tx2,padding:"8px 0" }}>No essential expense data in the last 3 months. Add transactions or adjust your essential category tags.</div>
+      ) : (
+        <>
+          <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:26,color:"#10b981",marginBottom:14 }}>{fmt$(amount)}<span style={{ fontSize:12,fontWeight:400,color:t.tx2,marginLeft:6 }}>/ mo</span></div>
+          <div>
+            {top5.map(item => (
+              <div key={item.catId} style={{ display:"flex",alignItems:"center",gap:10,marginBottom:8 }}>
+                <span style={{ fontSize:13,minWidth:20 }}>{item.icon}</span>
+                <span style={{ fontSize:12,color:t.tx1,minWidth:140,flexShrink:0 }}>{item.catName}</span>
+                <div style={{ flex:1,background:t.surf,borderRadius:4,height:6,overflow:"hidden" }}>
+                  <div style={{ width:`${Math.min((item.avg/amount)*100,100)}%`,height:"100%",background:item.color||"#10b981",borderRadius:4 }} />
+                </div>
+                <span style={{ fontSize:12,fontFamily:"monospace",color:t.tx2,minWidth:64,textAlign:"right" }}>{fmt$(item.avg)}</span>
+              </div>
+            ))}
+            {rest.length > 0 && expanded && rest.map(item => (
+              <div key={item.catId} style={{ display:"flex",alignItems:"center",gap:10,marginBottom:8 }}>
+                <span style={{ fontSize:13,minWidth:20 }}>{item.icon}</span>
+                <span style={{ fontSize:12,color:t.tx1,minWidth:140,flexShrink:0 }}>{item.catName}</span>
+                <div style={{ flex:1,background:t.surf,borderRadius:4,height:6,overflow:"hidden" }}>
+                  <div style={{ width:`${Math.min((item.avg/amount)*100,100)}%`,height:"100%",background:item.color||"#10b981",borderRadius:4 }} />
+                </div>
+                <span style={{ fontSize:12,fontFamily:"monospace",color:t.tx2,minWidth:64,textAlign:"right" }}>{fmt$(item.avg)}</span>
+              </div>
+            ))}
+            {rest.length > 0 && (
+              <button onClick={() => setExpanded(e => !e)} style={{ background:"transparent",border:"none",color:t.tx3,cursor:"pointer",fontSize:12,padding:"4px 0" }}>
+                {expanded ? "Show less ▲" : `Show all ${breakdown.length} ▼`}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
+      {showTags && (
+        <EssentialTagsModal t={t} categories={categories} onUpdateCategories={onUpdateCategories} onRecalcBaseline={onRecalcBaseline} onClose={() => setShowTags(false)} />
+      )}
+      {showAi && (
+        <AiTagModal t={t} categories={categories} apiKey={apiKey} onUpdateCategories={onUpdateCategories} onRecalcBaseline={onRecalcBaseline} onClose={() => setShowAi(false)} />
+      )}
+    </div>
+  );
+}
+
 // ─── SummaryTab ───────────────────────────────────────────────────────────────
-function SummaryTab({ t, transactions, categories, range, onRangeChange, onNavigateToCategory, onNavigateMonth }) {
+function SummaryTab({ t, transactions, categories, range, onRangeChange, onNavigateToCategory, onNavigateMonth, apiKey, onUpdateCategories, onRecalcBaseline }) {
   const catMap = Object.fromEntries(categories.map(c => [c.id,c]));
   const refMonth = range.mode === "month" ? range.month : range.end;
 
@@ -2041,6 +2303,8 @@ function SummaryTab({ t, transactions, categories, range, onRangeChange, onNavig
           <div style={{ fontFamily:"monospace",fontWeight:800,fontSize:20,color:t.tx1 }}>{fmt$(totalExpenseAvg)}</div>
         </div>
       </div>
+
+      <BaselinePanel t={t} transactions={transactions} categories={categories} apiKey={apiKey} onUpdateCategories={onUpdateCategories} onRecalcBaseline={onRecalcBaseline} />
 
       {incomeRows.length > 0 && (
         <div style={{ background:t.panelBg,border:`1px solid ${t.border}`,borderRadius:14,overflow:"hidden",marginBottom:16 }}>
@@ -2488,7 +2752,17 @@ export default function App() {
           const trnCat = DEFAULT_CATEGORIES.find(c => c.id === "trn_001");
           if (trnCat) { cats = [...cats, trnCat]; await storeSet(`ffp_categories_${profile.id}`, cats, true); }
         }
+        // Migration: backfill isEssential on categories missing the field
+        let migrated = false;
+        cats = cats.map(c => {
+          if (c.isEssential === undefined) { migrated = true; return { ...c, isEssential: ESSENTIAL_IDS.has(c.id) }; }
+          return c;
+        });
+        if (migrated) await storeSet(`ffp_categories_${profile.id}`, cats, true);
         setCategories(cats);
+
+        const baseline = computeBaseline(txns, cats);
+        await storeSet(`ffp_baseline_${profile.id}`, baseline, true);
 
         const rs = await storeGet(`ffp_cat_rules_${profile.id}`, true) || [];
         setRules(rs);
@@ -2519,10 +2793,19 @@ export default function App() {
     if (activeProfile) await storeSet(`${MODULE_PREFIX}accounts_${activeProfile.id}`, next);
   }, [activeProfile]);
 
+  const recalcBaseline = useCallback(async (txns, cats) => {
+    if (!activeProfile) return;
+    const baseline = computeBaseline(txns, cats);
+    await storeSet(`ffp_baseline_${activeProfile.id}`, baseline, true);
+  }, [activeProfile]);
+
   const saveTransactions = useCallback(async (next) => {
     setTransactions(next);
-    if (activeProfile) await storeSet(`${MODULE_PREFIX}transactions_${activeProfile.id}`, next);
-  }, [activeProfile]);
+    if (activeProfile) {
+      await storeSet(`${MODULE_PREFIX}transactions_${activeProfile.id}`, next);
+      await recalcBaseline(next, categories);
+    }
+  }, [activeProfile, categories, recalcBaseline]);
 
   const saveRules = useCallback(async (next) => {
     setRules(next);
@@ -2531,8 +2814,11 @@ export default function App() {
 
   const saveCategories = useCallback(async (next) => {
     setCategories(next);
-    if (activeProfile) await storeSet(`ffp_categories_${activeProfile.id}`, next, true);
-  }, [activeProfile]);
+    if (activeProfile) {
+      await storeSet(`ffp_categories_${activeProfile.id}`, next, true);
+      await recalcBaseline(transactions, next);
+    }
+  }, [activeProfile, transactions, recalcBaseline]);
 
   const saveRange = useCallback(async (next) => {
     setRange(next);
@@ -2613,7 +2899,16 @@ export default function App() {
       const trnCat = DEFAULT_CATEGORIES.find(c => c.id === "trn_001");
       if (trnCat) { cats = [...cats, trnCat]; await storeSet(`ffp_categories_${profile.id}`, cats, true); }
     }
+    // Migration: backfill isEssential on categories missing the field
+    let migrated = false;
+    cats = cats.map(c => {
+      if (c.isEssential === undefined) { migrated = true; return { ...c, isEssential: ESSENTIAL_IDS.has(c.id) }; }
+      return c;
+    });
+    if (migrated) await storeSet(`ffp_categories_${profile.id}`, cats, true);
     setCategories(cats);
+    const baseline = computeBaseline(txns, cats);
+    await storeSet(`ffp_baseline_${profile.id}`, baseline, true);
     const rs = await storeGet(`ffp_cat_rules_${profile.id}`, true) || [];
     setRules(rs);
     const savedRange = await storeGet(`sp_selected_range_${profile.id}`);
@@ -2730,6 +3025,9 @@ export default function App() {
               range={range} onRangeChange={saveRange}
               onNavigateToCategory={catId => { setTxPresetCat(catId); setTab("transactions"); }}
               onNavigateMonth={handleSummaryNavigateMonth}
+              apiKey={apiKey}
+              onUpdateCategories={saveCategories}
+              onRecalcBaseline={(cats) => recalcBaseline(transactions, cats)}
             />
           </div>
         )}
