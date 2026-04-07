@@ -1,4 +1,4 @@
-// SavingsModule v1.0
+// SavingsModule v1.1
 import { useState, useEffect, useRef } from "react";
 
 // --- Constants ----------------------------------------------------------------
@@ -1439,6 +1439,37 @@ function FirstRunSetup({ darkMode, setDarkMode, onSave }) {
 }
 
 // --- App (SavingsModule) ------------------------------------------------------
+// ─── EmergencyFundSeeder ──────────────────────────────────────────────────────
+function EmergencyFundSeeder({ baseline, goals, onCreateGoal, onDismiss, t }) {
+  if (!baseline || !baseline.amount || baseline.amount <= 0) return null;
+  const hasEmergencyGoal = goals.some(g =>
+    g.name && g.name.toLowerCase().includes("emergency")
+  );
+  if (hasEmergencyGoal) return null;
+
+  const target = Math.round(baseline.amount * 3);
+
+  return (
+    <div style={{ background:"#10b98118",border:"1px solid #10b98144",borderRadius:14,padding:"14px 18px",marginBottom:16,display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap" }}>
+      <div style={{ flex:1,minWidth:200 }}>
+        <div style={{ fontWeight:700,fontSize:14,color:"#10b981",marginBottom:4 }}>💡 Emergency Fund Recommendation</div>
+        <div style={{ fontSize:13,color:t.tx2,lineHeight:1.55 }}>
+          Based on your spending, your minimum monthly expenses are <strong style={{ color:t.tx1 }}>{fmt$(baseline.amount)}</strong>.
+          A 3-month emergency fund would be <strong style={{ color:t.tx1 }}>{fmt$(target)}</strong>.
+        </div>
+      </div>
+      <div style={{ display:"flex",gap:8,alignItems:"center",flexShrink:0 }}>
+        <button onClick={onCreateGoal} style={{ background:"#10b981",border:"none",borderRadius:9,padding:"8px 16px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13 }}>
+          Create Emergency Fund Goal
+        </button>
+        <button onClick={onDismiss} style={{ background:"transparent",border:"1px solid #10b98166",borderRadius:9,padding:"8px 14px",color:"#10b981",cursor:"pointer",fontWeight:600,fontSize:13 }}>
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [loading,         setLoading]         = useState(true);
   const [darkMode,        setDarkMode]        = useState(
@@ -1452,6 +1483,8 @@ export default function App() {
   const [apiKey,          setApiKey]          = useState("");
   const [suggestions,     setSuggestions]     = useState([]);
   const [markPaidQueue,   setMarkPaidQueue]   = useState([]);
+  const [baseline,        setBaseline]        = useState(null);
+  const [seederDismissed, setSeederDismissed] = useState(false);
 
   // Modal state
   const [showApiKey,       setShowApiKey]       = useState(false);
@@ -1485,14 +1518,16 @@ export default function App() {
       const id = actId||(profs[0]?.id)||null;
       setActiveProfileId(id);
       if (id) {
-        const [f,g,cats] = await Promise.all([
+        const [f,g,cats,bl] = await Promise.all([
           storeGet(`sav_funds_${id}`,true),
           storeGet(`sav_goals_${id}`,true),
           storeGet(`ffp_categories_${id}`,true),
+          storeGet(`ffp_baseline_${id}`,true),
         ]);
         setFunds(f||[]);
         setGoals(g||[]);
         setCategories(cats||[]);
+        setBaseline(bl||null);
       }
       setLoading(false);
     }
@@ -1552,13 +1587,14 @@ export default function App() {
   async function switchProfile(id) {
     setActiveProfileId(id);
     await storeSet("cc_active_profile",id,true);
-    setFunds([]); setGoals([]);
-    const [f,g,cats] = await Promise.all([
+    setFunds([]); setGoals([]); setBaseline(null); setSeederDismissed(false);
+    const [f,g,cats,bl] = await Promise.all([
       storeGet(`sav_funds_${id}`,true),
       storeGet(`sav_goals_${id}`,true),
       storeGet(`ffp_categories_${id}`,true),
+      storeGet(`ffp_baseline_${id}`,true),
     ]);
-    setFunds(f||[]); setGoals(g||[]); setCategories(cats||[]);
+    setFunds(f||[]); setGoals(g||[]); setCategories(cats||[]); setBaseline(bl||null);
   }
 
   async function handleSaveProfile(profile) {
@@ -1654,6 +1690,18 @@ export default function App() {
     setGoalDefaultFundId(fundId); setShowAddGoal(true);
   }
 
+  function handleCreateEmergencyFundGoal() {
+    if (!baseline) return;
+    setEditGoal(null);
+    setGoalPrefill({
+      name: "Emergency Fund",
+      goalType: "accumulation",
+      estimatedAmount: Math.round(baseline.amount * 3),
+    });
+    setGoalDefaultFundId(null);
+    setShowAddGoal(true);
+  }
+
   function handleAddGoalFromSuggestion(suggestion) {
     setEditGoal(null);
     setGoalPrefill({
@@ -1724,6 +1772,12 @@ export default function App() {
         <AlertBanner goals={goals} t={t} />
         <SuggestionBanner suggestions={suggestions}
           onAddGoal={handleAddGoalFromSuggestion} t={t} />
+        {!seederDismissed && (
+          <EmergencyFundSeeder
+            baseline={baseline} goals={goals} t={t}
+            onCreateGoal={handleCreateEmergencyFundGoal}
+            onDismiss={() => setSeederDismissed(true)} />
+        )}
 
         {/* Stats Row */}
         <div style={{display:"grid",
