@@ -258,54 +258,84 @@ body{background:var(--bg);color:var(--tx1);font-family:'DM Sans','Segoe UI',sans
 // ═══════════════════════════════════════════════════════════════════════════════
 const CONFIG = {
 
-  lastUpdated: "2026-04-03",
+  lastUpdated: "2026-04-07",
 
   modules: [
     {
-      id: "spending", icon: "📊", name: "SpendingTracker", ver: "v1.4", status: "live",
+      id: "spending", icon: "📊", name: "SpendingTracker", ver: "v1.8", status: "live",
       url: "https://carterspot.github.io/financial-freedom-platform/spending/",
       piSection: "docs/project-instruction.md#module-5-spendingtracker",
       features: [
         "Multi-month CSV import with dedup preview",
-        "JSON backup + full restore (file upload)",
-        "Responsive layout — mobile/tablet/desktop",
-        "AI batch categorization + probeApiKey status",
-        "API key show/hide toggle",
-        "Recovery PIN in profile creation",
+        "AI batch categorization + rules engine (platform owner)",
         "Trends tab + 3-month rolling summary panel",
-        "Profile schema fix (avatarColor)"
+        "Recurrence tagging — sinking fund candidate handoff to Savings",
+        "Baseline Monthly Expenses panel — 3-month rolling avg of essential categories",
+        "Essential vs. discretionary category tagging + AI Tag Helper",
+        "Writes ffp_baseline_ shared key for Savings + Retirement",
+        "Defaults to latest month with data on load"
       ],
-      notes: "v1.4 — full audit remediation complete. Category + rules engine owner for platform."
+      notes: "v1.8 — baseline monthly expenses live. ffp_baseline_ pipeline active. Category + rules engine owner for platform."
     },
     {
-      id: "income", icon: "💰", name: "IncomeTracker", ver: "v1.1", status: "live",
+      id: "income", icon: "💰", name: "IncomeTracker", ver: "v1.2", status: "live",
       url: "https://carterspot.github.io/financial-freedom-platform/income/",
       piSection: "docs/project-instruction.md#module-4-incometracker",
       features: [
         "7 income types with monthly normalization",
         "4 stability ratings with color-coded badges",
         "Responsive layout — mobile/tablet/desktop",
-        "File upload JSON import",
-        "CSV export",
-        "API key show/hide + probeApiKey status",
-        "InfoModal component added"
+        "CSV export + import (replace or merge)",
+        "Floppy disk backup icon + Restore Backup label",
+        "Platform-standard toolbar order"
       ],
-      notes: "v1.1 — audit remediation complete. No AI features at v1."
+      notes: "v1.2 — UI consistency pass complete. No AI features at v1."
     },
     {
-      id: "debt", icon: "⚡", name: "DebtTracker", ver: "v1.4", status: "live",
+      id: "debt", icon: "⚡", name: "DebtTracker", ver: "v1.5", status: "live",
       url: "https://carterspot.github.io/financial-freedom-platform/debt/",
       piSection: "docs/project-instruction.md#module-3-debttracker",
       features: [
         "Unified cards + loans — avalanche/snowball planner",
-        "File upload JSON import",
-        "API key show/hide toggle",
-        "Loading guard placement fixed",
+        "CSV import for cards + loans (visible file input)",
+        "Floppy disk backup icon + Restore Backup label",
+        "Platform-standard toolbar order",
         "Strategy Builder + What-If AI (working via proxy)",
         "Calendar modal + ICS export",
         "0% APR promo support + morning affirmation"
       ],
-      notes: "v1.4 — audit remediation complete. v1.5 schedule tab redesign still pending."
+      notes: "v1.5 — UI consistency pass complete. Family primary active tool."
+    },
+    {
+      id: "savings", icon: "🏦", name: "Savings Module", ver: "v1.1", status: "live",
+      url: "https://carterspot.github.io/financial-freedom-platform/savings/",
+      piSection: "docs/project-instruction.md#module-6-savings-module",
+      features: [
+        "Fund + goal two-layer model (physical account → named goals)",
+        "Accumulation + sinking fund goal types",
+        "Monthly contribution calculator (auto or manual override)",
+        "Due date alerts — funded (green) and underfunded (amber)",
+        "Reads SpendingTracker sinking fund candidates",
+        "Emergency fund seeder from ffp_baseline_ (v1.1)",
+        "JSON + CSV backup/restore"
+      ],
+      notes: "v1.1 — emergency fund seeder live. Reads ffp_baseline_ from SpendingTracker v1.8+."
+    },
+    {
+      id: "retirement", icon: "📈", name: "Retirement Module", ver: "v1.1", status: "live",
+      url: "https://carterspot.github.io/financial-freedom-platform/retirement/",
+      piSection: "docs/project-instruction.md#module-7-retirement-module",
+      features: [
+        "8 account types: 401k, Roth 401k, IRA, Roth IRA, 403b, Pension, HSA, Social Security",
+        "30-year projection chart with target nest egg line",
+        "4 withdrawal plans — side-by-side comparison, lock one as active",
+        "Smart default assumptions with slider overrides",
+        "Social Security + pension as guaranteed income",
+        "AI retirement readiness assessment",
+        "Spending baseline validation — warns if target income < minimum expenses (v1.1)",
+        "Withdrawal plan baseline indicator — flags plans below spending floor (v1.1)"
+      ],
+      notes: "v1.1 — spending baseline validation live. Reads ffp_baseline_ from SpendingTracker v1.8+."
     },
     {
       id: "card", icon: "💳", name: "CardTracker", ver: "v3.1", status: "legacy",
@@ -322,44 +352,33 @@ const CONFIG = {
       notes: "Deprecated — removed from landing page. Artifact URL preserved for reference. No further development."
     },
     {
-      id: "savings", icon: "🏦", name: "Savings Module", ver: "planned", status: "planned",
-      url: null, piSection: "",
-      features: ["Emergency fund + sinking fund goals", "Fund → Goal two-layer model", "Monthly contribution calculator", "Reads SpendingTracker recurring expenses"],
-      notes: "Build blocked until DebtTracker v1.5 ships and gets a clean week of family use. Claudette signals go."
-    },
-    {
-      id: "retirement", icon: "📈", name: "Retirement Module", ver: "planned", status: "planned",
-      url: null, piSection: "",
-      features: ["401k, IRA, Roth balances", "Contribution rates + employer match", "30-year projections", "On-track assessment"],
-      notes: "Follows Savings Module. Storage prefix: ret_"
-    },
-    {
       id: "investment", icon: "💹", name: "Investment Module", ver: "planned", status: "planned",
       url: null, piSection: "",
-      features: ["Taxable brokerage accounts", "Stocks, ETFs, mutual funds (no crypto at v1)", "Cost basis + unrealized gains/losses", "Dividend tracking"],
+      features: ["Taxable brokerage accounts", "Stocks, ETFs, mutual funds", "Cost basis + unrealized gains/losses", "Dividend tracking"],
       notes: "Scope doc needed before build slot. No live data feeds at v1. Storage prefix: inv_"
     },
     {
       id: "advisor", icon: "🧠", name: "AI Advisor", ver: "capstone", status: "capstone",
       url: null, piSection: "",
       features: ["Cross-module holistic plan", "Priority-ranked action items", "Debt vs savings tradeoff analysis", "Manual correction layer for misread transactions"],
-      notes: "Capstone — requires all other modules complete. Manual correction layer is non-negotiable before build."
+      notes: "Capstone — requires all other modules complete + stable. Manual correction layer non-negotiable before build."
     },
   ],
 
   timeline: [
-    { label: "CardTracker v3",      date: "2026-01", done: true  },
-    { label: "LoanTracker v1.2",    date: "2026-02", done: true  },
-    { label: "IncomeTracker v1",    date: "2026-03", done: true  },
-    { label: "SpendingTracker v1.3",date: "2026-03", done: true  },
-    { label: "DebtTracker v1.4",    date: "2026-03", done: true  },
-    { label: "Audit Remediation",   date: "2026-04", done: true  },
-    { label: "NOW",                 date: "2026-04", now: true   },
-    { label: "DT v1.5",            date: "2026-04", done: false, target: "2026-04-15" },
-    { label: "Savings v1",          date: "2026-05", done: false, target: "2026-05-31" },
-    { label: "Retirement v1",       date: "2026-06", done: false, target: "2026-06-30" },
-    { label: "Investment v1",       date: "2026-07", done: false, target: "2026-07-31" },
-    { label: "AI Advisor",          date: "2026-09", done: false, target: "2026-09-30" },
+    { label: "CardTracker v3",        date: "2026-01", done: true },
+    { label: "LoanTracker v1.2",      date: "2026-02", done: true },
+    { label: "IncomeTracker v1",      date: "2026-03", done: true },
+    { label: "SpendingTracker v1.3",  date: "2026-03", done: true },
+    { label: "DebtTracker v1.4",      date: "2026-03", done: true },
+    { label: "Audit + UI Pass",       date: "2026-04", done: true },
+    { label: "DT v1.5 + IT v1.2",    date: "2026-04", done: true },
+    { label: "Savings v1.0",          date: "2026-04", done: true },
+    { label: "Retirement v1.0",       date: "2026-04", done: true },
+    { label: "ST v1.8 + Baseline",    date: "2026-04", done: true },
+    { label: "NOW",                   date: "2026-04", now: true  },
+    { label: "Investment v1",         date: "2026-07", done: false, target: "2026-07-31" },
+    { label: "AI Advisor",            date: "2026-09", done: false, target: "2026-09-30" },
   ],
 
   redZoneItems: [
@@ -369,34 +388,22 @@ const CONFIG = {
 
   flags: [
     {
-      sev: "red",
-      title: "DebtTracker v1.5 — bugs open",
-      body: "Loan card balance overflow on large values, duplicate progress bars, vs tile not updating on method switch, Schedule tab still highlighted on other tabs, AI spinner low contrast in dark mode. Schedule tab redesign pending.",
-      meta: "Opened: 2026-03-30 · Owner: CTO"
-    },
-    {
-      sev: "amber",
-      title: "income.jsx stub — rename before Savings build",
-      body: "modules/income.jsx is a 2-line placeholder. Real module is modules/income-tracker.jsx. Rename stub to income-stub.jsx before Savings build starts.",
-      meta: "Opened: 2026-03-31 · Owner: Carter (1-line commit)"
-    },
-    {
       sev: "amber",
       title: "Cloudflare Worker — no rollback plan documented",
-      body: "If ffp-api-proxy.carterspot.workers.dev goes down, all AI features across all modules fail simultaneously. Rollback: swap API_URL back to api.anthropic.com and serve from a server context.",
+      body: "If ffp-api-proxy.carterspot.workers.dev goes down, all AI features across all modules fail simultaneously. Rollback: swap API_URL back to api.anthropic.com and serve from a server context. Formal rollback plan not yet written in PI.",
       meta: "Opened: 2026-03-31 · Owner: CTO"
     },
     {
       sev: "blue",
       title: "Investment Module — no v1 scope defined",
-      body: "Module added to roadmap but scope boundary not written. Needs scope doc before build slot to prevent creep against Savings and Retirement.",
-      meta: "Opened: 2026-03-31 · Owner: CTO + Claudette"
+      body: "Module added to roadmap but scope boundary not written. Needs scope doc before build slot to prevent creep. Next CTO session item.",
+      meta: "Opened: 2026-03-31 · Owner: CTO"
     },
     {
       sev: "blue",
-      title: "Design System v2 — audit complete, remediation done, DS doc needs update",
-      body: "Cross-module audit (docs/design-audit.md) completed April 3. All High priority gaps remediated. design-system.md should be updated to reflect the current canonical patterns (callClaude, probeApiKey, useBreakpoint, file upload import).",
-      meta: "Opened: 2026-04-03 · Owner: CTO"
+      title: "Savings AI advisor tab — not yet built",
+      body: "SavingsModule v1.1 wired the baseline context hook but no AI tab exists yet. AI tab is a v1.2 candidate once Investment Module scope is defined.",
+      meta: "Opened: 2026-04-07 · Owner: CTO"
     },
   ]
 };
@@ -424,7 +431,7 @@ function renderStats() {
     { label: "Open Flags", num: flagCount, sub: flagCount > 0 ? "needs attention" : "all clear", danger: flagCount > 0 },
     { label: "Live Modules", num: live, sub: "on GitHub Pages", danger: false },
     { label: "Core Stack", num: corePct + "%", sub: `${live} of ${coreTotal - 1} non-capstone`, danger: false },
-    { label: "In Development", num: "v1.5", sub: "DebtTracker next", danger: false },
+    { label: "Next Up", num: "inv_", sub: "Investment Module scope", danger: false },
   ];
 
   document.getElementById("stat-row").innerHTML = stats.map(s => `

@@ -15,9 +15,9 @@ Financial Freedom Platform
 ├── 🏦 LoanTracker       (BUILT — v1.2 complete)
 ├── ⚡ DebtTracker       (BUILT — v1.5 complete)
 ├── 💰 IncomeTracker     (BUILT — v1.2 complete)
-├── 📊 SpendingTracker   (BUILT — v1.6 complete)
-├── 🏦 SavingsModule     (BUILT — v1.0 complete)
-├── 📈 RetirementModule  (BUILT — v1.0 complete)
+├── 📊 SpendingTracker   (BUILT — v1.8 complete)
+├── 🏦 SavingsModule     (BUILT — v1.1 complete)
+├── 📈 RetirementModule  (BUILT — v1.1 complete)
 ├── 💹 Investment Module (PLANNED — taxable brokerage, stocks, ETFs)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
 ```
@@ -41,11 +41,11 @@ Modules are deployed as static builds via Vite to `docs/{module}/` subfolders. G
 
 **Live module URLs:**
 ```
-https://carterspot.github.io/financial-freedom-platform/debt/       ← DebtTracker v1.4
-https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.3
+https://carterspot.github.io/financial-freedom-platform/debt/       ← DebtTracker v1.5
+https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.8
 https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.2
-https://carterspot.github.io/financial-freedom-platform/savings/     ← SavingsModule v1.0
-https://carterspot.github.io/financial-freedom-platform/retirement/  ← RetirementModule v1.0
+https://carterspot.github.io/financial-freedom-platform/savings/    ← SavingsModule v1.1
+https://carterspot.github.io/financial-freedom-platform/retirement/ ← RetirementModule v1.1
 ```
 
 **Module filename clarification (critical for Code prompts):**
@@ -445,7 +445,7 @@ ffp_categories_{profileId} (shared) — seeded on first run if empty
 
 ---
 
-## Module 5: SpendingTracker (COMPLETE — v1.6)
+## Module 5: SpendingTracker (COMPLETE — v1.8)
 
 ### What it is
 Tracks spending transactions via CSV import from any bank or credit card statement. Owns the shared rules engine (`ffp_cat_rules_`) and is the first module to provide full category management UI. AI batch categorization on import, actuals view with 3-month rolling average, and a full rules CRUD interface.
@@ -501,6 +501,33 @@ sp_selected_range_{profileId}  (shared) — date range when range mode is active
 - Edit Transaction modal — "+ Create Rule from This" pre-fills RuleModal and applies retroactively on save; "+ New Category" (`NewCategoryModal`: name/icon/type/color) immediately selects new category and saves to `ffp_categories_`
 - Transfer category `trn_001` added to `DEFAULT_CATEGORIES` — seeded on init and profile switch if missing
 
+### v1.8 features (April 2026) — Baseline Monthly Expenses
+
+**Baseline Monthly Expenses panel (Overview tab):**
+- 3-month rolling average of all essential-tagged expense categories
+- Rendered in Summary/Overview tab after stat cards — shows `$X,XXX/mo` total + ranked category breakdown with progress bars
+- "Show all N" toggle for full list; empty state when no essential transactions in past 3 months
+- Writes `ffp_baseline_{profileId}` to shared storage on load, on every transaction save/delete, and on every category isEssential toggle
+
+**Essential vs. discretionary category tagging:**
+- `isEssential: boolean` added to every category in `DEFAULT_CATEGORIES`
+- 22 categories pre-tagged essential out of the box (rent, utilities, groceries, insurance, required debt payments, childcare, baby supplies, school/tuition)
+- Toggle per-category in Category Manager (Income and Transfer sections excluded)
+- Existing stored categories auto-migrated on first load (ESSENTIAL_IDS migration pass in `init()` and `handleSwitchProfile`)
+
+**AI category tagger:**
+- "AI Tag Help" button in Baseline panel → confirm modal → Claude classifies category list → review diff table (per-row checkboxes) → Apply Selected
+- Parse error handled gracefully; does not auto-apply
+
+**Shared baseline key:**
+```
+ffp_baseline_{profileId}   (shared) — { amount, breakdown: [{catId, catName, icon, avg}], calculatedOn, monthsUsed }
+```
+Read by SavingsModule and RetirementModule. Written only by SpendingTracker.
+
+### v1.7 features (April 2026) — UX fix
+- On load and profile switch: defaults to most recent month with transaction data, not current calendar month. Only defaults to current month if data exists for it.
+
 ### v1.6 features (April 2026) — UI consistency pass
 - Toolbar reordered to platform standard: Screen → Backup/Restore → API → Profile Initials
 - Accounts button removed from toolbar — moved to Summary tab header row, right-justified
@@ -529,6 +556,8 @@ cc_apikey                      (shared) — SHARED across all modules
 ffp_categories_{profileId}     (shared) — SHARED, seed if empty
 ffp_cat_rules_{profileId}      (shared) — SHARED, Spending owns CRUD
 ffp_import_maps_{profileId}    (shared) — column mapper settings per account
+ffp_baseline_{profileId}       (shared) — WRITTEN by SpendingTracker, READ by Savings + Retirement
+                                           { amount, breakdown, calculatedOn, monthsUsed }
 ```
 
 ### Transaction schema
@@ -578,7 +607,7 @@ Note: `recurrenceType` is a **v1.1 addition** — transaction-level (not categor
 
 ---
 
-## Module 6: Savings Module (COMPLETE — v1.0)
+## Module 6: Savings Module (COMPLETE — v1.1)
 
 Emergency fund tracker and named savings goals ("sinking funds") with target dates and required monthly amounts.
 
@@ -625,13 +654,49 @@ sav_goals_{profileId}    (shared) — array of goal objects
                                     { id, fundId, name, goalType, targetAmount, currentAmount,
                                       dueDate, monthlyContrib, categoryId, recurrencePattern,
                                       linkedTransactionId, lastPaidDate }
+ffp_baseline_{profileId} (shared) — READ ONLY from SpendingTracker v1.8+
 ```
+
+### v1.1 features (April 2026) — Baseline integration
+
+**Emergency Fund Seeder:**
+- On load, reads `ffp_baseline_{profileId}` from shared storage
+- If baseline exists and no goal with "emergency" in the name exists, shows a seeder banner:
+  *"Your minimum monthly expenses are $X,XXX. A 3-month emergency fund would be $X,XXX."*
+- "Create Emergency Fund Goal" pre-fills the add-goal modal: name="Emergency Fund", targetAmount = baseline × 3
+- "Dismiss" hides banner for the session (not persisted)
+- Graceful degradation: if baseline not found, banner never shows, no errors
+
+**AI context:**
+- Baseline data appended to AI advisor prompts when available (future AI tab)
+
+**Artifact:** `modules/savings.jsx`
 
 ---
 
-## Module 7: Retirement Module (COMPLETE — v1.0)
+## Module 7: Retirement Module (COMPLETE — v1.1)
 
 Retirement readiness — "Am I saving enough to retire at the age I want?"
+
+### v1.1 features (April 2026) — Baseline integration
+
+**Spending baseline validation:**
+- Reads `ffp_baseline_{profileId}` on load and profile switch
+- If `targetMonthlyIncome < baseline.amount`, shows amber advisory warning in Overview tab:
+  *"Your target ($X,XXX/mo) is below your current minimum monthly expenses ($X,XXX/mo)."*
+- Each withdrawal plan card shows amber pill "⚠️ Below your $X,XXX/mo spending baseline" when projected monthly income < baseline
+- Advisory only — does not block saving
+
+**AI context:**
+- Spending profile block appended to retirement analysis prompt when baseline is available
+- Tells Claude the user's essential spending floor so it can assess whether projected withdrawals cover real costs
+
+**Graceful degradation:** if `ffp_baseline_` not found (SpendingTracker v1.8 not yet run), no warnings, no errors.
+
+**New storage key read:**
+```
+ffp_baseline_{profileId}  (shared) — READ ONLY from SpendingTracker v1.8+
+```
 
 ### Architecture decisions (locked 2026-04-06)
 
@@ -667,6 +732,7 @@ ret_dark                     (local)  — dark mode boolean
 cc_profiles                  (shared) — SHARED across all modules
 cc_active_profile            (shared) — SHARED across all modules
 cc_apikey                    (shared) — SHARED across all modules
+ffp_baseline_{profileId}     (shared) — READ ONLY from SpendingTracker v1.8+
 ```
 
 ### Account schema
@@ -733,8 +799,11 @@ ffp_cat_rules_{profileId}    (shared) — auto-assignment rules
   "hidden": false,
   "alertEnabled": false,
   "alertConfig": { "pct": 0.10, "orgName": "Church", "orgUrl": "https://..." },
-  "sortOrder": 3
+  "sortOrder": 3,
+  "isEssential": true
 }
+```
+`isEssential` — added v1.8. Marks category as minimum cost-of-living (essential) vs. discretionary. Used by `computeBaseline()` to calculate `ffp_baseline_`. Pre-tagged for all 57 default categories. Auto-migrated on load for existing users. Income and Transfer categories always `false`.
 ```
 
 ### Auto-assign rule schema
