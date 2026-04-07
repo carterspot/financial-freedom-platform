@@ -79,9 +79,9 @@
 
   <!-- Jump links -->
   <div class="nav-pills">
-    <a href="#retirement-module" class="nav-pill">📈 Retirement Module v1.0</a>
-    <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.0</a>
-    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.7</a>
+    <a href="#retirement-module" class="nav-pill">📈 Retirement Module v1.1</a>
+    <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.1</a>
+    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.8</a>
     <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.2</a>
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.5</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
@@ -94,9 +94,36 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#f59e0b,#f97316)">📈</div>
       <div>
         <div class="module-name">Retirement Module</div>
-        <div class="module-version">v1.0</div>
+        <div class="module-version">v1.1</div>
       </div>
       <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-fix">🔧 Cross-Module Integration — v1.1</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--amber)"></div>
+          <div class="change-body">
+            <h4>Spending baseline validation</h4>
+            <p>If your Target Monthly Income in retirement is below your current minimum monthly expenses (from SpendingTracker), an amber warning appears. Advisory only — it won't block you from saving your target, but ensures your retirement plan is grounded in your real cost of living.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--amber)"></div>
+          <div class="change-body">
+            <h4>Withdrawal plan baseline indicator</h4>
+            <p>Each withdrawal plan card now flags if the monthly income it generates falls below your spending baseline — so you can see at a glance whether the 4% rule actually covers your expenses at your current savings pace.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--amber)"></div>
+          <div class="change-body">
+            <h4>AI analysis now includes spending profile</h4>
+            <p>Claude's retirement readiness assessment now includes your essential spending baseline from SpendingTracker. The AI can tell you if your projected withdrawal covers your actual cost of living — not just an abstract target number.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">
@@ -154,9 +181,29 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#10b981,#06b6d4)">🏦</div>
       <div>
         <div class="module-name">Savings Module</div>
-        <div class="module-version">v1.0</div>
+        <div class="module-version">v1.1</div>
       </div>
       <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-fix">🔧 Cross-Module Integration — v1.1</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Emergency fund seeder from spending baseline</h4>
+            <p>If SpendingTracker has calculated your minimum monthly expenses, Savings now detects it on load and prompts you to create a 3-month emergency fund goal — pre-filled with the exact dollar amount. One tap to add, fully editable before confirming. No goal is created until you approve it.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Spending baseline in AI context</h4>
+            <p>When an AI advisor tab is added in a future version, it will automatically include your essential spending baseline so savings recommendations are grounded in your real cost of living — not a generic template.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">
@@ -228,9 +275,43 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#f97316,#f59e0b)">📊</div>
       <div>
         <div class="module-name">SpendingTracker</div>
-        <div class="module-version">v1.7</div>
+        <div class="module-version">v1.8</div>
       </div>
       <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-feature">✨ New Feature — v1.8</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Baseline Monthly Expenses panel</h4>
+            <p>The Overview tab now shows your estimated minimum cost of living — a 3-month rolling average of all essential-tagged spending categories. Displays a ranked breakdown with progress bars per category. This number powers the emergency fund seeder in Savings and the target income validation in Retirement.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Essential vs. discretionary category tagging</h4>
+            <p>Every category now carries an Essential flag. 22 categories are pre-tagged as essential out of the box (rent, utilities, groceries, insurance, required debt payments, etc.). Toggle any category in the Category Manager — the baseline recalculates immediately. Existing stored categories are automatically migrated on first load.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>AI category tagger</h4>
+            <p>"AI Tag Help" in the Baseline panel sends your category list to Claude and gets back essential/discretionary suggestions. A review table shows every proposed change — accept all or pick individual ones before anything is applied. Designed to get new users set up in one tap.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Shared baseline key for cross-module use</h4>
+            <p>The calculated baseline is written to <code>ffp_baseline_</code> — a shared platform key readable by Savings and Retirement. No manual data entry required in those modules; they pick up your spending profile automatically.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">

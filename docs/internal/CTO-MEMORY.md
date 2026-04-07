@@ -44,9 +44,9 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 |--------|---------|------|-----|
 | DebtTracker | v1.5 | `modules/debt-tracker.jsx` | `.../debt/` |
 | IncomeTracker | v1.2 | `modules/income-tracker.jsx` | `.../income/` |
-| SpendingTracker | v1.7 | `modules/spending.jsx` | `.../spending/` |
-| SavingsModule | v1.0 | `modules/savings.jsx` | `.../savings/` |
-| RetirementModule | v1.0 | `modules/retirement.jsx` | `.../retirement/` |
+| SpendingTracker | v1.8 | `modules/spending.jsx` | `.../spending/` |
+| SavingsModule | v1.1 | `modules/savings.jsx` | `.../savings/` |
+| RetirementModule | v1.1 | `modules/retirement.jsx` | `.../retirement/` |
 
 ### Deprecated (artifact URLs preserved, not promoted)
 | Module | Version | Status |
@@ -140,6 +140,11 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 **🟡 Amber — Cloudflare Worker no rollback documented**
 - Rollback plan not formally written in PI yet
 - Owner: CTO
+
+**🟢 Resolved since last update**
+- ✅ SpendingTracker v1.8 — baseline monthly expenses, essential tagging, ffp_baseline_ key, AI tagger
+- ✅ SavingsModule v1.1 — emergency fund seeder reads ffp_baseline_, AI context wired
+- ✅ RetirementModule v1.1 — target income warning, withdrawal plan baseline indicator, AI context wired
 
 **🔵 Blue — Investment Module no v1 scope**
 - Added to roadmap but no scope boundary written

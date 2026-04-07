@@ -345,7 +345,7 @@ footer a:hover{text-decoration:underline}
 const CONFIG = {
   modules: [
     {
-      id:"spending", icon:"📊", name:"SpendingTracker", ver:"v1.7", status:"live",
+      id:"spending", icon:"📊", name:"SpendingTracker", ver:"v1.8", status:"live",
       color:"#f97316",
       desc:"Import bank + CC statements, AI-categorizes spending, and shows actuals vs rolling average. The platform's category and rules engine lives here.",
       features:["Multi-month CSV import with dedup preview","Column mapper remembered per account","Sign-flip toggle for CC statements","AI batch categorization on import","Needs Review queue with retroactive rules","Summary: bar charts as % of income","Date range picker + Trends tab (3-12 months)","Batch delete + multi-category filter","Transfer + custom category creation"],
@@ -378,7 +378,7 @@ const CONFIG = {
       whatsNewUrl:"whats-new.html#debt-tracker"
     },
     {
-      id:"savings", icon:"🏦", name:"Savings Module", ver:"v1.0", status:"live",
+      id:"savings", icon:"🏦", name:"Savings Module", ver:"v1.1", status:"live",
       color:"#06b6d4",
       desc:"Emergency fund + sinking fund goals. Two-layer model: physical funds containing individual goal allocations with auto-calculated monthly contribution targets and 30-day due date alerts.",
       features:["Fund layer — represents a physical savings account","Goal layer — individual allocations within a fund","Accumulation goals (emergency fund, vacation, down payment)","Sinking fund goals tied to recurring expenses","Auto-calculated monthly contribution: (target − saved) ÷ months remaining","30-day due date alerts — green if funded, amber with shortfall if not","Deposit log at fund level + contribution log per goal","JSON + CSV backup and restore (replace or merge)"],
@@ -389,7 +389,7 @@ const CONFIG = {
       whatsNewUrl:"whats-new.html#savings-module"
     },
     {
-      id:"retirement", icon:"📈", name:"Retirement Module", ver:"v1.0", status:"live",
+      id:"retirement", icon:"📈", name:"Retirement Module", ver:"v1.1", status:"live",
       color:"#f59e0b",
       desc:"Am I saving enough to retire at the age I want? 8 account types, 30-year projections, withdrawal plan comparison, and AI retirement readiness analysis.",
       features:["8 account types: 401k, Roth 401k, IRA, Roth IRA, 403b, Pension, HSA, Social Security","Snapshot model — manual balance + contribution entry","Smart default assumptions (7% return, 3% inflation) with sliders","30-year SVG projection chart vs target nest egg line","4 withdrawal plans side-by-side: 4%, 3.3%, 5%, Custom — lock one as active","Social Security + pension as guaranteed income offset","On-track gauge with surplus/gap stats","JSON + CSV backup and restore"],
