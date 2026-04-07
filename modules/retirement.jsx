@@ -1,4 +1,4 @@
-// RetirementModule v1.0
+// RetirementModule v1.1
 import { useState, useEffect, useRef } from "react";
 
 // --- Constants ----------------------------------------------------------------
@@ -1016,7 +1016,7 @@ function ProjectionChart({ yearlyData, lockedPlanRate, retProfile, monthlySSInco
 
 // --- PlanComparisonTable ------------------------------------------------------
 function PlanComparisonTable({ projectedBalance, retProfile, monthlySSIncome,
-  onLockPlan, customRate, setCustomRate, t }) {
+  onLockPlan, customRate, setCustomRate, baseline, t }) {
   const lockedPlan = retProfile.lockedPlan;
 
   return (
@@ -1079,6 +1079,11 @@ function PlanComparisonTable({ projectedBalance, retProfile, monthlySSIncome,
                     <div style={{fontFamily:"monospace",fontWeight:700,fontSize:13,color:t.tx1}}>
                       {fmt$(monthlyFromProjBal)}/mo
                     </div>
+                    {baseline && baseline.amount > 0 && monthlyFromProjBal > 0 && monthlyFromProjBal < baseline.amount && (
+                      <div style={{fontSize:10,color:COLOR.warning,fontWeight:600,marginTop:3}}>
+                        ⚠️ Below your {fmt$(baseline.amount)}/mo spending baseline
+                      </div>
+                    )}
                   </td>
                   <td style={{padding:"14px 10px",textAlign:"center"}}>
                     <div style={{fontSize:15,fontWeight:700,
@@ -1117,7 +1122,7 @@ function PlanComparisonTable({ projectedBalance, retProfile, monthlySSIncome,
 
 // --- AiAnalysisTab ------------------------------------------------------------
 function AiAnalysisTab({ apiKey, retProfile, accounts, monthlySSIncome, projectedBalance,
-  lockedPlanObj, lockedPlanRate, savedResults, onSaveResults, t }) {
+  lockedPlanObj, lockedPlanRate, savedResults, onSaveResults, baseline, t }) {
   const [loading, setLoading] = useState(false);
   const [result,  setResult]  = useState(savedResults||null);
   const [error,   setError]   = useState(null);
@@ -1162,7 +1167,9 @@ Accounts: ${JSON.stringify(accounts.map(a=>({type:a.type,name:a.name,balance:a.c
 Projected balance at retirement: $${projectedBalance.toLocaleString()}
 Required nest egg (${lockedPlanObj?.label||"4% Rule"}): $${nestEgg.toLocaleString()}
 Monthly surplus/gap: $${Math.abs(monthlyGap).toLocaleString()} ${monthlyGap>=0?"surplus":"gap"}
-Social Security + Pension monthly estimate: $${monthlySSIncome}
+Social Security + Pension monthly estimate: $${monthlySSIncome}${baseline
+  ? `\n\nCurrent Spending Profile (from SpendingTracker):\n- Minimum monthly expenses (essential spending): ${fmt$(baseline.amount)}\n- Top essential categories: ${baseline.breakdown.slice(0,5).map(b=>`${b.catName} $${b.avg.toFixed(0)}/mo`).join(", ")}\n- This represents the user's real cost of living floor. Their retirement income must exceed this to cover basic needs.`
+  : "\n\nCurrent Spending Profile: Not available (user hasn't run SpendingTracker v1.8+ yet)."}
 
 Provide:
 1. A direct assessment: are they on track, ahead, or behind?
@@ -1502,7 +1509,7 @@ function NavBar({ profiles, activeProfile, darkMode, setDarkMode,
 // --- OverviewTab --------------------------------------------------------------
 function OverviewTab({ projectedBalance, nestEggForLocked, monthlyGap, yearsToRetirement,
   monthlySSIncome, retProfile, accounts, investableBalance, lockedPlanObj,
-  onSetupPlan, t, bp }) {
+  onSetupPlan, baseline, t, bp }) {
   const hasInputs = retProfile.currentAge && retProfile.targetMonthlyIncome;
 
   return (
@@ -1567,6 +1574,17 @@ function OverviewTab({ projectedBalance, nestEggForLocked, monthlyGap, yearsToRe
           </div>
         ))}
       </div>
+
+      {baseline && baseline.amount > 0 && toNum(retProfile.targetMonthlyIncome) > 0 &&
+       toNum(retProfile.targetMonthlyIncome) < baseline.amount && (
+        <div style={{background:COLOR.warning+"18",border:`1px solid ${COLOR.warning}44`,
+          borderRadius:10,padding:"12px 16px",marginBottom:20,fontSize:13,lineHeight:1.6}}>
+          <span style={{color:COLOR.warning,fontWeight:700}}>⚠️</span>{" "}
+          Your target (<strong style={{fontFamily:"monospace"}}>{fmt$(toNum(retProfile.targetMonthlyIncome))}/mo</strong>) is below your current minimum monthly expenses{" "}
+          (<strong style={{fontFamily:"monospace"}}>{fmt$(baseline.amount)}/mo</strong> from SpendingTracker). Consider increasing your target to at least{" "}
+          <strong style={{fontFamily:"monospace"}}>{fmt$(baseline.amount)}/mo</strong>.
+        </div>
+      )}
 
       <div style={panelSt(t,{marginBottom:20})}>
         <div style={{fontWeight:700,fontSize:14,color:t.tx1,marginBottom:12}}>
@@ -1704,7 +1722,7 @@ function AccountsTab({ accounts, groupedAccounts, investableBalance, onEditAccou
 // --- PlanTab ------------------------------------------------------------------
 function PlanTab({ yearlyData, projectedBalance, retProfile, setRetProfile,
   assumptions, setAssumptions, monthlySSIncome, lockedPlanObj,
-  customRate, setCustomRate, onLockPlan, aiResults, onSaveAiResults, apiKey, accounts, t }) {
+  customRate, setCustomRate, onLockPlan, aiResults, onSaveAiResults, apiKey, accounts, baseline, t }) {
   const effectiveRate = lockedPlanObj
     ? (lockedPlanObj.id==="custom" ? toNum(customRate)||4 : lockedPlanObj.rate)
     : null;
@@ -1729,6 +1747,7 @@ function PlanTab({ yearlyData, projectedBalance, retProfile, setRetProfile,
         onLockPlan={onLockPlan}
         customRate={customRate}
         setCustomRate={setCustomRate}
+        baseline={baseline}
         t={t} />
 
       <div style={panelSt(t,{})}>
@@ -1742,6 +1761,7 @@ function PlanTab({ yearlyData, projectedBalance, retProfile, setRetProfile,
           lockedPlanRate={effectiveRate}
           savedResults={aiResults}
           onSaveResults={onSaveAiResults}
+          baseline={baseline}
           t={t} />
       </div>
     </div>
@@ -1776,6 +1796,7 @@ export default function RetirementModule() {
   const [showAddAccount,   setShowAddAccount]   = useState(false);
   const [editAccount,      setEditAccount]      = useState(null);
   const [confirmTarget,    setConfirmTarget]    = useState(null);
+  const [baseline,         setBaseline]         = useState(null);
 
   const t = useTheme(darkMode);
   const bp = useBreakpoint();
@@ -1829,10 +1850,12 @@ export default function RetirementModule() {
           storeGet(`ret_assumptions_${aid}`,true),
           storeGet(`ret_ai_results_${aid}`,true),
         ]);
+        const bl = await storeGet(`ffp_baseline_${aid}`, true);
         if (accs) setAccounts(accs);
         if (rp)   setRetProfile(p=>({...p,...rp}));
         if (assm) setAssumptions(a=>({...a,...assm}));
         if (ai)   setAiResults(ai);
+        setBaseline(bl||null);
       }
       setLoading(false);
     }
@@ -1871,6 +1894,8 @@ export default function RetirementModule() {
     if (rp)   setRetProfile(p=>({...p,...rp}));
     if (assm) setAssumptions(a=>({...a,...assm}));
     if (ai)   setAiResults(ai);
+    const bl = await storeGet(`ffp_baseline_${id}`, true);
+    setBaseline(bl||null);
   }
 
   async function handleSaveProfile(profile) {
@@ -2004,6 +2029,7 @@ export default function RetirementModule() {
             investableBalance={investableBalance}
             lockedPlanObj={lockedPlanObj}
             onSetupPlan={()=>setActiveTab("plan")}
+            baseline={baseline}
             t={t} bp={bp} />
         )}
 
@@ -2035,6 +2061,7 @@ export default function RetirementModule() {
             onSaveAiResults={handleSaveAiResults}
             apiKey={apiKey}
             accounts={accounts}
+            baseline={baseline}
             t={t} />
         )}
       </div>
