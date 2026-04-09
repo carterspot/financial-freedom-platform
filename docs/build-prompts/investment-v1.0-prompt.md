@@ -261,6 +261,19 @@ Standard platform pattern (JSON + CSV):
 
 ---
 
+## Change 9 — Disclaimer Footer
+
+Add a persistent disclaimer at the very bottom of the module (outside all tabs, always visible):
+
+```
+For personal tracking only. Prices are manually entered and may not reflect current market values.
+Log in to your brokerage for real-time data and account management.
+```
+
+Style: small text (`font-size: 11px`), `t.tx3` color, centered, `padding: 12px 16px`, separated from content by a top border (`1px solid t.border`). No icon, no panel background — just the text line sitting quietly at the bottom.
+
+---
+
 ## JSX Rules Audit
 
 - [ ] No `return<` — all returns use `return (` or `return <`
