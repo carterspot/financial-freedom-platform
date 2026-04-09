@@ -146,10 +146,8 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 - ✅ SavingsModule v1.1 — emergency fund seeder reads ffp_baseline_, AI context wired
 - ✅ RetirementModule v1.1 — target income warning, withdrawal plan baseline indicator, AI context wired
 
-**🔵 Blue — Investment Module no v1 scope**
-- Added to roadmap but no scope boundary written
-- Must have a scope doc before getting a build slot
-- Owner: CTO
+**🟢 Resolved**
+- ✅ Investment Module v1.0 scope locked — build prompt at `docs/build-prompts/investment-v1.0-prompt.md`
 
 ---
 
@@ -212,11 +210,11 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 
 ## Next Up (in order)
 
-1. **Investment Module v1 scope doc** — CTO writes scope boundary before Code gets a build slot
-2. **Savings ↔ Retirement cross-module link** — Savings goals should optionally map to a retirement account; design the handoff
-3. **AI Advisor pre-work** — define what data each module must expose for the Advisor to consume; write the data contract
-4. **AI Advisor v1** — capstone; all modules must be stable first
-5. **Cloudflare Worker rollback doc** — write formal rollback plan in PI
+1. **Investment Module v1.0 build** — prompt ready at `docs/build-prompts/investment-v1.0-prompt.md`; paste to Code Clone
+2. **SavingsModule v1.2** — AI Advisor tab (prompt already written this session, paste to Code Clone)
+3. **Cloudflare Worker rollback** — prompt written this session, paste to Code Clone
+4. **AI Advisor data contract** — define what each module must expose; write contract doc before build slot
+5. **AI Advisor v1** — capstone; all modules must be stable first
 
 ---
 

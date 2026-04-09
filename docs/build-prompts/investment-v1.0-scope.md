@@ -1,7 +1,7 @@
 # Investment Module v1.0 — Scope Document
 **Author:** CTO  
 **Date:** 2026-04-07  
-**Status:** DRAFT — awaiting Carter review  
+**Status:** APPROVED — scope locked 2026-04-07  
 
 ---
 
@@ -17,8 +17,10 @@ This is **not** the retirement module. Retirement covers tax-advantaged accounts
 
 ### In v1
 - **Account types:** Taxable brokerage, individual stocks, ETFs, mutual funds
-- **Position tracking:** ticker/name, shares held, average cost basis, current price (manual entry), current value, unrealized gain/loss ($  and %)
-- **Dividend tracking:** log dividends per position; running dividend total per year
+- **Position tracking:** ticker/name, shares held, average cost basis, current price (manual or AI-estimated), current value, unrealized gain/loss ($ and %)
+- **Price staleness indicator:** "Last updated X days ago" per position; amber if >7 days old
+- **AI Price Update button:** sends all tickers to Claude, returns estimated current prices with disclaimer; user reviews before applying
+- **Dividend tracking:** log of actual payments received per position; running dividend total per year; no schedule modeling at v1
 - **Portfolio summary:** total invested, current value, total unrealized gain/loss, top gainers/losers
 - **Allocation view:** % of portfolio by position (pie-style SVG chart)
 - **AI tab:** portfolio analysis — concentration risk, allocation feedback, top recommendations
@@ -65,7 +67,8 @@ This is **not** the retirement module. Retirement covers tax-advantaged accounts
   "unrealizedGain": 350.00,
   "unrealizedGainPct": 23.33,
   "notes": "",
-  "lastPriceUpdate": "2026-04-07T00:00:00.000Z"
+  "lastPriceUpdate": "2026-04-07T00:00:00.000Z",
+  "priceSource": "manual"
 }
 ```
 `assetType` values: `"stock" | "etf" | "mutual_fund"`
@@ -109,9 +112,11 @@ cc_apikey                  (shared) — SHARED across all modules
 - Accounts list with per-account totals
 
 **Tab 2 — Positions**
-- Per-account expandable sections
-- Position rows: ticker + name, shares, avg cost, current price (editable inline), current value, gain/loss $ and %
-- "Update Price" inline — user types new price, value/gain recalculates immediately
+- **All Accounts summary** at top — combined total invested, current value, gain/loss across all accounts
+- **Expandable account cards** below — one card per account (same pattern as DebtTracker account cards): collapsed shows account name + total value + gain/loss; expanded shows all positions for that account
+- Position rows: ticker + name, shares, avg cost, current price (editable inline), current value, gain/loss $ and %, "last updated X days ago" staleness label (amber if >7 days)
+- **AI Update Prices button** in toolbar — sends all tickers to Claude, returns estimated prices in a review modal (user checks/unchecks before applying); disclaimer shown: "AI estimates from training data — verify before decisions"
+- `priceSource: "manual" | "ai"` field on each position — shown as a small pill on the row
 - Add Position form, Edit, Delete
 - Dividend log button per position → opens dividend history modal + log form
 
@@ -163,12 +168,12 @@ Monthly spending baseline: $X — context for how much liquidity user needs outs
 
 ---
 
-## Open Questions for Carter
+## Decisions Locked (2026-04-07)
 
-1. **Price updates** — Should there be a "Last updated X days ago" staleness indicator on positions with old prices? Or keep it simple — no staleness tracking at v1?
-2. **Multiple accounts** — Should the Positions tab default to "All Accounts" combined view, or always show account-by-account? 
-3. **Dividend frequency** — Do we need a dividend schedule (quarterly/annual) per position, or just a log of actual payments received?
-4. **Module color** — Blue (`#3b82f6`) or something else?
+1. **Price staleness** — Yes, show "last updated X days ago" per position; amber if >7 days. AI Update button lets Claude estimate prices; user reviews before applying.
+2. **Positions view** — All Accounts combined summary at top; expandable account cards below (DebtTracker pattern).
+3. **Dividends** — Log of actual payments only. No schedule at v1.
+4. **Color** — Blue `#3b82f6` confirmed.
 
 ---
 
