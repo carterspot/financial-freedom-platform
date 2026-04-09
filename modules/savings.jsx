@@ -582,85 +582,147 @@ function GoalRow({ goal, onEdit, onDelete, onContrib, t }) {
   );
 }
 
-// --- FundCard -----------------------------------------------------------------
-function FundCard({ fund, goals, onDeposit, onEditFund, onDeleteFund,
-  onAddGoal, onEditGoal, onDeleteGoal, onContrib, t }) {
-  const fundGoals      = goals.filter(g=>g.fundId===fund.id);
-  const balance        = toNum(fund.balance);
-  const totalAllocated = fundGoals.reduce((s,g)=>s+toNum(g.currentAmount),0);
-  const allocPct       = balance > 0 ? Math.min(100,(totalAllocated/balance)*100) : 0;
-  const overAllocated  = totalAllocated > balance && balance > 0;
-
+// --- FundCard (expandable) ----------------------------------------------------
+function FundCard({ fund, onDeposit, onEditFund, onDeleteFund, t }) {
+  const [expanded, setExpanded] = useState(false);
+  const balance = toNum(fund.balance);
+  const cardStyle = {
+    background: t.panelBg, border: `1px solid ${t.border}`,
+    borderLeft: "4px solid #6366f1", borderRadius: 14,
+    overflow: "hidden", marginBottom: 10,
+  };
+  const headerStyle = {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "14px 16px", cursor: "pointer", userSelect: "none",
+  };
+  const bodyStyle = {
+    maxHeight: expanded ? 400 : 0, overflow: "hidden",
+    transition: "max-height .25s ease",
+    padding: expanded ? "0 16px 14px" : "0 16px",
+  };
   return (
-    <div style={{...panelSt(t,{marginBottom:16})}}>
-      <div style={{display:"flex",alignItems:"center",
-        justifyContent:"space-between",marginBottom:12,gap:8,flexWrap:"wrap"}}>
+    <div style={cardStyle}>
+      <div style={headerStyle} onClick={()=>setExpanded(e=>!e)}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:14,height:14,borderRadius:"50%",
+          <div style={{width:12,height:12,borderRadius:"50%",
             background:fund.color||COLOR.primary,flexShrink:0}} />
-          <div>
-            <div style={{fontWeight:800,fontSize:15,color:t.tx1}}>{fund.name}</div>
-            {fund.accountNickname && (
-              <div style={{fontSize:11,color:t.tx3}}>{fund.accountNickname}</div>
-            )}
-          </div>
+          <span style={{fontWeight:700,color:t.tx1,fontSize:14}}>{fund.name}</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-          <span style={{fontFamily:"monospace",fontWeight:800,fontSize:20,color:t.tx1}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontFamily:"monospace",fontWeight:800,fontSize:16,color:t.tx1}}>
             {fmt$(balance)}
           </span>
+          <span style={{color:t.tx3,fontSize:16,
+            transform:`rotate(${expanded?90:0}deg)`,
+            transition:"transform .2s",display:"inline-block"}}>
+            ›
+          </span>
+        </div>
+      </div>
+      <div style={bodyStyle}>
+        {fund.accountNickname && (
+          <div style={{fontSize:12,color:t.tx3,marginBottom:10}}>
+            Account: {fund.accountNickname}
+          </div>
+        )}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <button onClick={()=>onDeposit(fund)}
-            style={{...btnPrimary({padding:"6px 14px",fontSize:12,
-              background:COLOR.success})}}>
+            style={{...btnPrimary({padding:"6px 14px",fontSize:12,background:COLOR.success})}}>
             + Log Deposit
           </button>
           <button onClick={()=>onEditFund(fund)}
-            style={{background:"none",border:`1px solid ${t.border}`,
-              borderRadius:7,padding:"6px 10px",color:t.tx2,cursor:"pointer",fontSize:12}}>
+            style={{background:"none",border:`1px solid ${t.border}`,borderRadius:7,
+              padding:"6px 10px",color:t.tx2,cursor:"pointer",fontSize:12}}>
             Edit
           </button>
           <button onClick={()=>onDeleteFund(fund)}
-            style={{background:"none",border:`1px solid ${COLOR.danger}33`,
-              borderRadius:7,padding:"6px 10px",color:COLOR.danger,
-              cursor:"pointer",fontSize:12}}>
-            Del
+            style={{background:"none",border:`1px solid ${COLOR.danger}33`,borderRadius:7,
+              padding:"6px 10px",color:COLOR.danger,cursor:"pointer",fontSize:12}}>
+            Delete
           </button>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {fundGoals.length > 0 && (
-        <div style={{marginBottom:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",
-            fontSize:11,color:t.tx3,marginBottom:4}}>
-            <span>
-              Goal contributions: {fmt$(totalAllocated)} of {fmt$(balance)}
-            </span>
-            {overAllocated && (
-              <span style={{color:COLOR.danger,fontWeight:700}}>
-                Over-allocated!
+// --- GoalCard (expandable) ----------------------------------------------------
+function GoalCard({ goal, funds, onEdit, onDelete, onContrib, t }) {
+  const [expanded, setExpanded] = useState(false);
+  const current   = toNum(goal.currentAmount);
+  const target    = toNum(goal.targetAmount);
+  const pct       = target > 0 ? Math.min(100, (current/target)*100) : 0;
+  const isComplete= current >= target && target > 0;
+  const monthly   = calcRequiredMonthly(goal);
+  const fund      = funds.find(f=>f.id===goal.fundId);
+  const cardStyle = {
+    background: t.panelBg, border: `1px solid ${t.border}`,
+    borderLeft: "4px solid #6366f1", borderRadius: 14,
+    overflow: "hidden", marginBottom: 10,
+  };
+  const headerStyle = {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "14px 16px", cursor: "pointer", userSelect: "none",
+  };
+  const bodyStyle = (exp) => ({
+    maxHeight: exp ? 400 : 0, overflow: "hidden",
+    transition: "max-height .25s ease",
+    padding: exp ? "0 16px 14px" : "0 16px",
+  });
+  return (
+    <div style={cardStyle}>
+      <div style={headerStyle} onClick={()=>setExpanded(e=>!e)}>
+        <div style={{flex:1,minWidth:0,marginRight:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+            <span style={{fontWeight:700,color:t.tx1,fontSize:14}}>{goal.name}</span>
+            {isComplete && (
+              <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,
+                background:"#10b98122",color:"#10b981"}}>
+                ✓ Funded
               </span>
             )}
           </div>
-          <div style={{height:5,background:t.surf,borderRadius:3,overflow:"hidden"}}>
-            <div style={{height:"100%",width:`${allocPct}%`,borderRadius:3,
-              background:overAllocated?COLOR.danger:COLOR.success,
-              transition:"width .3s"}} />
+          <div style={{fontSize:12,fontFamily:"monospace",fontWeight:700,
+            color:isComplete?COLOR.success:t.tx1,marginBottom:6}}>
+            {fmt$(current)} / {fmt$(target)}
+          </div>
+          <div style={{height:7,background:t.surf,borderRadius:99,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${pct}%`,borderRadius:99,
+              background:isComplete?"#10b981":"#6366f1",
+              transition:"width .4s ease"}} />
           </div>
         </div>
-      )}
-
-      {fundGoals.map(g=>(
-        <GoalRow key={g.id} goal={g} t={t}
-          onEdit={onEditGoal}
-          onDelete={onDeleteGoal}
-          onContrib={onContrib} />
-      ))}
-
-      <button onClick={()=>onAddGoal(fund.id)}
-        style={{...btnGhost(t,{width:"100%",marginTop:fundGoals.length?12:4,
-          fontSize:12,padding:"7px"})}}>
-        + Add Goal
-      </button>
+        <span style={{color:t.tx3,fontSize:16,
+          transform:`rotate(${expanded?90:0}deg)`,
+          transition:"transform .2s",display:"inline-block",flexShrink:0}}>
+          ›
+        </span>
+      </div>
+      <div style={bodyStyle(expanded)}>
+        <div style={{display:"flex",flexDirection:"column",gap:5,
+          marginBottom:12,fontSize:12,color:t.tx2}}>
+          {goal.dueDate && <div>Due: {fmtMonthYear(goal.dueDate)}</div>}
+          <div>Type: {goal.goalType==="sinking_fund"?"Sinking Fund":"Accumulation"}</div>
+          {fund && <div>Fund: {fund.name}</div>}
+          {monthly > 0 && !isComplete && <div>~{fmt$(monthly)}/mo needed</div>}
+        </div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button onClick={()=>onContrib(goal)}
+            style={{...btnPrimary({padding:"6px 14px",fontSize:12,background:COLOR.success})}}>
+            + Contrib
+          </button>
+          <button onClick={()=>onEdit(goal)}
+            style={{background:"none",border:`1px solid ${t.border}`,borderRadius:7,
+              padding:"6px 10px",color:t.tx2,cursor:"pointer",fontSize:12}}>
+            Edit
+          </button>
+          <button onClick={()=>onDelete(goal)}
+            style={{background:"none",border:`1px solid ${COLOR.danger}33`,borderRadius:7,
+              padding:"6px 10px",color:COLOR.danger,cursor:"pointer",fontSize:12}}>
+            Delete
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1343,6 +1405,136 @@ function BackupRestorePanel({ open, onClose, funds, goals, profileId, onImport, 
   );
 }
 
+// --- AiAdvisorTab -------------------------------------------------------------
+function AiAdvisorTab({ funds, goals, apiKey, activeProfile, savedResults, onSaveResults, t }) {
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(savedResults||null);
+  const [error,   setError]   = useState("");
+
+  useEffect(()=>{ setResults(savedResults||null); },[savedResults]);
+
+  async function handleAnalyze() {
+    if (!apiKey || !activeProfile) return;
+    setLoading(true); setError("");
+    try {
+      const baseline = await storeGet(`ffp_baseline_${activeProfile.id}`, true);
+
+      const fundsCtx = funds.map(f=>
+        `Fund: ${f.name} — Balance: ${fmt$(toNum(f.balance))}`
+      ).join("\n");
+
+      const goalsCtx = goals.map(g=>{
+        const progress = toNum(g.targetAmount)>0
+          ? Math.round((toNum(g.currentAmount)/toNum(g.targetAmount))*100) : 0;
+        const needed   = toNum(g.targetAmount) - toNum(g.currentAmount);
+        const dueNote  = g.dueDate ? ` · Due: ${g.dueDate}` : "";
+        const urgentNote = g.dueDate && needed>0 &&
+          (new Date(g.dueDate)-new Date()) < 60*24*60*60*1000
+          ? " ⚠️ DUE WITHIN 60 DAYS — UNDERFUNDED" : "";
+        return `Goal: ${g.name} (${g.goalType}) — Target: ${fmt$(toNum(g.targetAmount))}, Saved: ${fmt$(toNum(g.currentAmount))} (${progress}%)${dueNote}${urgentNote}`;
+      }).join("\n");
+
+      const hasEmergencyFund = goals.some(g=>g.name.toLowerCase().includes("emergency"));
+
+      const baselineCtx = baseline
+        ? `\n\nMonthly spending baseline (from SpendingTracker): ${fmt$(baseline.amount)}\nTop essential categories: ${baseline.breakdown.slice(0,5).map(b=>`${b.catName} $${b.avg.toFixed(0)}/mo`).join(", ")}`
+        : "";
+
+      const systemPrompt = `You are a personal savings advisor. Analyze the user's savings data and give 3-5 specific, actionable recommendations. Be direct and prioritize by impact. Format: numbered list, each item under 3 sentences.`;
+      const userPrompt   = `Here is my savings data:\n\nFunds:\n${fundsCtx||"No funds yet."}\n\nGoals:\n${goalsCtx||"No goals yet."}\n\nEmergency fund: ${hasEmergencyFund?"Yes":"Not set up"}${baselineCtx}\n\nPlease give me 3-5 specific recommendations to improve my savings strategy.`;
+
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: [{ role:"user", content:userPrompt }],
+        }),
+      });
+      const data = await res.json();
+      const text = data?.content?.[0]?.text || "";
+      if (!text) throw new Error("No response from AI.");
+      setResults(text);
+      onSaveResults(text);
+    } catch(e) {
+      setError(e.message||"AI call failed. Check your API key and try again.");
+    }
+    setLoading(false);
+  }
+
+  if (!apiKey) return (
+    <div style={{textAlign:"center",padding:"40px 20px"}}>
+      <div style={{fontSize:36,marginBottom:12}}>🔑</div>
+      <div style={{fontSize:14,color:t.tx2,marginBottom:6}}>
+        Add your Anthropic API key to use AI analysis.
+      </div>
+      <div style={{fontSize:12,color:t.tx3}}>Click the 🔑 button in the top bar.</div>
+    </div>
+  );
+
+  return (
+    <div>
+      {!results && !loading && (
+        <div style={{textAlign:"center",padding:"40px 20px"}}>
+          <div style={{fontSize:36,marginBottom:16}}>🧠</div>
+          <div style={{fontWeight:700,fontSize:15,color:t.tx1,marginBottom:8}}>
+            Analyze My Savings
+          </div>
+          <div style={{fontSize:13,color:t.tx2,maxWidth:360,margin:"0 auto 24px",lineHeight:1.6}}>
+            Get personalized recommendations based on your funds, goals, and spending baseline.
+          </div>
+          <button onClick={handleAnalyze} style={{...btnPrimary({padding:"12px 32px",fontSize:15})}}>
+            Analyze My Savings
+          </button>
+        </div>
+      )}
+      {loading && (
+        <div style={{textAlign:"center",padding:"40px 20px"}}>
+          <div style={{width:36,height:36,border:`3px solid ${COLOR.primary}`,
+            borderTopColor:"transparent",borderRadius:"50%",
+            animation:"spin .8s linear infinite",margin:"0 auto 16px"}} />
+          <div style={{fontSize:13,color:t.tx2}}>Analyzing your savings…</div>
+        </div>
+      )}
+      {error && !loading && (
+        <div style={{background:COLOR.danger+"18",border:`1px solid ${COLOR.danger}44`,
+          borderRadius:10,padding:"12px 16px",marginBottom:16,fontSize:13,color:COLOR.danger}}>
+          {error}
+          <button onClick={handleAnalyze}
+            style={{display:"block",marginTop:8,background:"none",border:"none",
+              color:COLOR.primary,cursor:"pointer",fontSize:13,fontWeight:600}}>
+            Try again
+          </button>
+        </div>
+      )}
+      {results && !loading && (
+        <div>
+          <div style={{background:t.panelBg,border:`1px solid ${t.border}`,
+            borderRadius:12,padding:20,marginBottom:16}}>
+            <div style={{fontSize:11,color:t.tx3,fontWeight:600,marginBottom:10,
+              textTransform:"uppercase",letterSpacing:0.5}}>
+              AI Analysis
+            </div>
+            <div style={{whiteSpace:"pre-wrap",fontSize:13,color:t.tx1,lineHeight:1.7}}>
+              {results}
+            </div>
+          </div>
+          <button onClick={handleAnalyze} style={{...btnGhost(t,{fontSize:13})}}>
+            Re-analyze
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- FirstRunSetup ------------------------------------------------------------
 function FirstRunSetup({ darkMode, setDarkMode, onSave }) {
   const [name,        setName]        = useState("");
@@ -1485,6 +1677,8 @@ export default function App() {
   const [markPaidQueue,   setMarkPaidQueue]   = useState([]);
   const [baseline,        setBaseline]        = useState(null);
   const [seederDismissed, setSeederDismissed] = useState(false);
+  const [tab,             setTab]             = useState("overview");
+  const [aiResults,       setAiResults]       = useState(null);
 
   // Modal state
   const [showApiKey,       setShowApiKey]       = useState(false);
@@ -1518,16 +1712,18 @@ export default function App() {
       const id = actId||(profs[0]?.id)||null;
       setActiveProfileId(id);
       if (id) {
-        const [f,g,cats,bl] = await Promise.all([
+        const [f,g,cats,bl,ai] = await Promise.all([
           storeGet(`sav_funds_${id}`,true),
           storeGet(`sav_goals_${id}`,true),
           storeGet(`ffp_categories_${id}`,true),
           storeGet(`ffp_baseline_${id}`,true),
+          storeGet(`sav_ai_results_${id}`,true),
         ]);
         setFunds(f||[]);
         setGoals(g||[]);
         setCategories(cats||[]);
         setBaseline(bl||null);
+        setAiResults(ai||null);
       }
       setLoading(false);
     }
@@ -1587,14 +1783,15 @@ export default function App() {
   async function switchProfile(id) {
     setActiveProfileId(id);
     await storeSet("cc_active_profile",id,true);
-    setFunds([]); setGoals([]); setBaseline(null); setSeederDismissed(false);
-    const [f,g,cats,bl] = await Promise.all([
+    setFunds([]); setGoals([]); setBaseline(null); setSeederDismissed(false); setAiResults(null);
+    const [f,g,cats,bl,ai] = await Promise.all([
       storeGet(`sav_funds_${id}`,true),
       storeGet(`sav_goals_${id}`,true),
       storeGet(`ffp_categories_${id}`,true),
       storeGet(`ffp_baseline_${id}`,true),
+      storeGet(`sav_ai_results_${id}`,true),
     ]);
-    setFunds(f||[]); setGoals(g||[]); setCategories(cats||[]); setBaseline(bl||null);
+    setFunds(f||[]); setGoals(g||[]); setCategories(cats||[]); setBaseline(bl||null); setAiResults(ai||null);
   }
 
   async function handleSaveProfile(profile) {
@@ -1627,6 +1824,11 @@ export default function App() {
   async function saveApiKey(key) {
     setApiKey(key); setShowApiKey(false);
     await storeSet("cc_apikey",key,true);
+  }
+
+  async function handleSaveAiResults(text) {
+    setAiResults(text);
+    await storeSet(`sav_ai_results_${activeProfileId}`,text,true);
   }
 
   function handleSaveFund(fund) {
@@ -1769,80 +1971,139 @@ export default function App() {
         t={t} />
 
       <div style={{maxWidth:960,margin:"0 auto",padding:"20px 16px"}}>
-        <AlertBanner goals={goals} t={t} />
-        <SuggestionBanner suggestions={suggestions}
-          onAddGoal={handleAddGoalFromSuggestion} t={t} />
-        {!seederDismissed && (
-          <EmergencyFundSeeder
-            baseline={baseline} goals={goals} t={t}
-            onCreateGoal={handleCreateEmergencyFundGoal}
-            onDismiss={() => setSeederDismissed(true)} />
-        )}
 
-        {/* Stats Row */}
-        <div style={{display:"grid",
-          gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(4,1fr)",
-          gap:12,marginBottom:24}}>
+        {/* Tab Bar */}
+        <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
           {[
-            { label:"Total Saved",        value:fmt$(totalSaved),         color:COLOR.success },
-            { label:"Total Targeted",     value:fmt$(totalTargeted),      color:COLOR.primary },
-            { label:"Monthly Commitment", value:fmt$(monthlyCommit)+"/mo",color:COLOR.warning },
-            { label:"Coverage",           value:`${coveragePct.toFixed(0)}%`, color:COLOR.teal },
-          ].map(stat=>(
-            <div key={stat.label}
-              style={{...panelSt(t,{textAlign:"center",padding:"14px 12px"})}}>
-              <div style={{fontSize:11,color:t.tx3,fontWeight:600,marginBottom:4}}>
-                {stat.label}
-              </div>
-              <div style={{fontFamily:"monospace",fontWeight:800,
-                fontSize:18,color:stat.color}}>
-                {stat.value}
-              </div>
-            </div>
+            {key:"overview", label:"Overview"},
+            {key:"funds",    label:"Funds"},
+            {key:"goals",    label:"Goals"},
+            {key:"ai",       label:bp.isMobile?"AI":"AI Advisor"},
+          ].map(tb=>(
+            <button key={tb.key} onClick={()=>setTab(tb.key)} style={tabBtn(tab===tb.key,t)}>
+              {tb.label}
+            </button>
           ))}
         </div>
 
-        {/* Fund Cards or Empty State */}
-        {funds.length===0 ? (
-          <div style={{...panelSt(t,{textAlign:"center",padding:"60px 20px"})}}>
-            <div style={{fontSize:48,marginBottom:16}}>🏦</div>
-            <div style={{fontWeight:700,fontSize:18,color:t.tx1,marginBottom:8}}>
-              No savings funds yet
-            </div>
-            <div style={{fontSize:14,color:t.tx2,marginBottom:24}}>
-              Add a fund to start tracking your savings goals
-            </div>
-            <button onClick={()=>{setEditFund(null);setShowAddFund(true);}}
-              style={btnPrimary({padding:"12px 32px",fontSize:15,
-                background:COLOR.success})}>
-              + Add Your First Fund
-            </button>
-          </div>
-        ) : (
+        {/* Overview Tab */}
+        {tab==="overview" && (
           <>
-            {funds.map(fund=>(
-              <FundCard key={fund.id} fund={fund} goals={goals} t={t}
-                onDeposit={(f)=>setDepositFund(f)}
-                onEditFund={(f)=>{setEditFund(f);setShowAddFund(true);}}
-                onDeleteFund={handleDeleteFund}
-                onAddGoal={handleAddGoalFromFund}
-                onEditGoal={(g)=>{
-                  setEditGoal(g);setGoalPrefill(null);
-                  setGoalDefaultFundId(null);setShowAddGoal(true);
-                }}
-                onDeleteGoal={(g)=>setConfirmTarget({
-                  type:"goal",id:g.id,name:g.name,
-                  message:`Delete goal "${g.name}"? This cannot be undone.`,
-                })}
-                onContrib={(g)=>setContribGoal(g)} />
-            ))}
-            <button onClick={()=>{setEditFund(null);setShowAddFund(true);}}
-              style={{...btnPrimary({width:"100%",marginBottom:32,
-                background:COLOR.success})}}>
-              + Add Fund
-            </button>
+            <AlertBanner goals={goals} t={t} />
+            <SuggestionBanner suggestions={suggestions}
+              onAddGoal={handleAddGoalFromSuggestion} t={t} />
+            {!seederDismissed && (
+              <EmergencyFundSeeder
+                baseline={baseline} goals={goals} t={t}
+                onCreateGoal={handleCreateEmergencyFundGoal}
+                onDismiss={()=>setSeederDismissed(true)} />
+            )}
+            <div style={{display:"grid",
+              gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(4,1fr)",
+              gap:12}}>
+              {[
+                { label:"Total Saved",        value:fmt$(totalSaved),            color:COLOR.success },
+                { label:"Total Targeted",     value:fmt$(totalTargeted),         color:COLOR.primary },
+                { label:"Monthly Commitment", value:fmt$(monthlyCommit)+"/mo",   color:COLOR.warning },
+                { label:"Coverage",           value:`${coveragePct.toFixed(0)}%`,color:COLOR.teal },
+              ].map(stat=>(
+                <div key={stat.label}
+                  style={{...panelSt(t,{textAlign:"center",padding:"14px 12px"})}}>
+                  <div style={{fontSize:11,color:t.tx3,fontWeight:600,marginBottom:4}}>
+                    {stat.label}
+                  </div>
+                  <div style={{fontFamily:"monospace",fontWeight:800,
+                    fontSize:18,color:stat.color}}>
+                    {stat.value}
+                  </div>
+                </div>
+              ))}
+            </div>
           </>
         )}
+
+        {/* Funds Tab */}
+        {tab==="funds" && (
+          <>
+            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+              <button onClick={()=>{setEditFund(null);setShowAddFund(true);}}
+                style={{...btnPrimary({background:COLOR.success})}}>
+                + Add Fund
+              </button>
+            </div>
+            {funds.length===0 ? (
+              <div style={{...panelSt(t,{textAlign:"center",padding:"60px 20px"})}}>
+                <div style={{fontSize:48,marginBottom:16}}>🏦</div>
+                <div style={{fontWeight:700,fontSize:18,color:t.tx1,marginBottom:8}}>
+                  No savings funds yet
+                </div>
+                <div style={{fontSize:14,color:t.tx2,marginBottom:24}}>
+                  Add a fund to start tracking your savings
+                </div>
+                <button onClick={()=>{setEditFund(null);setShowAddFund(true);}}
+                  style={btnPrimary({padding:"12px 32px",fontSize:15,background:COLOR.success})}>
+                  + Add Your First Fund
+                </button>
+              </div>
+            ) : (
+              funds.map(fund=>(
+                <FundCard key={fund.id} fund={fund} t={t}
+                  onDeposit={f=>setDepositFund(f)}
+                  onEditFund={f=>{setEditFund(f);setShowAddFund(true);}}
+                  onDeleteFund={handleDeleteFund} />
+              ))
+            )}
+          </>
+        )}
+
+        {/* Goals Tab */}
+        {tab==="goals" && (
+          <>
+            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+              <button onClick={()=>{setEditGoal(null);setGoalPrefill(null);
+                setGoalDefaultFundId(null);setShowAddGoal(true);}}
+                style={{...btnPrimary({background:COLOR.primary})}}>
+                + Add Goal
+              </button>
+            </div>
+            {goals.length===0 ? (
+              <div style={{...panelSt(t,{textAlign:"center",padding:"60px 20px"})}}>
+                <div style={{fontSize:48,marginBottom:16}}>🎯</div>
+                <div style={{fontWeight:700,fontSize:18,color:t.tx1,marginBottom:8}}>
+                  No goals yet
+                </div>
+                <div style={{fontSize:14,color:t.tx2,marginBottom:24}}>
+                  Create a savings goal to start tracking your progress
+                </div>
+                <button onClick={()=>{setEditGoal(null);setGoalPrefill(null);
+                  setGoalDefaultFundId(null);setShowAddGoal(true);}}
+                  style={btnPrimary({padding:"12px 32px",fontSize:15})}>
+                  + Add Your First Goal
+                </button>
+              </div>
+            ) : (
+              goals.map(goal=>(
+                <GoalCard key={goal.id} goal={goal} funds={funds} t={t}
+                  onEdit={g=>{setEditGoal(g);setGoalPrefill(null);
+                    setGoalDefaultFundId(null);setShowAddGoal(true);}}
+                  onDelete={g=>setConfirmTarget({
+                    type:"goal",id:g.id,name:g.name,
+                    message:`Delete goal "${g.name}"? This cannot be undone.`,
+                  })}
+                  onContrib={g=>setContribGoal(g)} />
+              ))
+            )}
+          </>
+        )}
+
+        {/* AI Advisor Tab */}
+        {tab==="ai" && (
+          <AiAdvisorTab
+            funds={funds} goals={goals} apiKey={apiKey}
+            activeProfile={activeProfile} savedResults={aiResults}
+            onSaveResults={handleSaveAiResults} t={t} />
+        )}
+
       </div>
 
       {/* Modals */}
