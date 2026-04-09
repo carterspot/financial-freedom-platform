@@ -18,7 +18,7 @@ Financial Freedom Platform
 ├── 📊 SpendingTracker   (BUILT — v1.8 complete)
 ├── 🏦 SavingsModule     (BUILT — v1.1 complete)
 ├── 📈 RetirementModule  (BUILT — v1.1 complete)
-├── 💹 Investment Module (PLANNED — taxable brokerage, stocks, ETFs)
+├── 💹 Investment Module (IN BUILD — v1.0)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
 ```
 
@@ -759,14 +759,57 @@ ffp_baseline_{profileId}     (shared) — READ ONLY from SpendingTracker v1.8+
 
 ---
 
-## Module 8: Investment Module (PLANNED)
+## Module 8: Investment Module (IN BUILD — v1.0)
 
-Taxable brokerage accounts, individual stocks, ETFs, and crypto tracking. Separate from Retirement (which covers tax-advantaged accounts).
+Taxable investment tracker — positions, cost basis, unrealized gains/losses, dividend logging, AI portfolio analysis, and AI-assisted price updates. Separate from Retirement (which covers tax-advantaged accounts).
 
-- Account types: taxable brokerage, individual stocks, ETFs, mutual funds, crypto
-- Tracks: positions, cost basis, unrealized gains/losses, dividends
-- Connects to AI Advisor for net worth and allocation analysis
-- Storage prefix: `inv_`
+### V1 scope boundary
+- **In:** Taxable brokerage · individual stocks · ETFs · mutual funds · manual price entry with staleness indicator · AI price update (estimate via Claude, review before apply) · dividend log (actual payments) · allocation SVG chart · AI portfolio analysis · `ffp_investments_` shared key
+- **Out:** Live price feeds · crypto · options/bonds · tax-loss harvesting · DRIP · benchmark comparison · rebalancing
+
+### Tab structure
+- **Overview** — stat cards (total invested, current value, unrealized gain/loss, annual dividends) + allocation donut chart + top gainers/losers
+- **Positions** — all-accounts summary at top; expandable account cards (DebtTracker pattern); inline price editing; AI Update Prices modal with review step; dividend log per position
+- **AI Analysis** — portfolio analysis with concentration risk, diversification gaps, 3-5 recommendations; reads `ffp_baseline_` for liquidity context
+
+### Storage keys
+```
+inv_accounts_{profileId}    (shared) — array of account objects
+inv_positions_{profileId}   (shared) — array of position objects
+inv_dividends_{profileId}   (shared) — array of dividend log entries
+inv_ai_results_{profileId}  (shared) — saved AI analysis
+inv_dark                    (local)  — dark mode boolean
+ffp_investments_{profileId} (shared) — WRITTEN by Investment, READ by AI Advisor
+                                        { totalInvested, currentValue, unrealizedGain, positionCount, calculatedOn }
+```
+
+### Position schema
+```json
+{
+  "id": "inv_pos_abc123",
+  "accountId": "inv_acct_abc123",
+  "ticker": "AAPL",
+  "name": "Apple Inc.",
+  "assetType": "stock",
+  "shares": "10",
+  "avgCostBasis": "150.00",
+  "currentPrice": "185.00",
+  "currentValue": 1850.00,
+  "unrealizedGain": 350.00,
+  "unrealizedGainPct": 23.33,
+  "lastPriceUpdate": "2026-04-07T00:00:00.000Z",
+  "priceSource": "manual",
+  "notes": ""
+}
+```
+`assetType`: `"stock" | "etf" | "mutual_fund"` · `priceSource`: `"manual" | "ai"`
+
+### Disclaimer (persistent footer)
+*For personal tracking only. Prices are manually entered and may not reflect current market values. Log in to your brokerage for real-time data and account management.*
+
+**Accent color:** `#3b82f6` (blue)  
+**Artifact:** `modules/investment.jsx`  
+**Build prompt:** `docs/build-prompts/investment-v1.0-prompt.md`
 
 ---
 
