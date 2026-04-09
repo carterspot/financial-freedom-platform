@@ -79,6 +79,7 @@
 
   <!-- Jump links -->
   <div class="nav-pills">
+    <a href="#investment-module" class="nav-pill">💹 Investment Module v1.0</a>
     <a href="#retirement-module" class="nav-pill">📈 Retirement Module v1.1</a>
     <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.1</a>
     <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.8</a>
@@ -86,6 +87,73 @@
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.5</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
     <a href="#loan-tracker" class="nav-pill">🏦 LoanTracker v1.2</a>
+  </div>
+
+  <!-- ── Investment Module ── -->
+  <div class="module-section" id="investment-module">
+    <div class="module-header">
+      <div class="module-icon" style="background:linear-gradient(135deg,#3b82f6,#6366f1)">💹</div>
+      <div>
+        <div class="module-name">Investment Module</div>
+        <div class="module-version">v1.0</div>
+      </div>
+      <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-new">🆕 New Module — v1.0</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>Portfolio tracking across multiple accounts</h4>
+            <p>Add brokerage, IRA, Roth IRA, 401k, and other investment accounts. Each account holds positions — ticker, shares, cost basis, and current price. The module aggregates across all accounts into a unified portfolio view.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>Expandable account cards</h4>
+            <p>Account cards follow the FFP expandable card pattern — collapsed shows account name and total value, expanded reveals all positions. Each position row shows unrealized gain/loss, cost basis, and a staleness label if the price hasn't been updated in over 7 days.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>AI price update — review before apply</h4>
+            <p>One tap asks Claude to estimate current prices for all stale positions. Results appear in a review table — you select which prices to apply before anything updates. Price source is tracked per position (manual vs. AI) so you always know where the number came from.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>Dividend logging</h4>
+            <p>Log dividend payments per position. A separate history tab per position shows all logged dividends and an annual total — useful for tracking income yield without connecting to a brokerage API.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>SVG allocation donut chart</h4>
+            <p>Overview tab shows a donut chart of portfolio allocation — top 8 holdings by value, with all others grouped as "Other." Pure SVG, no external libraries.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>AI analysis with spending baseline context</h4>
+            <p>AI Advisor tab reads your full portfolio and, if available, your spending baseline from SpendingTracker. Claude gives a portfolio assessment with actionable recommendations — allocation, concentration risk, and whether your investment income would cover essential expenses.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>ffp_investments_ shared key</h4>
+            <p>Portfolio data is written to <code>ffp_investments_{profileId}</code> — a shared platform key that the AI Advisor capstone module will read when it launches.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ── Retirement Module ── -->

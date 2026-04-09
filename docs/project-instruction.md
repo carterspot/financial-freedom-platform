@@ -18,7 +18,7 @@ Financial Freedom Platform
 ├── 📊 SpendingTracker   (BUILT — v1.8 complete)
 ├── 🏦 SavingsModule     (BUILT — v1.1 complete)
 ├── 📈 RetirementModule  (BUILT — v1.1 complete)
-├── 💹 Investment Module (IN BUILD — v1.0)
+├── 💹 Investment Module (BUILT — v1.0 complete)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
 ```
 
@@ -774,7 +774,7 @@ ffp_baseline_{profileId}     (shared) — READ ONLY from SpendingTracker v1.8+
 
 ---
 
-## Module 8: Investment Module (IN BUILD — v1.0)
+## Module 8: Investment Module (BUILT — v1.0)
 
 Taxable investment tracker — positions, cost basis, unrealized gains/losses, dividend logging, AI portfolio analysis, and AI-assisted price updates. Separate from Retirement (which covers tax-advantaged accounts).
 
@@ -1137,11 +1137,12 @@ docs/
 
 ### Up Next
 - ✅ Family migration deprecation — CardTracker + LoanTracker removed from landing page
-- [ ] Savings Module v1 — emergency fund + sinking fund goals
-- [ ] Retirement Module v1 — balances, contributions, projections
-- [ ] Investment Module v1 — taxable brokerage, stocks, ETFs
+- ✅ Savings Module v1.1 — emergency fund + sinking fund goals + baseline seeder
+- ✅ Retirement Module v1.1 — balances, contributions, projections + baseline warning
+- ✅ Investment Module v1.0 — taxable brokerage, stocks, ETFs, AI price update, ffp_investments_ key
+- [ ] SavingsModule v1.2 — expandable fund/goal cards + AI Advisor tab
+- [ ] Platform Dashboard v1.0 — Freedom Rings cross-module view
 - [ ] AI Advisor — holistic cross-module planning with manual correction layer (capstone)
-- [ ] Platform Dashboard — unified entry point linking all modules
 - [ ] Node graph v2 — draggable nodes, edge highlighting, Investment module node
 - [ ] Graduation — Next.js + Supabase hosted app
 - [ ] React Native / Expo — iOS + Android

@@ -1,7 +1,7 @@
 # CTO Memory — Financial Freedom Platform
 **Location:** `docs/internal/CTO-MEMORY.md`  
 **Purpose:** Bootstraps CTO identity and project context in a cold Claude Code session.  
-**Updated:** 2026-04-06 (post-Retirement v1.0 ship)  
+**Updated:** 2026-04-09 (post-Investment v1.0 ship)  
 **Read this file + docs/internal/ffp-cto-SKILL.md + docs/project-instruction.md at every CTO session start.**
 
 ---
@@ -47,6 +47,7 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 | SpendingTracker | v1.8 | `modules/spending.jsx` | `.../spending/` |
 | SavingsModule | v1.1 | `modules/savings.jsx` | `.../savings/` |
 | RetirementModule | v1.1 | `modules/retirement.jsx` | `.../retirement/` |
+| InvestmentModule | v1.0 | `modules/investment.jsx` | `.../investment/` |
 
 ### Deprecated (artifact URLs preserved, not promoted)
 | Module | Version | Status |
@@ -56,8 +57,9 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 
 **CT and LT are deprecated.** Do not propose fixes or features for them. Do not reference them as active modules.
 
-### Planned
-- 💹 Investment Module — needs v1 scope doc before build slot
+### In Queue
+- 💰 SavingsModule v1.2 — expandable fund/goal cards + AI Advisor tab (prompt ready: `docs/build-prompts/savings-v1.2-prompt.md`)
+- 🏠 Dashboard v1.0 — Freedom Rings cross-module view (prompt ready: `docs/build-prompts/dashboard-build-prompt.md`)
 - 🧠 AI Advisor — capstone, all modules must be stable first
 
 ---
@@ -122,32 +124,18 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 
 ## Open Flags (as of 2026-04-06)
 
-**🟢 Resolved since last update**
+**🟢 Resolved**
 - ✅ income.jsx → income-stub.jsx — done (April 2026)
 - ✅ recurrenceType UI gap — closed, SpendingTracker v1.5 ships full recurrence tagging
-- ✅ UI consistency pass — DebtTracker v1.5, IncomeTracker v1.2, SpendingTracker v1.6 all standardized (floppy icon, toolbar order, Restore Backup label, CSV import/export, profile panel)
-- ✅ Savings Module architecture decisions locked and documented in PI
-
-**🟢 Resolved since last update**
-- ✅ Savings Module v1.0 — shipped, deployed to `.../savings/`, docs live
-- ✅ whats-new.html — Savings v1.0 + Retirement v1.0 entries added
-- ✅ savings-quickstart.html — written and committed
-- ✅ Retirement Module architecture scoped + build prompt written
-- ✅ RetirementModule v1.0 — shipped, deployed to `.../retirement/`, docs live
-- ✅ retirement-quickstart.html — written and committed
-- ✅ Design System v2 — canonical patterns added (callClaude, probeApiKey, useBreakpoint, file upload import)
-
-**🟡 Amber — Cloudflare Worker no rollback documented**
-- Rollback plan not formally written in PI yet
-- Owner: CTO
-
-**🟢 Resolved since last update**
-- ✅ SpendingTracker v1.8 — baseline monthly expenses, essential tagging, ffp_baseline_ key, AI tagger
-- ✅ SavingsModule v1.1 — emergency fund seeder reads ffp_baseline_, AI context wired
-- ✅ RetirementModule v1.1 — target income warning, withdrawal plan baseline indicator, AI context wired
-
-**🟢 Resolved**
-- ✅ Investment Module v1.0 scope locked — build prompt at `docs/build-prompts/investment-v1.0-prompt.md`
+- ✅ UI consistency pass — DebtTracker v1.5, IncomeTracker v1.2, SpendingTracker v1.6 all standardized
+- ✅ Savings Module v1.0 — shipped and deployed
+- ✅ RetirementModule v1.0 — shipped and deployed
+- ✅ Design System v2 — callClaude, probeApiKey, useBreakpoint, expandable card patterns
+- ✅ SpendingTracker v1.8 — baseline monthly expenses, essential tagging, ffp_baseline_ key
+- ✅ SavingsModule v1.1 — emergency fund seeder, ffp_baseline_ context
+- ✅ RetirementModule v1.1 — spending baseline warning, withdrawal plan indicator, AI context
+- ✅ InvestmentModule v1.0 — 14 components, portfolio tracking, AI price update, ffp_investments_ key
+- ✅ Cloudflare Worker rollback — documented in docs/project-instruction.md
 
 ---
 
@@ -210,11 +198,10 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 
 ## Next Up (in order)
 
-1. **Investment Module v1.0 build** — prompt ready at `docs/build-prompts/investment-v1.0-prompt.md`; paste to Code Clone
-2. **SavingsModule v1.2** — AI Advisor tab (prompt already written this session, paste to Code Clone)
-3. **Cloudflare Worker rollback** — prompt written this session, paste to Code Clone
-4. **AI Advisor data contract** — define what each module must expose; write contract doc before build slot
-5. **AI Advisor v1** — capstone; all modules must be stable first
+1. **SavingsModule v1.2** — expandable fund/goal cards + AI Advisor tab; prompt ready at `docs/build-prompts/savings-v1.2-prompt.md`
+2. **Dashboard v1.0** — Freedom Rings cross-module view; prompt ready at `docs/build-prompts/dashboard-build-prompt.md`
+3. **AI Advisor data contract** — define what each module must expose; write contract doc before build slot
+4. **AI Advisor v1** — capstone; all modules must be stable first
 
 ---
 

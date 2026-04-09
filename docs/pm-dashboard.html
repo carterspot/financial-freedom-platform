@@ -352,19 +352,21 @@ const CONFIG = {
       notes: "Deprecated — removed from landing page. Artifact URL preserved for reference. No further development."
     },
     {
-      id: "investment", icon: "💹", name: "Investment Module", ver: "v1.0", status: "building",
-      url: null, piSection: "docs/project-instruction.md#module-8-investment-module",
+      id: "investment", icon: "💹", name: "Investment Module", ver: "v1.0", status: "live",
+      url: "https://carterspot.github.io/financial-freedom-platform/investment/",
+      piSection: "docs/project-instruction.md#module-8-investment-module",
       features: [
         "Taxable brokerage — stocks, ETFs, mutual funds",
-        "Manual position entry with staleness indicator",
+        "Manual position entry with staleness indicator (>7d amber)",
         "AI-assisted price updates (review before apply)",
-        "Unrealized gain/loss per position",
-        "Dividend log — actual payments received",
-        "Allocation donut chart (SVG)",
+        "Unrealized gain/loss per position + priceSource tracking",
+        "Dividend log — actual payments received + annual total",
+        "Allocation donut chart (SVG, top 8 + Other)",
         "AI portfolio analysis with spending baseline context",
+        "ffp_investments_ shared key for AI Advisor capstone",
         "Persistent disclaimer footer"
       ],
-      notes: "v1.0 in build — scope locked, build prompt at docs/build-prompts/investment-v1.0-prompt.md. No live price feeds at v1."
+      notes: "v1.0 shipped April 2026. 14 top-level components. No live price feeds — manual entry + AI estimate review."
     },
     {
       id: "advisor", icon: "🧠", name: "AI Advisor", ver: "capstone", status: "capstone",
@@ -385,34 +387,28 @@ const CONFIG = {
     { label: "Savings v1.0",          date: "2026-04", done: true },
     { label: "Retirement v1.0",       date: "2026-04", done: true },
     { label: "ST v1.8 + Baseline",    date: "2026-04", done: true },
+    { label: "RET v1.1 + INV v1.0",  date: "2026-04", done: true },
     { label: "NOW",                   date: "2026-04", now: true  },
-    { label: "Investment v1",         date: "2026-07", done: false, target: "2026-07-31" },
+    { label: "SAV v1.2 + Dashboard", date: "2026-05", done: false, target: "2026-05-31" },
     { label: "AI Advisor",            date: "2026-09", done: false, target: "2026-09-30" },
   ],
 
   redZoneItems: [
     { label: "AI Advisor slip risk", note: "Capstone depends on all modules completing on schedule. Any delay cascades." },
-    { label: "Cloudflare Worker (SPOF)", note: "All AI features route through ffp-api-proxy.carterspot.workers.dev. Free tier 100k req/day. No fallback documented." },
   ],
 
   flags: [
     {
-      sev: "amber",
-      title: "Cloudflare Worker — no rollback plan documented",
-      body: "If ffp-api-proxy.carterspot.workers.dev goes down, all AI features across all modules fail simultaneously. Rollback: swap API_URL back to api.anthropic.com and serve from a server context. Formal rollback plan not yet written in PI.",
-      meta: "Opened: 2026-03-31 · Owner: CTO"
+      sev: "blue",
+      title: "SavingsModule v1.2 — in queue",
+      body: "Expandable fund/goal cards (DebtTracker pattern) + AI Advisor tab. Build prompt ready at docs/build-prompts/savings-v1.2-prompt.md. Pending Code Clone build.",
+      meta: "Opened: 2026-04-09 · Owner: CTO"
     },
     {
       sev: "blue",
-      title: "Investment Module — no v1 scope defined",
-      body: "Module added to roadmap but scope boundary not written. Needs scope doc before build slot to prevent creep. Next CTO session item.",
-      meta: "Opened: 2026-03-31 · Owner: CTO"
-    },
-    {
-      sev: "blue",
-      title: "Savings AI advisor tab — not yet built",
-      body: "SavingsModule v1.1 wired the baseline context hook but no AI tab exists yet. AI tab is a v1.2 candidate once Investment Module scope is defined.",
-      meta: "Opened: 2026-04-07 · Owner: CTO"
+      title: "Dashboard v1.0 — in queue",
+      body: "Freedom Rings cross-module view, collapsible nav, 6 charts. Build prompt ready at docs/build-prompts/dashboard-build-prompt.md. Pending Code Clone build.",
+      meta: "Opened: 2026-04-09 · Owner: CTO"
     },
   ]
 };
@@ -440,7 +436,7 @@ function renderStats() {
     { label: "Open Flags", num: flagCount, sub: flagCount > 0 ? "needs attention" : "all clear", danger: flagCount > 0 },
     { label: "Live Modules", num: live, sub: "on GitHub Pages", danger: false },
     { label: "Core Stack", num: corePct + "%", sub: `${live} of ${coreTotal - 1} non-capstone`, danger: false },
-    { label: "In Build", num: "inv_", sub: "Investment Module v1.0", danger: false },
+    { label: "Next Up", num: "2", sub: "SAV v1.2 + Dashboard v1.0", danger: false },
   ];
 
   document.getElementById("stat-row").innerHTML = stats.map(s => `

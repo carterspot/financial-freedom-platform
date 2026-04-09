@@ -10,6 +10,7 @@
 | 📊 SpendingTracker | `modules/spending.jsx` | ✅ v1.8 |
 | 🏦 SavingsModule | `modules/savings.jsx` | ✅ v1.1 |
 | 📈 RetirementModule | `modules/retirement.jsx` | ✅ v1.1 |
+| 💹 InvestmentModule | `modules/investment.jsx` | ✅ v1.0 |
 | 🧠 AI Advisor | — | 📋 Capstone |
 
 ## Critical JSX Rules — violations crash the artifact
@@ -31,6 +32,8 @@
 - `cc_apikey` — Anthropic API key
 - `ffp_categories_{profileId}` — master category list
 - `ffp_cat_rules_{profileId}` — auto-assignment rules
+- `ffp_baseline_{profileId}` — essential monthly expenses (SpendingTracker writes, Savings + Retirement read)
+- `ffp_investments_{profileId}` — portfolio data (Investment writes, AI Advisor will read)
 
 ## AI Model
 `claude-sonnet-4-20250514` — non-streaming only
