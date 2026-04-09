@@ -544,6 +544,84 @@ downloadFile(csv, "export.csv", "text/csv");
 
 ---
 
+### Expandable card — the platform's primary list item pattern
+
+Used in DebtTracker for debts, Savings for funds, Investment for accounts. All list items with collapsible detail use this pattern. **Do not invent alternatives.**
+
+```javascript
+// Each card is a top-level component: function DebtCard({ item, t, accentColor }) { ... }
+
+// Card container
+const cardStyle = (expanded) => ({
+  background: t.panelBg,
+  border: `1px solid ${t.border}`,
+  borderLeft: `4px solid ${accentColor}`,
+  borderRadius: 14,
+  overflow: "hidden",
+  marginBottom: 10,
+  transition: "box-shadow .15s"
+});
+
+// Header row (always visible — clicking toggles expand)
+const headerStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  padding: "14px 16px",
+  cursor: "pointer",
+  userSelect: "none"
+};
+
+// Chevron (right side of header)
+const chevronStyle = (expanded) => ({
+  fontSize: 16,
+  color: t.tx3,
+  transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
+  transition: "transform .2s",
+  marginLeft: "auto",
+  flexShrink: 0
+});
+// Render: <span style={chevronStyle(expanded)}>›</span>
+
+// Expanded detail panel
+const detailStyle = {
+  padding: "0 16px 16px",
+  borderTop: `1px solid ${t.border}`,
+};
+```
+
+**Collapsed state shows:** accent color badge or icon · item name · primary metric (large, monospace) · secondary metric (small, t.tx2) · action buttons (edit/delete) · chevron
+
+**Expanded state reveals:** full detail fields · progress section · action buttons · sub-lists (e.g. goals within a fund)
+
+**Progress bar** (used inside expanded cards and on overview stat rows):
+```javascript
+// Track
+{ height: 7, background: t.surf, borderRadius: 99, overflow: "hidden", margin: "8px 0" }
+// Fill
+{ height: "100%", width: `${Math.min(pct, 100)}%`, background: accentColor,
+  borderRadius: 99, transition: "width .4s ease" }
+// Always clamp pct to 0-100 for display. Show actual number separately if >100%.
+```
+
+**Stat card** (summary row above card list):
+```javascript
+{
+  background: t.panelBg,
+  border: `1px solid ${t.border}`,
+  borderRadius: 14,
+  padding: "16px 20px",
+  display: "flex",
+  flexDirection: "column",
+  gap: 4
+}
+// Label:  fontSize 11, color t.tx2, fontWeight 600, textTransform "uppercase", letterSpacing ".5px"
+// Value:  fontSize 24, fontWeight 800, fontFamily "monospace", color accentColor
+// Sub:    fontSize 11, color t.tx3
+```
+
+---
+
 ### File import — CSV + JSON via file input
 
 ```javascript
