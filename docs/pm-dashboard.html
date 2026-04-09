@@ -352,10 +352,19 @@ const CONFIG = {
       notes: "Deprecated — removed from landing page. Artifact URL preserved for reference. No further development."
     },
     {
-      id: "investment", icon: "💹", name: "Investment Module", ver: "planned", status: "planned",
-      url: null, piSection: "",
-      features: ["Taxable brokerage accounts", "Stocks, ETFs, mutual funds", "Cost basis + unrealized gains/losses", "Dividend tracking"],
-      notes: "Scope doc needed before build slot. No live data feeds at v1. Storage prefix: inv_"
+      id: "investment", icon: "💹", name: "Investment Module", ver: "v1.0", status: "building",
+      url: null, piSection: "docs/project-instruction.md#module-8-investment-module",
+      features: [
+        "Taxable brokerage — stocks, ETFs, mutual funds",
+        "Manual position entry with staleness indicator",
+        "AI-assisted price updates (review before apply)",
+        "Unrealized gain/loss per position",
+        "Dividend log — actual payments received",
+        "Allocation donut chart (SVG)",
+        "AI portfolio analysis with spending baseline context",
+        "Persistent disclaimer footer"
+      ],
+      notes: "v1.0 in build — scope locked, build prompt at docs/build-prompts/investment-v1.0-prompt.md. No live price feeds at v1."
     },
     {
       id: "advisor", icon: "🧠", name: "AI Advisor", ver: "capstone", status: "capstone",
@@ -431,7 +440,7 @@ function renderStats() {
     { label: "Open Flags", num: flagCount, sub: flagCount > 0 ? "needs attention" : "all clear", danger: flagCount > 0 },
     { label: "Live Modules", num: live, sub: "on GitHub Pages", danger: false },
     { label: "Core Stack", num: corePct + "%", sub: `${live} of ${coreTotal - 1} non-capstone`, danger: false },
-    { label: "Next Up", num: "inv_", sub: "Investment Module scope", danger: false },
+    { label: "In Build", num: "inv_", sub: "Investment Module v1.0", danger: false },
   ];
 
   document.getElementById("stat-row").innerHTML = stats.map(s => `
