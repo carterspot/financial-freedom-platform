@@ -109,6 +109,11 @@ Build via Vite → output to `docs/{module}/` → push → auto-deploys in ~60s.
 - `ffp_categories_{profileId}` — master category list
 - `ffp_cat_rules_{profileId}` — auto-assignment rules
 
+### Cross-Module Shared Summary Keys (Dashboard reads these)
+- `ffp_baseline_{profileId}` — written by SpendingTracker v1.8 — essential monthly expenses
+- `ffp_investments_{profileId}` — written by InvestmentModule — `{totalInvested, currentValue, unrealizedGain, positionCount, calculatedOn}`
+- `ins_legacy_health_{profileId}` — written by InsuranceTracker — Legacy ring % (0-100)
+
 ### Module Filename Clarification
 ```
 modules/debt-tracker.jsx        ← DebtTracker (active)
@@ -117,6 +122,8 @@ modules/income-tracker.jsx       ← IncomeTracker (active)
 modules/income-stub.jsx          ← 2-LINE STUB — renamed from income.jsx (April 2026), ignore
 modules/dashboard.jsx            ← Dashboard (active — v1.0)
 modules/insurance.jsx            ← InsuranceTracker (active — v1.0)
+modules/retirement.jsx           ← RetirementModule (active)
+modules/investment.jsx           ← InvestmentModule (active — v1.0)
 modules/savings.jsx              ← SavingsModule (active — v1.2)
 modules/credit-card-tracker.jsx  ← CardTracker (deprecated, do not touch)
 modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
@@ -205,6 +212,8 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 
 1. **AI Advisor data contract** — define what each module must expose; write contract doc before build slot
 2. **AI Advisor v1** — capstone; all modules must be stable first
+3. **Freedom Rings IP check** — verify ring concept before public launch
+4. **Graduation planning** — Next.js + Supabase architecture discussion
 
 ---
 
