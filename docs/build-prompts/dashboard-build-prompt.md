@@ -273,7 +273,7 @@ Tile 4 — Savings
 ```
 primary: "X of Y" goals funded
 secondary: emergency fund coverage in months
-  emergencyMonths = totalSavingsBalance / ffp_baseline_.amount
+  emergencyMonths = totalSavingsBalance / baseline?.amount  (key: ffp_baseline_${id})
 color: #6366f1
 onClick: window.open(savingsUrl)
 alt: "Click to view Savings Module"
@@ -281,8 +281,8 @@ alt: "Click to view Savings Module"
 
 **Center — Baseline tile** (below rings, full width of rings column)
 ```
-primary: ffp_baseline_.amount formatted as $/mo
-secondary: "income covers baseline ×" + (monthlyIncome/baseline).toFixed(1)
+primary: baseline?.amount formatted as $/mo  (key: ffp_baseline_${id})
+secondary: "income covers baseline ×" + (monthlyIncome/baseline.amount).toFixed(1)
 color: #f59e0b
 No click target (informational)
 alt: "Essential monthly expenses floor from SpendingTracker"
@@ -331,7 +331,7 @@ sav_goals.filter(g => g.dueDate && daysUntil(g.dueDate) <= 30)
 
 // INFO alerts
 // Retirement target below baseline
-if(ret_profile.targetMonthlyIncome < ffp_baseline_.amount) {
+if(retProfile?.targetMonthlyIncome < baseline?.amount) {  // keys: ret_profile_${id}, ffp_baseline_${id}
   alerts.push({
     sev:'info',
     title:'Retirement target below spending baseline',
@@ -341,8 +341,14 @@ if(ret_profile.targetMonthlyIncome < ffp_baseline_.amount) {
 }
 
 // Income up/down
-if(incomeChangePct > 5) alerts.push({sev:'success',...});
-if(incomeChangePct < -5) alerts.push({sev:'red',...});
+if(incomeChangePct > 5) alerts.push({
+  sev:'success', title:`Income up ${incomeChangePct.toFixed(1)}%`,
+  body:`Monthly income increased vs prior month`, href: incomeUrl
+});
+if(incomeChangePct < -5) alerts.push({
+  sev:'red', title:`Income down ${Math.abs(incomeChangePct).toFixed(1)}%`,
+  body:`Monthly income decreased vs prior month`, href: incomeUrl
+});
 
 // Take top 4 by priority (red > amber > info > success)
 ```
@@ -441,7 +447,7 @@ If any module's data is missing from storage:
 - Link to the module URL
 - Never throw errors or show blank space
 
-If ffp_baseline_ is missing (SpendingTracker v1.8 not run):
+If ffp_baseline_${id} is missing (SpendingTracker v1.8 not run):
 - Baseline tile shows "—" with note "Run SpendingTracker to calculate"
 - Savings emergency months calculation skipped
 - Retirement baseline warning suppressed
