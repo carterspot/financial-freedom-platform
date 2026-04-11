@@ -1,2 +1,2 @@
-import App from "../../modules/insurance.jsx";
+import App from "../../modules/investment.jsx";
 export default App;

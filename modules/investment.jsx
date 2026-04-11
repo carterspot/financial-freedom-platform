@@ -1441,7 +1441,7 @@ export default function InvestmentModule() {
   const [profiles,      setProfiles]      = useState([]);
   const [activeProfile, setActiveProfile] = useState(null);
   const [apiKey,        setApiKey]        = useState("");
-  const [darkMode,      setDarkMode]      = useState(() => localStorage.getItem("inv_dark") === "true");
+  const [darkMode,      setDarkMode]      = useState(() => localStorage.getItem("inv_dark") !== "false");
   const [tab,           setTab]           = useState("overview");
   const [loading,       setLoading]       = useState(true);
 
@@ -1663,10 +1663,21 @@ export default function InvestmentModule() {
           </span>
         </div>
         <div style={{display:"flex", alignItems:"center", gap:8}}>
-          {activeProfile && (
+          {activeProfile ? (
+            <button onClick={() => setShowProfiles(true)}
+              style={{background:"none", border:"none", cursor:"pointer",
+                display:"flex", alignItems:"center", gap:8}}>
+              <div style={{width:30, height:30, borderRadius:"50%",
+                background:`linear-gradient(135deg,#3b82f6,#6366f1)`,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:12, fontWeight:700, color:"#fff", flexShrink:0}}>
+                {activeProfile.name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase()}
+              </div>
+            </button>
+          ) : (
             <button onClick={() => setShowProfiles(true)}
               style={btnGhost(t, {fontSize:12, padding:"5px 10px"})}>
-              👤 {activeProfile.name}
+              👤 Select Profile
             </button>
           )}
           <button onClick={() => setDarkMode(d => !d)}
