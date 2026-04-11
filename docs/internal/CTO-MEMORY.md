@@ -49,6 +49,7 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 | SavingsModule | v1.2 | `modules/savings.jsx` | `.../savings/` |
 | RetirementModule | v1.1 | `modules/retirement.jsx` | `.../retirement/` |
 | InvestmentModule | v1.0 | `modules/investment.jsx` | `.../investment/` |
+| InsuranceTracker | v1.0 | `modules/insurance.jsx` | `.../insurance/` |
 
 ### Deprecated (artifact URLs preserved, not promoted)
 | Module | Version | Status |
@@ -115,6 +116,7 @@ modules/spending.jsx             ← SpendingTracker (active, no -tracker suffix
 modules/income-tracker.jsx       ← IncomeTracker (active)
 modules/income-stub.jsx          ← 2-LINE STUB — renamed from income.jsx (April 2026), ignore
 modules/dashboard.jsx            ← Dashboard (active — v1.0)
+modules/insurance.jsx            ← InsuranceTracker (active — v1.0)
 modules/savings.jsx              ← SavingsModule (active — v1.2)
 modules/credit-card-tracker.jsx  ← CardTracker (deprecated, do not touch)
 modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
@@ -138,6 +140,7 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 - ✅ Cloudflare Worker rollback — documented in docs/project-instruction.md
 - ✅ SavingsModule v1.2 — 4-tab layout, expandable fund/goal cards, AI Advisor tab, sav_ai_results_ key
 - ✅ Dashboard v1.0 — Freedom Rings, 6 charts, collapsible nav, Freedom Score engine, cross-module reads
+- ✅ InsuranceTracker v1.0 — PIN lock (usePinLock hook), Legacy Ring feed, 5 tabs, 3 AI features, ins_legacy_health_ key
 
 ---
 

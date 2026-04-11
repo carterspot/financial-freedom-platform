@@ -79,6 +79,7 @@
 
   <!-- Jump links -->
   <div class="nav-pills">
+    <a href="#insurance-tracker" class="nav-pill">🛡️ Insurance Tracker v1.0</a>
     <a href="#dashboard" class="nav-pill">🏠 Dashboard v1.0</a>
     <a href="#investment-module" class="nav-pill">💹 Investment Module v1.0</a>
     <a href="#retirement-module" class="nav-pill">📈 Retirement Module v1.1</a>
@@ -88,6 +89,66 @@
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.5</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
     <a href="#loan-tracker" class="nav-pill">🏦 LoanTracker v1.2</a>
+  </div>
+
+  <!-- ── Insurance Tracker ── -->
+  <div class="module-section" id="insurance-tracker">
+    <div class="module-header">
+      <div class="module-icon" style="background:linear-gradient(135deg,#10b981,#06b6d4)">🛡️</div>
+      <div>
+        <div class="module-name">Insurance Tracker</div>
+        <div class="module-version">v1.0</div>
+      </div>
+      <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-new">🆕 New Module — v1.0</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>PIN lock — content-level security</h4>
+            <p>First FFP module with a dedicated PIN lock separate from the profile Recovery PIN. 4-digit entry with individual boxes and auto-advance. Auto-locks when the tab is hidden. Recovery path via profile Recovery PIN. Built as a reusable usePinLock hook for future modules.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Legacy Ring — Wealth Ring feed for the Dashboard</h4>
+            <p>calcLegacyHealth() computes a 0-100 score from four coverage dimensions: Life (40%), Disability (30%), Health binary (20%), Auto binary (10%). Score is written to ins_legacy_health_{profileId} on every policy save and loaded by the Dashboard for the Legacy Ring.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>5-tab policy vault</h4>
+            <p>Coverage tab shows policy cards by type with a coverage summary bar (gap vs target). Beneficiaries tab consolidates all named beneficiaries across policies. Emergency Info tab is print-ready for family access — carrier, agent, policy number, and beneficiaries in one clean layout. Analysis tab has three AI features. Settings tab manages PIN.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>3 AI analysis features</h4>
+            <p>Coverage Gap Analysis identifies underinsured areas and estimates monthly cost to close each gap. Term vs Permanent Life gives a personalized recommendation based on age, debt load, and retirement trajectory. Quote Comparison calculates cost-per-$1K coverage across up to 3 carrier quotes. All results persisted with timestamps.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--amber)"></div>
+          <div class="change-body">
+            <h4>Approximate coverage flag</h4>
+            <p>Employer group benefits estimated as a salary multiple (1x, 2x, 3x) are tagged isApproximate: true and displayed with a ~ prefix. Tooltip: "Approximate — based on your salary data." Approximate amounts are included in Legacy Ring calculations with an advisory note.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--amber)"></div>
+          <div class="change-body">
+            <h4>Expiry warnings</h4>
+            <p>Policy cards flag upcoming expirations: amber at 90 days, red at 30 days. Term life and disability policies most commonly trigger this.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ── Dashboard ── -->

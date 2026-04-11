@@ -281,7 +281,7 @@ footer a:hover{text-decoration:underline}
     <p>A modular platform that tracks your income, spending, debt, and savings — and uses AI to build your personalized plan.</p>
     <div class="hero-stats">
       <div class="hero-stat">
-        <div class="hero-stat-num" id="stat-live">8</div>
+        <div class="hero-stat-num" id="stat-live">9</div>
         <div class="hero-stat-label">Modules Live</div>
       </div>
       <div class="hero-stat">
@@ -420,6 +420,17 @@ const CONFIG = {
       artifactUrl:"https://carterspot.github.io/financial-freedom-platform/investment/",
       quickstartUrl:null,
       whatsNewUrl:"whats-new.html#investment-module"
+    },
+    {
+      id:"insurance", icon:"🛡️", name:"Insurance Tracker", ver:"v1.0", status:"live",
+      color:"#10b981",
+      desc:"Policy vault for Life, Disability, Health, and Auto coverage. PIN-locked for sensitive beneficiary data. Feeds the Legacy Ring on the Dashboard with live coverage health.",
+      features:["PIN lock — 4-digit content-level lock separate from profile Recovery PIN, auto-locks on tab switch","Coverage tab — policy cards by type with summary bar showing coverage vs target","Beneficiaries tab — consolidated view of all named beneficiaries across policies","Emergency Info tab — print-ready layout with carrier, agent, and policy details for family access","Settings tab — PIN management (set, change, remove)","Approximate coverage flag (~) for employer group estimates","Expiry warnings at 90 and 30 days","JSON backup and restore"],
+      ai:["Coverage Gap Analysis — identifies underinsured areas and estimates cost to close each gap","Term vs Permanent Life — personalized recommendation based on debt, retirement, and age","Quote Comparison — cost-per-$1K analysis across up to 3 carrier quotes"],
+      flows:[{dir:"out",to:"Dashboard",label:"ins_legacy_health_: Legacy Ring (Wealth Ring feed)"},{dir:"out",to:"AI Advisor",label:"ins_policies_: all coverage data"}],
+      artifactUrl:"https://carterspot.github.io/financial-freedom-platform/insurance/",
+      quickstartUrl:null,
+      whatsNewUrl:"whats-new.html#insurance-tracker"
     },
     {
       id:"advisor", icon:"🧠", name:"AI Advisor", ver:"capstone", status:"capstone",

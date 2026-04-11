@@ -20,7 +20,7 @@ Financial Freedom Platform
 ├── 📈 RetirementModule  (BUILT — v1.1 complete)
 ├── 💹 Investment Module (BUILT — v1.0 complete)
 ├── 🏠 Dashboard         (BUILT — v1.0 complete)
-├── 🛡️ Insurance Tracker (PLANNED — policies, beneficiaries, Wealth Ring feed)
+├── 🛡️ Insurance Tracker (BUILT — v1.0 complete)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
 ```
 
@@ -855,7 +855,7 @@ ffp_investments_{profileId} (shared) — WRITTEN by Investment, READ by AI Advis
 
 ---
 
-## Module 9: Insurance Tracker (PLANNED)
+## Module 9: Insurance Tracker (BUILT — v1.0)
 
 Tracks all insurance policies across four coverage types — Life, Disability, Health, and Auto. Feeds the Legacy Ring (Wealth Ring) on the Dashboard. PIN-locked for sensitive beneficiary data.
 
