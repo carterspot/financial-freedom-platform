@@ -1,7 +1,10 @@
 {
   "servers": {
     "context-mode": {
-      "command": "context-mode"
+      "command": "context-mode",
+      "env": {
+        "PATH": "C:\\Users\\CarterBeaton\\AppData\\Roaming\\npm;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem"
+      }
     }
   }
 }
