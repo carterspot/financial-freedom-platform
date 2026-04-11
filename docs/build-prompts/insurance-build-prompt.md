@@ -9,7 +9,7 @@ before writing any code.
 
 This is a NEW module. Do not modify any existing module files.
 Build modules/insurance.jsx from scratch using the FFP module shell pattern.
-Design standard: Dashboard UI (docs/dashboard/ once built) — dark background,
+Design standard: Dashboard UI (docs/dashboard/) — dark background,
 collapsible sidebar pattern, DM Sans, FFP color tokens. This is the first module
 built to the new design standard — future modules will migrate to match it.
 
@@ -268,7 +268,7 @@ Ask Claude to:
 
 **Term vs Permanent Analysis**
 Button: "Should I Have Term or Permanent Life Insurance?"
-Reads: policies + inc_streams + dt_ debt + ret_accounts
+Reads: policies + ins_targets_{profileId} + inc_streams_{profileId} + dt_debts_{profileId} + ret_accounts_{profileId}
 Prompt includes:
 - Current age (from profile if available, otherwise ask)
 - Current life insurance type and amount
@@ -290,7 +290,14 @@ Ask Claude to:
 - Any red flags in the quotes
 
 All AI results: 📋 Copy + ⬇ Download .txt buttons
-callClaude pattern: standard proxy URL with anthropic-version header
+
+Persist results: after each analysis runs, store to `ins_ai_results_{profileId}` as an object
+keyed by analysis type: `{ gapAnalysis: "...", termVsPermanent: "...", quoteComparison: "..." }`.
+Load on init and restore last results into each sub-section so they survive tab switches and
+page refreshes. Show timestamp of last analysis below each result.
+
+callClaude pattern: standard proxy URL with anthropic-version header. Non-streaming only —
+use `await res.json()`. Never use streaming or ReadableStream in this platform.
 
 ---
 
@@ -301,6 +308,7 @@ Follow Dashboard UI standard:
 - Cloud sync badge (☁ Cloud Sync / 💾 Local Only)
 - PIN status dot (green = PIN active, amber = no PIN set)
 - API key button (🔑) with status dot
+- Dark mode toggle (🌙/☀) — persists to `ins_dark_{profileId}`
 - Backup (💾 floppy icon) — Export JSON only (no CSV for this module)
 - Profile avatar dropdown
 
@@ -322,11 +330,13 @@ useEffect(() => {
     setProfiles(profs);
     if (!id) { setLoading(false); return; }
 
-    const [policies, targets, incStreams, pin] = await Promise.all([
+    const [policies, targets, incStreams, pin, aiResults, darkMode] = await Promise.all([
       storeGet(`ins_policies_${id}`, true),
       storeGet(`ins_targets_${id}`, true),
       storeGet(`inc_streams_${id}`, true),   // needed for coverage targets
       storeGet(`ins_pin_${id}`, true),
+      storeGet(`ins_ai_results_${id}`, true),
+      storeGet(`ins_dark_${id}`, true),
     ]);
 
     setPolicies(policies || []);
@@ -334,6 +344,8 @@ useEffect(() => {
     setIncStreams(incStreams || []);
     setPinHash(pin || null);
     setHasPin(!!pin);
+    setAiResults(aiResults || {});
+    setDarkMode(darkMode ?? true);  // default dark
 
     // Recalculate and store legacy health
     const monthlyIncome = calcMonthlyIncome(incStreams || []);

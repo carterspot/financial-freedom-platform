@@ -961,6 +961,7 @@ Dashboard reads `ins_legacy_health_{profileId}` for the Legacy Ring (Wealth Ring
 | Key | Writer | Readers |
 |-----|--------|---------|
 | `ins_policies_{profileId}` | Insurance Tracker | Insurance Tracker, AI Advisor |
+| `ins_targets_{profileId}` | Insurance Tracker | Insurance Tracker only |
 | `ins_pin_{profileId}` | Insurance Tracker | Insurance Tracker only |
 | `ins_locked_{profileId}` | Insurance Tracker | Insurance Tracker only |
 | `ins_legacy_health_{profileId}` | Insurance Tracker | Dashboard (Legacy Ring) |
