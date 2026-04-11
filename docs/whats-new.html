@@ -81,7 +81,7 @@
   <div class="nav-pills">
     <a href="#investment-module" class="nav-pill">💹 Investment Module v1.0</a>
     <a href="#retirement-module" class="nav-pill">📈 Retirement Module v1.1</a>
-    <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.1</a>
+    <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.2</a>
     <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.8</a>
     <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.2</a>
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.5</a>
@@ -249,9 +249,43 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#10b981,#06b6d4)">🏦</div>
       <div>
         <div class="module-name">Savings Module</div>
-        <div class="module-version">v1.1</div>
+        <div class="module-version">v1.2</div>
       </div>
       <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-new">🆕 4-Tab Layout + AI Advisor — v1.2</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>4-tab layout — Overview · Funds · Goals · AI Advisor</h4>
+            <p>The single-page layout is replaced with a structured 4-tab interface. Overview shows your stat cards (Total Saved, Targeted, Monthly Commitment, Coverage) plus alerts and the emergency fund seeder. Funds and Goals each have their own dedicated tab for focused management.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Expandable fund cards</h4>
+            <p>Collapsed fund cards show the account name and current balance with a chevron. Expand to reveal the account nickname and action buttons — Log Deposit, Edit, Delete. Keeps the list scannable without hiding detail.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Expandable goal cards with progress bar</h4>
+            <p>Collapsed goal cards show the goal name, saved vs. target amounts, and a progress bar — filled green with a ✓ Funded pill when fully funded. Expand to see due date, goal type, linked fund, monthly contribution needed, and Contrib / Edit / Delete controls.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>AI Advisor tab</h4>
+            <p>Reads your spending baseline and full fund + goal data, builds a prompt, and calls Claude for personalized savings recommendations. Results persist across sessions — re-analyze any time with the Re-analyze button. API key guard shown if key is missing.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">

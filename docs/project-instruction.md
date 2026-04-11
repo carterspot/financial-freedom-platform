@@ -16,7 +16,7 @@ Financial Freedom Platform
 ├── ⚡ DebtTracker       (BUILT — v1.5 complete)
 ├── 💰 IncomeTracker     (BUILT — v1.2 complete)
 ├── 📊 SpendingTracker   (BUILT — v1.8 complete)
-├── 🏦 SavingsModule     (BUILT — v1.1 complete)
+├── 🏦 SavingsModule     (BUILT — v1.2 complete)
 ├── 📈 RetirementModule  (BUILT — v1.1 complete)
 ├── 💹 Investment Module (BUILT — v1.0 complete)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
@@ -44,7 +44,7 @@ Modules are deployed as static builds via Vite to `docs/{module}/` subfolders. G
 https://carterspot.github.io/financial-freedom-platform/debt/       ← DebtTracker v1.5
 https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.8
 https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.2
-https://carterspot.github.io/financial-freedom-platform/savings/    ← SavingsModule v1.1
+https://carterspot.github.io/financial-freedom-platform/savings/    ← SavingsModule v1.2
 https://carterspot.github.io/financial-freedom-platform/retirement/ ← RetirementModule v1.1
 ```
 
@@ -622,7 +622,7 @@ Note: `recurrenceType` is a **v1.1 addition** — transaction-level (not categor
 
 ---
 
-## Module 6: Savings Module (COMPLETE — v1.1)
+## Module 6: Savings Module (COMPLETE — v1.2)
 
 Emergency fund tracker and named savings goals ("sinking funds") with target dates and required monthly amounts.
 
@@ -663,13 +663,15 @@ Both use the same schema with a `goalType` field. UI surfaces them differently.
 **Storage prefix:** `sav_`
 
 ```
-sav_funds_{profileId}    (shared) — array of fund objects
-                                    { id, name, accountNickname, color, balance, deposits[] }
-sav_goals_{profileId}    (shared) — array of goal objects
-                                    { id, fundId, name, goalType, targetAmount, currentAmount,
-                                      dueDate, monthlyContrib, categoryId, recurrencePattern,
-                                      linkedTransactionId, lastPaidDate }
-ffp_baseline_{profileId} (shared) — READ ONLY from SpendingTracker v1.8+
+sav_funds_{profileId}       (shared) — array of fund objects
+                                       { id, name, accountNickname, color, balance, deposits[] }
+sav_goals_{profileId}       (shared) — array of goal objects
+                                       { id, fundId, name, goalType, targetAmount, currentAmount,
+                                         dueDate, monthlyContrib, categoryId, recurrencePattern,
+                                         linkedTransactionId, lastPaidDate }
+sav_ai_results_{profileId}  (module) — persisted AI Advisor output
+                                       { timestamp, content } — written by AI Advisor tab on first run
+ffp_baseline_{profileId}    (shared) — READ ONLY from SpendingTracker v1.8+
 ```
 
 ### v1.1 features (April 2026) — Baseline integration
@@ -686,6 +688,27 @@ ffp_baseline_{profileId} (shared) — READ ONLY from SpendingTracker v1.8+
 - Baseline data appended to AI advisor prompts when available (future AI tab)
 
 **Artifact:** `modules/savings.jsx`
+
+### v1.2 features (April 2026) — 4-tab layout + AI Advisor
+
+**Layout change:** Single-page replaced with 4-tab layout: Overview · Funds · Goals · AI Advisor.
+
+**Overview tab:**
+- Stat cards: Total Saved, Targeted, Monthly Commitment, Coverage
+- AlertBanner (due-date alerts) + SuggestionBanner (sinking fund suggestions)
+- EmergencyFundSeeder (baseline-driven)
+
+**Funds tab:**
+- Expandable FundCard: collapsed shows name + balance + chevron; expanded shows account nickname + Log Deposit / Edit / Delete controls
+
+**Goals tab:**
+- Expandable GoalCard: collapsed shows name + amounts + progress bar (green fill + ✓ Funded pill when complete) + chevron; expanded shows due date, type, fund, monthly needed + Contrib / Edit / Delete controls
+
+**AI Advisor tab:**
+- Top-level `AiAdvisorTab` component
+- Reads `ffp_baseline_{profileId}`, builds full prompt with fund + goal context, calls Claude via Cloudflare Worker
+- Persists results to `sav_ai_results_{profileId}` — Re-analyze button shown after first run
+- No-key guard shown if API key missing
 
 ---
 
@@ -1140,7 +1163,7 @@ docs/
 - ✅ Savings Module v1.1 — emergency fund + sinking fund goals + baseline seeder
 - ✅ Retirement Module v1.1 — balances, contributions, projections + baseline warning
 - ✅ Investment Module v1.0 — taxable brokerage, stocks, ETFs, AI price update, ffp_investments_ key
-- [ ] SavingsModule v1.2 — expandable fund/goal cards + AI Advisor tab
+- ✅ SavingsModule v1.2 — 4-tab layout, expandable fund/goal cards, AI Advisor tab, sav_ai_results_ key
 - [ ] Platform Dashboard v1.0 — Freedom Rings cross-module view
 - [ ] AI Advisor — holistic cross-module planning with manual correction layer (capstone)
 - [ ] Node graph v2 — draggable nodes, edge highlighting, Investment module node

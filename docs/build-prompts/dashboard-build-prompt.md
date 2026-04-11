@@ -20,11 +20,12 @@ Storage prefix: `dash_` (dark mode only — everything else is read-only)
 
 Live module URLs (for Launch buttons):
 ```
-Debt:       https://carterspot.github.io/financial-freedom-platform/debt/
-Income:     https://carterspot.github.io/financial-freedom-platform/income/
-Spending:   https://carterspot.github.io/financial-freedom-platform/spending/
-Savings:    https://carterspot.github.io/financial-freedom-platform/savings/
-Retirement: https://carterspot.github.io/financial-freedom-platform/retirement/
+Debt:        https://carterspot.github.io/financial-freedom-platform/debt/
+Income:      https://carterspot.github.io/financial-freedom-platform/income/
+Spending:    https://carterspot.github.io/financial-freedom-platform/spending/
+Savings:     https://carterspot.github.io/financial-freedom-platform/savings/
+Retirement:  https://carterspot.github.io/financial-freedom-platform/retirement/
+Investments: https://carterspot.github.io/financial-freedom-platform/investment/
 ```
 
 ---
@@ -121,10 +122,21 @@ Note: Do NOT add an Insurance module URL — no such module exists or is planned
 
 **Investments** (color: #3b82f6)
 ```
-Module in build (Investment v1.0). Show greyed out for now, health = 0, no amount.
-Label: "Coming soon"
-When live: read ffp_investments_{id} for portfolio data.
-Note: color is blue (#3b82f6) — not amber.
+Read ffp_investments_{id} — object with { accounts: [...] }
+Each account has positions[]: { ticker, shares, costBasis, currentPrice }
+
+totalCostBasis    = sum of (position.costBasis * position.shares) across all accounts
+totalCurrentValue = sum of (position.currentPrice * position.shares) across all accounts
+gainPct           = totalCostBasis > 0
+                      ? (totalCurrentValue - totalCostBasis) / totalCostBasis * 100
+                      : 0
+health            = Math.min(Math.max(gainPct + 50, 0), 100)
+  (0% gain → ring at 50%; positive gain fills ring; drawdown drains it)
+primaryAmount     = totalCurrentValue
+
+If ffp_investments_{id} is null or accounts is empty: health = 0, primaryAmount = null
+onClick: window.open(investmentUrl)
+Note: color is blue (#3b82f6) — not amber. No "Coming soon" label.
 ```
 
 ### Nav ring SVG pattern (per icon)

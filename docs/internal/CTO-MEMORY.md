@@ -1,7 +1,7 @@
 # CTO Memory — Financial Freedom Platform
 **Location:** `docs/internal/CTO-MEMORY.md`  
 **Purpose:** Bootstraps CTO identity and project context in a cold Claude Code session.  
-**Updated:** 2026-04-09 (post-Investment v1.0 ship)  
+**Updated:** 2026-04-11 (post-SavingsModule v1.2 ship)  
 **Read this file + docs/internal/ffp-cto-SKILL.md + docs/project-instruction.md at every CTO session start.**
 
 ---
@@ -45,7 +45,7 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 | DebtTracker | v1.5 | `modules/debt-tracker.jsx` | `.../debt/` |
 | IncomeTracker | v1.2 | `modules/income-tracker.jsx` | `.../income/` |
 | SpendingTracker | v1.8 | `modules/spending.jsx` | `.../spending/` |
-| SavingsModule | v1.1 | `modules/savings.jsx` | `.../savings/` |
+| SavingsModule | v1.2 | `modules/savings.jsx` | `.../savings/` |
 | RetirementModule | v1.1 | `modules/retirement.jsx` | `.../retirement/` |
 | InvestmentModule | v1.0 | `modules/investment.jsx` | `.../investment/` |
 
@@ -58,7 +58,6 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 **CT and LT are deprecated.** Do not propose fixes or features for them. Do not reference them as active modules.
 
 ### In Queue
-- 💰 SavingsModule v1.2 — expandable fund/goal cards + AI Advisor tab (prompt ready: `docs/build-prompts/savings-v1.2-prompt.md`)
 - 🏠 Dashboard v1.0 — Freedom Rings cross-module view (prompt ready: `docs/build-prompts/dashboard-build-prompt.md`)
 - 🧠 AI Advisor — capstone, all modules must be stable first
 
@@ -115,7 +114,7 @@ modules/debt-tracker.jsx        ← DebtTracker (active)
 modules/spending.jsx             ← SpendingTracker (active, no -tracker suffix)
 modules/income-tracker.jsx       ← IncomeTracker (active)
 modules/income-stub.jsx          ← 2-LINE STUB — renamed from income.jsx (April 2026), ignore
-modules/savings.jsx              ← SavingsModule (building)
+modules/savings.jsx              ← SavingsModule (active — v1.2)
 modules/credit-card-tracker.jsx  ← CardTracker (deprecated, do not touch)
 modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 ```
@@ -136,6 +135,7 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 - ✅ RetirementModule v1.1 — spending baseline warning, withdrawal plan indicator, AI context
 - ✅ InvestmentModule v1.0 — 14 components, portfolio tracking, AI price update, ffp_investments_ key
 - ✅ Cloudflare Worker rollback — documented in docs/project-instruction.md
+- ✅ SavingsModule v1.2 — 4-tab layout, expandable fund/goal cards, AI Advisor tab, sav_ai_results_ key
 
 ---
 
@@ -198,10 +198,9 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 
 ## Next Up (in order)
 
-1. **SavingsModule v1.2** — expandable fund/goal cards + AI Advisor tab; prompt ready at `docs/build-prompts/savings-v1.2-prompt.md`
-2. **Dashboard v1.0** — Freedom Rings cross-module view; prompt ready at `docs/build-prompts/dashboard-build-prompt.md`
-3. **AI Advisor data contract** — define what each module must expose; write contract doc before build slot
-4. **AI Advisor v1** — capstone; all modules must be stable first
+1. **Dashboard v1.0** — Freedom Rings cross-module view; prompt ready at `docs/build-prompts/dashboard-build-prompt.md`
+2. **AI Advisor data contract** — define what each module must expose; write contract doc before build slot
+3. **AI Advisor v1** — capstone; all modules must be stable first
 
 ---
 
