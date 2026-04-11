@@ -1,0 +1,122 @@
+{
+  "version": "sav_1.0",
+  "exportedAt": "2026-04-11T00:00:00.000Z",
+  "profileId": "prof_sm_test",
+  "funds": [
+    {
+      "id": "sav_fund_sm001",
+      "name": "Emergency Fund",
+      "accountNickname": "Sarah HYSA",
+      "color": "#10b981",
+      "balance": 31000.00,
+      "deposits": [
+        { "id": "dep_sm001", "amount": 2000, "date": "2026-01-10", "note": "January contribution" },
+        { "id": "dep_sm002", "amount": 1500, "date": "2026-03-10", "note": "March contribution — February skipped (slow season)" }
+      ]
+    },
+    {
+      "id": "sav_fund_sm002",
+      "name": "Property & Business Fund",
+      "accountNickname": "Sarah Property HYSA",
+      "color": "#f97316",
+      "balance": 14200.00,
+      "deposits": [
+        { "id": "dep_sm003", "amount": 800, "date": "2026-01-15", "note": "January contribution" },
+        { "id": "dep_sm004", "amount": 800, "date": "2026-02-15", "note": "February contribution" },
+        { "id": "dep_sm005", "amount": 800, "date": "2026-03-15", "note": "March contribution" }
+      ]
+    }
+  ],
+  "goals": [
+    {
+      "id": "sav_goal_sm001",
+      "fundId": "sav_fund_sm001",
+      "name": "Emergency Fund",
+      "goalType": "accumulation",
+      "targetAmount": 45000.00,
+      "currentAmount": 31000.00,
+      "dueDate": null,
+      "monthlyContrib": 1167.00,
+      "categoryId": "",
+      "recurrencePattern": null,
+      "recurrenceType": null,
+      "linkedTransactionId": null,
+      "lastPaidDate": null
+    },
+    {
+      "id": "sav_goal_sm002",
+      "fundId": "sav_fund_sm002",
+      "name": "Property Tax — Primary",
+      "goalType": "sinking_fund",
+      "targetAmount": 4800.00,
+      "currentAmount": 2400.00,
+      "dueDate": "2026-11-01",
+      "monthlyContrib": 200.00,
+      "categoryId": "",
+      "recurrencePattern": "PROPERTY TAX PRIMARY HOME",
+      "recurrenceType": "biannual",
+      "linkedTransactionId": null,
+      "lastPaidDate": "2025-05-01"
+    },
+    {
+      "id": "sav_goal_sm003",
+      "fundId": "sav_fund_sm002",
+      "name": "Property Tax — Rental",
+      "goalType": "sinking_fund",
+      "targetAmount": 3600.00,
+      "currentAmount": 1800.00,
+      "dueDate": "2026-11-01",
+      "monthlyContrib": 150.00,
+      "categoryId": "",
+      "recurrencePattern": "PROPERTY TAX RENTAL HOME",
+      "recurrenceType": "biannual",
+      "linkedTransactionId": null,
+      "lastPaidDate": "2025-05-01"
+    },
+    {
+      "id": "sav_goal_sm004",
+      "fundId": "sav_fund_sm002",
+      "name": "Rental HVAC Replacement",
+      "goalType": "sinking_fund",
+      "targetAmount": 6000.00,
+      "currentAmount": 2200.00,
+      "dueDate": "2026-12-01",
+      "monthlyContrib": 250.00,
+      "categoryId": "",
+      "recurrencePattern": "HVAC REPLACEMENT RENTAL",
+      "recurrenceType": "one-time",
+      "linkedTransactionId": null,
+      "lastPaidDate": null
+    },
+    {
+      "id": "sav_goal_sm005",
+      "fundId": "sav_fund_sm001",
+      "name": "Costa Rica Trip",
+      "goalType": "accumulation",
+      "targetAmount": 5500.00,
+      "currentAmount": 3200.00,
+      "dueDate": "2026-07-15",
+      "monthlyContrib": 575.00,
+      "categoryId": "",
+      "recurrencePattern": null,
+      "recurrenceType": "one-time",
+      "linkedTransactionId": null,
+      "lastPaidDate": null
+    },
+    {
+      "id": "sav_goal_sm006",
+      "fundId": "sav_fund_sm002",
+      "name": "Business Equipment",
+      "goalType": "accumulation",
+      "targetAmount": 3500.00,
+      "currentAmount": 800.00,
+      "dueDate": "2026-09-01",
+      "monthlyContrib": 300.00,
+      "categoryId": "",
+      "recurrencePattern": null,
+      "recurrenceType": "one-time",
+      "linkedTransactionId": null,
+      "lastPaidDate": null
+    }
+  ]
+}

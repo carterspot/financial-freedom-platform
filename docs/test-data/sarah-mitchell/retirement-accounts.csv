@@ -1,0 +1,4 @@
+id,type,name,currentBalance,contribType,contribRate,employerMatch,employerMatchLimit,monthlyBenefit,estimatedMonthlyBenefit,ssBenefitAge,notes
+ret_acct_sm001,ira,Vanguard SEP-IRA,198000,fixed,2000,,,,,,"SEP-IRA — contributions vary with seasonal cash flow; $2,000/mo target when revenue allows"
+ret_acct_sm002,ira,Vanguard Traditional IRA,42000,fixed,500,,,,,,
+ret_acct_sm003,socialsecurity,Social Security Estimate,0,fixed,0,,,,2400,67,

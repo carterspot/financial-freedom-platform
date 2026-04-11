@@ -1,0 +1,4 @@
+id,fundId,name,goalType,targetAmount,currentAmount,dueDate,monthlyContrib,categoryId,recurrencePattern,lastPaidDate
+sav_goal_er001,sav_fund_er001,Emergency Fund,accumulation,9000,2200,,,,,
+sav_goal_er002,sav_fund_er001,Renters Insurance,sinking_fund,180,45,2026-08-01,15,,RENTERS INSURANCE,2025-08-01
+sav_goal_er003,sav_fund_er001,Student Loan Payoff,accumulation,18000,0,,,,,

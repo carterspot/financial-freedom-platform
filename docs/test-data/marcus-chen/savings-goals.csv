@@ -1,0 +1,6 @@
+id,fundId,name,goalType,targetAmount,currentAmount,dueDate,monthlyContrib,categoryId,recurrencePattern,lastPaidDate
+sav_goal_mc001,sav_fund_mc001,Emergency Fund,accumulation,22000,12500,,,,,
+sav_goal_mc002,sav_fund_mc002,HOA Annual Assessment,sinking_fund,1800,900,2026-07-01,150,,HOA ANNUAL ASSESSMENT,2025-07-01
+sav_goal_mc003,sav_fund_mc002,Property Tax,sinking_fund,3200,1600,2026-11-01,160,,PROPERTY TAX COUNTY,2025-05-01
+sav_goal_mc004,sav_fund_mc002,Home Improvement,accumulation,8000,1340,,,,,
+sav_goal_mc005,sav_fund_mc002,Car Maintenance,sinking_fund,600,300,2026-09-01,100,,CAR MAINTENANCE FUND,

@@ -1,0 +1,3 @@
+id,type,name,currentBalance,contribType,contribRate,employerMatch,employerMatchLimit,monthlyBenefit,estimatedMonthlyBenefit,ssBenefitAge,notes
+ret_acct_mc001,401k,Fidelity 401k,87500,percent,8,4,8,,,,
+ret_acct_mc002,rothira,Fidelity Roth IRA,24200,fixed,500,,,,,,

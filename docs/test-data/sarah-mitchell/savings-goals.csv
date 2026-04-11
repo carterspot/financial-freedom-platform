@@ -1,0 +1,7 @@
+id,fundId,name,goalType,targetAmount,currentAmount,dueDate,monthlyContrib,categoryId,recurrencePattern,lastPaidDate
+sav_goal_sm001,sav_fund_sm001,Emergency Fund,accumulation,45000,31000,,,,,
+sav_goal_sm002,sav_fund_sm002,Property Tax — Primary,sinking_fund,4800,2400,2026-11-01,200,,PROPERTY TAX PRIMARY HOME,2025-05-01
+sav_goal_sm003,sav_fund_sm002,Property Tax — Rental,sinking_fund,3600,1800,2026-11-01,150,,PROPERTY TAX RENTAL HOME,2025-05-01
+sav_goal_sm004,sav_fund_sm002,Rental HVAC Replacement,sinking_fund,6000,2200,2026-12-01,250,,HVAC REPLACEMENT RENTAL,
+sav_goal_sm005,sav_fund_sm001,Costa Rica Trip,accumulation,5500,3200,2026-07-15,575,,,
+sav_goal_sm006,sav_fund_sm002,Business Equipment,accumulation,3500,800,2026-09-01,300,,,

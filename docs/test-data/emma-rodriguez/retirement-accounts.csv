@@ -1,0 +1,2 @@
+id,type,name,currentBalance,contribType,contribRate,employerMatch,employerMatchLimit,monthlyBenefit,estimatedMonthlyBenefit,ssBenefitAge,notes
+ret_acct_er001,401k,Argano LLC 401k,8400,percent,4,3,6,,,,"Contributing 4% — leaving employer match on table (match available up to 6%)"

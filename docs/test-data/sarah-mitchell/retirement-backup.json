@@ -1,0 +1,61 @@
+{
+  "accounts": [
+    {
+      "id": "ret_acct_sm001",
+      "type": "ira",
+      "name": "Vanguard SEP-IRA",
+      "color": "#6366f1",
+      "currentBalance": 198000,
+      "contribType": "fixed",
+      "contribRate": "2000",
+      "employerMatch": "",
+      "employerMatchLimit": "",
+      "monthlyBenefit": "",
+      "estimatedMonthlyBenefit": "",
+      "ssBenefitAge": "",
+      "notes": "SEP-IRA — contributions vary with seasonal cash flow; $2,000/mo target when revenue allows"
+    },
+    {
+      "id": "ret_acct_sm002",
+      "type": "ira",
+      "name": "Vanguard Traditional IRA",
+      "color": "#8b5cf6",
+      "currentBalance": 42000,
+      "contribType": "fixed",
+      "contribRate": "500",
+      "employerMatch": "",
+      "employerMatchLimit": "",
+      "monthlyBenefit": "",
+      "estimatedMonthlyBenefit": "",
+      "ssBenefitAge": "",
+      "notes": ""
+    },
+    {
+      "id": "ret_acct_sm003",
+      "type": "socialsecurity",
+      "name": "Social Security Estimate",
+      "color": "#64748b",
+      "currentBalance": 0,
+      "contribType": "fixed",
+      "contribRate": "0",
+      "employerMatch": "",
+      "employerMatchLimit": "",
+      "monthlyBenefit": "",
+      "estimatedMonthlyBenefit": "2400",
+      "ssBenefitAge": "67",
+      "notes": ""
+    }
+  ],
+  "retProfile": {
+    "currentAge": 44,
+    "retirementAge": 60,
+    "annualSalary": 145000,
+    "targetMonthlyIncome": 9500,
+    "lockedPlan": "three_point_three"
+  },
+  "assumptions": {
+    "returnRate": 6.5,
+    "inflationRate": 3,
+    "salaryGrowthRate": 2
+  }
+}

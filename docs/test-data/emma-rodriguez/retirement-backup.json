@@ -1,0 +1,31 @@
+{
+  "accounts": [
+    {
+      "id": "ret_acct_er001",
+      "type": "401k",
+      "name": "Argano LLC 401k",
+      "color": "#6366f1",
+      "currentBalance": 8400,
+      "contribType": "percent",
+      "contribRate": "4",
+      "employerMatch": "3",
+      "employerMatchLimit": "6",
+      "monthlyBenefit": "",
+      "estimatedMonthlyBenefit": "",
+      "ssBenefitAge": "",
+      "notes": "Contributing 4% — leaving employer match on table (match available up to 6%)"
+    }
+  ],
+  "retProfile": {
+    "currentAge": 27,
+    "retirementAge": 65,
+    "annualSalary": 85000,
+    "targetMonthlyIncome": 4500,
+    "lockedPlan": "four_percent"
+  },
+  "assumptions": {
+    "returnRate": 7,
+    "inflationRate": 3,
+    "salaryGrowthRate": 3
+  }
+}
