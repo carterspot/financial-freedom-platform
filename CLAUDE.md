@@ -8,9 +8,10 @@
 | ⚡ DebtTracker | `modules/debt-tracker.jsx` | ✅ v1.5 |
 | 💰 IncomeTracker | `modules/income-tracker.jsx` | ✅ v1.2 |
 | 📊 SpendingTracker | `modules/spending.jsx` | ✅ v1.8 |
-| 🏦 SavingsModule | `modules/savings.jsx` | ✅ v1.1 |
+| 🏦 SavingsModule | `modules/savings.jsx` | ✅ v1.2 |
 | 📈 RetirementModule | `modules/retirement.jsx` | ✅ v1.1 |
-| 💹 InvestmentModule | `modules/investment.jsx` | ✅ v1.0 |
+| 💹 InvestmentModule | `modules/investment.jsx` | ✅ v1.1 |
+| 🛡️ InsuranceTracker | `modules/insurance.jsx` | ✅ v1.0 |
 | 🧠 AI Advisor | — | 📋 Capstone |
 
 ## Critical JSX Rules — violations crash the artifact

@@ -81,7 +81,7 @@
   <div class="nav-pills">
     <a href="#insurance-tracker" class="nav-pill">🛡️ Insurance Tracker v1.0</a>
     <a href="#dashboard" class="nav-pill">🏠 Dashboard v1.0</a>
-    <a href="#investment-module" class="nav-pill">💹 Investment Module v1.0</a>
+    <a href="#investment-module" class="nav-pill">💹 Investment Module v1.1</a>
     <a href="#retirement-module" class="nav-pill">📈 Retirement Module v1.1</a>
     <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.2</a>
     <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.8</a>
@@ -217,9 +217,29 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#3b82f6,#6366f1)">💹</div>
       <div>
         <div class="module-name">Investment Module</div>
-        <div class="module-version">v1.0</div>
+        <div class="module-version">v1.1</div>
       </div>
       <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-fix">🔧 v1.1 — Bug Fixes</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Dark mode now defaults to dark on first load</h4>
+            <p>First-time users were landing in light mode because the preference key was absent from localStorage. Fixed: absence now resolves to dark. Only an explicit "false" stored preference switches to light.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Profile avatar + fallback selector</h4>
+            <p>Nav bar now shows a 30×30 initials avatar (blue-to-indigo gradient) when a profile is active. When no profile is set, a "👤 Select Profile" ghost button opens the picker — previously nothing rendered and the module appeared broken on first open.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">

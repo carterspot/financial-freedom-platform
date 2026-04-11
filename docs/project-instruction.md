@@ -18,7 +18,7 @@ Financial Freedom Platform
 ├── 📊 SpendingTracker   (BUILT — v1.8 complete)
 ├── 🏦 SavingsModule     (BUILT — v1.2 complete)
 ├── 📈 RetirementModule  (BUILT — v1.1 complete)
-├── 💹 Investment Module (BUILT — v1.0 complete)
+├── 💹 Investment Module (BUILT — v1.1 complete)
 ├── 🏠 Dashboard         (BUILT — v1.0 complete)
 ├── 🛡️ Insurance Tracker (BUILT — v1.0 complete)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
@@ -801,7 +801,7 @@ ffp_baseline_{profileId}     (shared) — READ ONLY from SpendingTracker v1.8+
 
 ---
 
-## Module 8: Investment Module (BUILT — v1.0)
+## Module 8: Investment Module (BUILT — v1.1)
 
 Taxable investment tracker — positions, cost basis, unrealized gains/losses, dividend logging, AI portfolio analysis, and AI-assisted price updates. Separate from Retirement (which covers tax-advantaged accounts).
 

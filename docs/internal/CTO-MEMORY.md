@@ -48,7 +48,7 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 | SpendingTracker | v1.8 | `modules/spending.jsx` | `.../spending/` |
 | SavingsModule | v1.2 | `modules/savings.jsx` | `.../savings/` |
 | RetirementModule | v1.1 | `modules/retirement.jsx` | `.../retirement/` |
-| InvestmentModule | v1.0 | `modules/investment.jsx` | `.../investment/` |
+| InvestmentModule | v1.1 | `modules/investment.jsx` | `.../investment/` |
 | InsuranceTracker | v1.0 | `modules/insurance.jsx` | `.../insurance/` |
 
 ### Deprecated (artifact URLs preserved, not promoted)
@@ -123,7 +123,7 @@ modules/income-stub.jsx          ← 2-LINE STUB — renamed from income.jsx (Ap
 modules/dashboard.jsx            ← Dashboard (active — v1.0)
 modules/insurance.jsx            ← InsuranceTracker (active — v1.0)
 modules/retirement.jsx           ← RetirementModule (active)
-modules/investment.jsx           ← InvestmentModule (active — v1.0)
+modules/investment.jsx           ← InvestmentModule (active — v1.1)
 modules/savings.jsx              ← SavingsModule (active — v1.2)
 modules/credit-card-tracker.jsx  ← CardTracker (deprecated, do not touch)
 modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
@@ -144,6 +144,7 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 - ✅ SavingsModule v1.1 — emergency fund seeder, ffp_baseline_ context
 - ✅ RetirementModule v1.1 — spending baseline warning, withdrawal plan indicator, AI context
 - ✅ InvestmentModule v1.0 — 14 components, portfolio tracking, AI price update, ffp_investments_ key
+- ✅ InvestmentModule v1.1 — dark mode default fix, profile avatar + fallback selector
 - ✅ Cloudflare Worker rollback — documented in docs/project-instruction.md
 - ✅ SavingsModule v1.2 — 4-tab layout, expandable fund/goal cards, AI Advisor tab, sav_ai_results_ key
 - ✅ Dashboard v1.0 — Freedom Rings, 6 charts, collapsible nav, Freedom Score engine, cross-module reads
