@@ -20,6 +20,7 @@ Financial Freedom Platform
 ├── 📈 RetirementModule  (BUILT — v1.1 complete)
 ├── 💹 Investment Module (BUILT — v1.0 complete)
 ├── 🏠 Dashboard         (BUILT — v1.0 complete)
+├── 🛡️ Insurance Tracker (PLANNED — policies, beneficiaries, Wealth Ring feed)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
 ```
 
@@ -854,6 +855,120 @@ ffp_investments_{profileId} (shared) — WRITTEN by Investment, READ by AI Advis
 
 ---
 
+## Module 9: Insurance Tracker (PLANNED)
+
+Tracks all insurance policies across four coverage types — Life, Disability, Health, and Auto. Feeds the Legacy Ring (Wealth Ring) on the Dashboard. PIN-locked for sensitive beneficiary data.
+
+### Coverage Types
+
+| Type | Legacy Ring Weight | Health Logic |
+|------|-------------------|--------------|
+| Life | 40% | Coverage ratio: `coverageAmount / (annualIncome * 10)` capped at 1.0 |
+| Disability | 30% | Coverage ratio: `monthlyBenefit / (monthlyIncome * 0.6)` capped at 1.0 |
+| Health | 20% | Binary: insured = 1.0, uninsured = 0.0 |
+| Auto | 10% | Binary: insured = 1.0, uninsured = 0.0 |
+
+### Legacy Ring Calculation
+
+```javascript
+function calcLegacyHealth(policies, profileData) {
+  const { annualIncome, monthlyIncome } = profileData;
+
+  // Life — coverage ratio vs 10x annual income
+  const lifePolicies = policies.filter(p => p.type === "life" && p.isActive);
+  const totalLifeCoverage = lifePolicies.reduce((s, p) => s + p.coverageAmount, 0);
+  const lifeHealth = annualIncome > 0
+    ? Math.min(totalLifeCoverage / (annualIncome * 10), 1.0)
+    : 0;
+
+  // Disability — monthly benefit vs 60% income replacement
+  const disPolicies = policies.filter(p => p.type === "disability" && p.isActive);
+  const totalDisBenefit = disPolicies.reduce((s, p) => s + p.monthlyBenefit, 0);
+  const disHealth = monthlyIncome > 0
+    ? Math.min(totalDisBenefit / (monthlyIncome * 0.6), 1.0)
+    : 0;
+
+  // Health — binary
+  const hasHealth = policies.some(p => p.type === "health" && p.isActive);
+  const healthHealth = hasHealth ? 1.0 : 0;
+
+  // Auto — binary
+  const hasAuto = policies.some(p => p.type === "auto" && p.isActive);
+  const autoHealth = hasAuto ? 1.0 : 0;
+
+  const score = (lifeHealth * 0.40) + (disHealth * 0.30) + (healthHealth * 0.20) + (autoHealth * 0.10);
+  return Math.round(score * 100); // 0–100
+}
+```
+
+Result stored to `ins_legacy_health_{profileId}`. Dashboard reads this key for the Legacy (Wealth) Ring.
+
+### PIN Lock
+
+Insurance Tracker introduces a content-level PIN lock separate from the profile Recovery PIN. Sensitive beneficiary and policy data is hidden until PIN is entered.
+
+- Hook: `usePinLock(modulePrefix)` — designed for reuse across future modules
+- PIN stored at `ins_pin_{profileId}` (hashed)
+- `ins_locked_{profileId}` — boolean, persists lock state across page loads
+- First visit: prompt to set a PIN. Subsequent visits: require PIN to unlock.
+- PIN reset path: uses profile Recovery PIN as override
+
+### Approximate Coverage
+
+When a coverage amount is estimated (e.g., group benefit tied to salary), policies carry `isApproximate: true`. UI renders the amount with a `~` prefix: `~$170,000`. Tooltip: "Approximate — based on your salary data."
+
+### Tabs
+
+| Tab | Contents |
+|-----|----------|
+| Life | Life insurance policies — term, whole, universal. Beneficiaries per policy. |
+| Disability | Short-term and long-term disability policies. Monthly benefit amounts. |
+| Health | Health insurance plans. Deductible, out-of-pocket max, network type. |
+| Auto | Auto insurance policies. Coverage type, vehicles covered. |
+
+All four tabs share the same card layout. Each policy card: carrier, policy number (masked), coverage amount / benefit, premium, renewal date, beneficiaries (Life tab only), `isApproximate` badge if applicable.
+
+### AI Analysis
+
+- Analyzes all active policies against income, net worth, and family profile
+- Identifies coverage gaps (underinsured life, no disability, etc.)
+- Recommends coverage amounts per type based on standard financial planning rules
+- Reads `ffp_baseline_{profileId}` for monthly expense context
+- Reads `ffp_investments_{profileId}` for net worth context
+- Results stored to `ins_ai_results_{profileId}`
+
+### Self-Insurance Milestone
+
+Displayed as a banner when all three conditions are met:
+1. Net worth >= 10x annual income
+2. Retirement on track (RetirementModule health >= 80)
+3. Emergency fund >= 6 months of `ffp_baseline_{profileId}` monthly expenses
+
+Banner copy: *"You may be approaching self-insurance eligibility. Review your term life and disability policies with a financial advisor."*
+
+### Dashboard Integration
+
+Dashboard reads `ins_legacy_health_{profileId}` for the Legacy Ring (Wealth Ring). If key is absent, ring renders at 0% with label "No insurance data." Dashboard never writes to any `ins_` key.
+
+### Design Standard
+
+**Accent color:** `#10b981` (emerald — matches Savings)  
+**Artifact:** `modules/insurance.jsx`  
+**Build prompt:** `docs/build-prompts/insurance-v1.0-prompt.md`
+
+### Storage Keys
+
+| Key | Writer | Readers |
+|-----|--------|---------|
+| `ins_policies_{profileId}` | Insurance Tracker | Insurance Tracker, AI Advisor |
+| `ins_pin_{profileId}` | Insurance Tracker | Insurance Tracker only |
+| `ins_locked_{profileId}` | Insurance Tracker | Insurance Tracker only |
+| `ins_legacy_health_{profileId}` | Insurance Tracker | Dashboard (Legacy Ring) |
+| `ins_ai_results_{profileId}` | Insurance Tracker | Insurance Tracker only |
+| `ins_dark_{profileId}` | Insurance Tracker | Insurance Tracker only |
+
+---
+
 ## AI Advisor (PLANNED — capstone)
 
 Reads all modules, generates a holistic financial freedom plan with priority ranking, month-by-month action plan, and scenario modeling.
@@ -1008,6 +1123,9 @@ const hasCloudStorage = () => _cloudAvailable === true;
 - `sp_` — Spending Module
 - `sav_` — Savings Module
 - `ret_` — Retirement Module
+- `inv_` — Investment Module
+- `ins_` — Insurance Tracker
+- `dash_` — Dashboard
 - `ffp_` — Shared/cross-module (categories, rules)
 
 **Keys shared across ALL modules:**
