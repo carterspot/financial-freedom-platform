@@ -281,7 +281,7 @@ footer a:hover{text-decoration:underline}
     <p>A modular platform that tracks your income, spending, debt, and savings — and uses AI to build your personalized plan.</p>
     <div class="hero-stats">
       <div class="hero-stat">
-        <div class="hero-stat-num" id="stat-live">7</div>
+        <div class="hero-stat-num" id="stat-live">8</div>
         <div class="hero-stat-label">Modules Live</div>
       </div>
       <div class="hero-stat">
@@ -289,7 +289,7 @@ footer a:hover{text-decoration:underline}
         <div class="hero-stat-label">Shared Categories</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num" id="stat-planned">2</div>
+        <div class="hero-stat-num" id="stat-planned">1</div>
         <div class="hero-stat-label">In Roadmap</div>
       </div>
     </div>
@@ -345,6 +345,17 @@ footer a:hover{text-decoration:underline}
 const CONFIG = {
   modules: [
     {
+      id:"dashboard", icon:"🏠", name:"Dashboard", ver:"v1.0", status:"live",
+      color:"#6366f1",
+      desc:"Cross-module home screen. Freedom Rings score (0-100) synthesized from all 6 modules. 6 live charts, 4 dynamic alert cards, and a collapsible sidebar nav with per-module health rings.",
+      features:["Freedom Score 0-100 — weighted composite: Debt 30%, Income 20%, Spending 20%, Savings 20%, Retirement 10%","Freedom Rings (score < 100) and Wealth Rings (score ≥ 100) — same component, different palette","Collapsible sidebar nav (52px → 200px) with SVG arc health ring per module","4 flanking stat tiles: Net Position, Income, Debt change %, Savings goals funded","4 dynamic alert cards — promo APR expiry, unreviewed transactions, goal due dates, income delta","6 charts: Over Budget, Income Trend, Debt-to-Income gauge, Savings Goals, Retirement Ring, Monthly P&L Waterfall","Graceful degradation — every tile and chart degrades with empty state + Launch module button","Read-only — never writes to any module storage key"],
+      ai:["Freedom Score synthesized from all module health metrics","Alert priority engine: red → amber → info → success — top 4 shown"],
+      flows:[{dir:"in",from:"All live modules",label:"Read-only — reads all module storage keys, writes nothing"}],
+      artifactUrl:"https://carterspot.github.io/financial-freedom-platform/dashboard/",
+      quickstartUrl:null,
+      whatsNewUrl:"whats-new.html#dashboard"
+    },
+    {
       id:"spending", icon:"📊", name:"SpendingTracker", ver:"v1.8", status:"live",
       color:"#f97316",
       desc:"Import bank + CC statements, AI-categorizes spending, and shows actuals vs rolling average. The platform's category and rules engine lives here.",
@@ -378,11 +389,11 @@ const CONFIG = {
       whatsNewUrl:"whats-new.html#debt-tracker"
     },
     {
-      id:"savings", icon:"🏦", name:"Savings Module", ver:"v1.1", status:"live",
+      id:"savings", icon:"🏦", name:"Savings Module", ver:"v1.2", status:"live",
       color:"#06b6d4",
-      desc:"Emergency fund + sinking fund goals. Two-layer model: physical funds containing individual goal allocations with auto-calculated monthly contribution targets and 30-day due date alerts.",
-      features:["Fund layer — represents a physical savings account","Goal layer — individual allocations within a fund","Accumulation goals (emergency fund, vacation, down payment)","Sinking fund goals tied to recurring expenses","Auto-calculated monthly contribution: (target − saved) ÷ months remaining","30-day due date alerts — green if funded, amber with shortfall if not","Deposit log at fund level + contribution log per goal","JSON + CSV backup and restore (replace or merge)"],
-      ai:["Suggests sinking fund goals from SpendingTracker recurring transactions","Mark-as-paid detection — spots bill in SpendingTracker and resets cycle"],
+      desc:"4-tab layout: Overview · Funds · Goals · AI Advisor. Two-layer model — physical funds containing individual goal allocations. Auto-calculated monthly contribution targets, 30-day due date alerts, and AI savings recommendations.",
+      features:["4-tab layout: Overview · Funds · Goals · AI Advisor","Fund layer — represents a physical savings account","Goal layer — individual allocations within a fund with expandable cards","Accumulation goals (emergency fund, vacation, down payment)","Sinking fund goals tied to recurring expenses","Auto-calculated monthly contribution: (target − saved) ÷ months remaining","30-day due date alerts — green if funded, amber with shortfall if not","Emergency fund seeder — auto-suggests 3× baseline from SpendingTracker","JSON + CSV backup and restore (replace or merge)"],
+      ai:["AI Advisor tab — full savings plan using funds, goals, and spending baseline","Persisted results with Re-analyze button","Suggests sinking fund goals from SpendingTracker recurring transactions","Mark-as-paid detection — spots bill in SpendingTracker and resets cycle"],
       flows:[{dir:"in",from:"SpendingTracker",label:"isSinkingFundCandidate transactions + recurrencePattern"},{dir:"out",to:"AI Advisor",label:"Savings rate + goal progress"}],
       artifactUrl:"https://carterspot.github.io/financial-freedom-platform/savings/",
       quickstartUrl:"savings-quickstart.html",
@@ -400,13 +411,15 @@ const CONFIG = {
       whatsNewUrl:"whats-new.html#retirement-module"
     },
     {
-      id:"investment", icon:"💹", name:"Investment Module", ver:"planned", status:"planned",
-      color:"#22d3ee",
-      desc:"Taxable brokerage accounts, individual stocks, ETFs, and crypto. Tracks positions, cost basis, unrealized gains/losses, and dividends.",
-      features:["Taxable brokerage account tracking","Individual stocks, ETFs, mutual funds, crypto","Cost basis + unrealized gains/losses","Dividend tracking","Portfolio allocation view","Connects to AI Advisor for net worth analysis"],
-      ai:["Portfolio allocation analysis","Tax-loss harvesting suggestions","Net worth tracking across all accounts"],
-      flows:[{dir:"out",to:"AI Advisor",label:"Portfolio positions + performance data"}],
-      artifactUrl:null, quickstartUrl:null, whatsNewUrl:null
+      id:"investment", icon:"💹", name:"Investment Module", ver:"v1.0", status:"live",
+      color:"#3b82f6",
+      desc:"Taxable brokerage, IRA, Roth IRA, 401k — track positions across all accounts. Cost basis, unrealized gains/losses, and AI price update for current market values.",
+      features:["Multiple account types: taxable brokerage, IRA, Roth IRA, 401k, and more","Position tracking: ticker, shares, cost basis, current price","Unrealized gain/loss per position and per account","Staleness label when price not updated in 7+ days","AI Price Update — fetch current prices for all positions in one call","Expandable account cards — collapsed shows total value, expanded shows all positions","Portfolio allocation view","JSON backup and restore"],
+      ai:["AI Price Update — fetches current market prices for all portfolio positions","Portfolio allocation and performance analysis"],
+      flows:[{dir:"out",to:"AI Advisor",label:"ffp_investments_: portfolio positions + performance"},{dir:"out",to:"Dashboard",label:"ffp_investments_: portfolio health ring"}],
+      artifactUrl:"https://carterspot.github.io/financial-freedom-platform/investment/",
+      quickstartUrl:null,
+      whatsNewUrl:"whats-new.html#investment-module"
     },
     {
       id:"advisor", icon:"🧠", name:"AI Advisor", ver:"capstone", status:"capstone",

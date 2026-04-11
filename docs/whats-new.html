@@ -79,6 +79,7 @@
 
   <!-- Jump links -->
   <div class="nav-pills">
+    <a href="#dashboard" class="nav-pill">🏠 Dashboard v1.0</a>
     <a href="#investment-module" class="nav-pill">💹 Investment Module v1.0</a>
     <a href="#retirement-module" class="nav-pill">📈 Retirement Module v1.1</a>
     <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.2</a>
@@ -87,6 +88,66 @@
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.5</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
     <a href="#loan-tracker" class="nav-pill">🏦 LoanTracker v1.2</a>
+  </div>
+
+  <!-- ── Dashboard ── -->
+  <div class="module-section" id="dashboard">
+    <div class="module-header">
+      <div class="module-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">🏠</div>
+      <div>
+        <div class="module-name">Dashboard</div>
+        <div class="module-version">v1.0</div>
+      </div>
+      <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-new">🆕 New Module — v1.0</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Freedom Score — cross-module health composite</h4>
+            <p>A single 0-100 score synthesized from all six live modules: Debt (30%), Income (20%), Spending (20%), Savings (20%), Retirement (10%). Below 100 renders Freedom Rings. At 100+ the rings shift to Wealth Rings with a different color palette.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Collapsible sidebar with per-module health rings</h4>
+            <p>Collapsed (52px) shows icon + SVG arc ring per module. Expanded (200px) adds module name and primary metric amount. Each ring is an independent health calculation — debt paydown %, income stability %, spending within budget %, goals funded %, retirement progress %, and investment portfolio gain.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>4 flanking stat tiles</h4>
+            <p>Net Position (savings + retirement − debt), Income (monthly normalized), Debt change % this month, and Savings goals funded. Each tile clicks through to the relevant module.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--amber)"></div>
+          <div class="change-body">
+            <h4>4 dynamic alert cards</h4>
+            <p>Priority-ranked alerts across all modules: promo APR expiring within 30 days, unreviewed transactions, savings goals due within 30 days (green if funded, amber if short), retirement target below spending baseline, and income up/down more than 5%.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>6 live charts</h4>
+            <p>Top row: Over Budget (top 5 categories vs baseline average), Income Trend (3-month sparkline), Debt-to-Income gauge (semicircle, green/amber/red). Bottom row: Savings Goals progress bars, Retirement Ring with 4 stat tiles, Monthly P&L Waterfall with Category/Account toggle and step-up bars for savings and retirement contributions.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Graceful degradation — every tile and chart</h4>
+            <p>If a module hasn't been used yet, its tile or chart shows an empty state with a "Launch [Module] to get started" button. The dashboard works from day one, even on a fresh profile with no data. Freedom Score defaults to a partial calculation from whichever modules have data.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ── Investment Module ── -->

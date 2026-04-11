@@ -19,6 +19,7 @@ Financial Freedom Platform
 ├── 🏦 SavingsModule     (BUILT — v1.2 complete)
 ├── 📈 RetirementModule  (BUILT — v1.1 complete)
 ├── 💹 Investment Module (BUILT — v1.0 complete)
+├── 🏠 Dashboard         (BUILT — v1.0 complete)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
 ```
 
@@ -46,6 +47,8 @@ https://carterspot.github.io/financial-freedom-platform/spending/   ← Spending
 https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.2
 https://carterspot.github.io/financial-freedom-platform/savings/    ← SavingsModule v1.2
 https://carterspot.github.io/financial-freedom-platform/retirement/ ← RetirementModule v1.1
+https://carterspot.github.io/financial-freedom-platform/investment/ ← InvestmentModule v1.0
+https://carterspot.github.io/financial-freedom-platform/dashboard/  ← Dashboard v1.0
 ```
 
 **Module filename clarification (critical for Code prompts):**
@@ -1164,7 +1167,7 @@ docs/
 - ✅ Retirement Module v1.1 — balances, contributions, projections + baseline warning
 - ✅ Investment Module v1.0 — taxable brokerage, stocks, ETFs, AI price update, ffp_investments_ key
 - ✅ SavingsModule v1.2 — 4-tab layout, expandable fund/goal cards, AI Advisor tab, sav_ai_results_ key
-- [ ] Platform Dashboard v1.0 — Freedom Rings cross-module view
+- ✅ Platform Dashboard v1.0 — Freedom Rings, 6 charts, collapsible nav, cross-module reads, 228 KB build
 - [ ] AI Advisor — holistic cross-module planning with manual correction layer (capstone)
 - [ ] Node graph v2 — draggable nodes, edge highlighting, Investment module node
 - [ ] Graduation — Next.js + Supabase hosted app
