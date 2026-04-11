@@ -583,11 +583,13 @@ const chevronStyle = (expanded) => ({
 });
 // Render: <span style={chevronStyle(expanded)}>›</span>
 
-// Expanded detail panel
-const detailStyle = {
-  padding: "0 16px 16px",
-  borderTop: `1px solid ${t.border}`,
-};
+// Expanded detail panel — animated via maxHeight (DO NOT use display:none / visibility)
+const bodyStyle = (expanded) => ({
+  maxHeight: expanded ? 400 : 0,
+  overflow: "hidden",
+  transition: "max-height .25s ease",
+  padding: expanded ? "0 16px 14px" : "0 16px",
+});
 ```
 
 **Collapsed state shows:** accent color badge or icon · item name · primary metric (large, monospace) · secondary metric (small, t.tx2) · action buttons (edit/delete) · chevron
