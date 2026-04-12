@@ -160,6 +160,20 @@ function renderAdvisorResult(text) {
   });
 }
 
+function extractAiText(result) {
+  if (!result) return null;
+  if (typeof result === "string") return result;
+  if (result.content) return result.content;
+  if (result.scheduleAnalysis) return result.scheduleAnalysis;
+  if (result.text) return result.text;
+  return null;
+}
+
+function truncate(text, max = 300) {
+  if (!text || text.length <= max) return text;
+  return text.slice(0, max) + "...";
+}
+
 // ─── NavRing ─────────────────────────────────────────────────────────────────
 function NavRing({ health, color, icon }) {
   const sz = 28, cx = 14, cy = 14, r = 13;
@@ -1174,6 +1188,13 @@ export default function App() {
   const [savSummary, setSavSummary] = useState(null);
   const [retSummary, setRetSummary] = useState(null);
 
+  // Prior module AI results
+  const [dtAiResults,  setDtAiResults]  = useState(null);
+  const [savAiResults, setSavAiResults] = useState(null);
+  const [retAiResults, setRetAiResults] = useState(null);
+  const [invAiResults, setInvAiResults] = useState(null);
+  const [insAiResults, setInsAiResults] = useState(null);
+
   // Advisor
   const [advisorOpen, setAdvisorOpen]       = useState(false);
   const [advisorDepth, setAdvisorDepth]     = useState(() =>
@@ -1196,7 +1217,8 @@ export default function App() {
   async function loadModuleData(id) {
     const [
       dtC, dtL, dtLg, incS, spTx, bdl, savF, savG, retA, retP, inv, lh,
-      dtSum, incSum, savSum, retSum, advResult, advSnap
+      dtSum, incSum, savSum, retSum, advResult, advSnap,
+      dtAiR, savAiR, retAiR, invAiR, insAiR
     ] = await Promise.all([
       storeGet(`dt_cards_${id}`, true),
       storeGet(`dt_loans_${id}`, true),
@@ -1216,6 +1238,11 @@ export default function App() {
       storeGet(`ret_summary_${id}`, true),
       storeGet(`dash_advisor_result_${id}`, true),
       storeGet(`dash_advisor_snapshot_${id}`, true),
+      storeGet(`dt_ai_results_${id}`, true),
+      storeGet(`sav_ai_results_${id}`, true),
+      storeGet(`ret_ai_results_${id}`, true),
+      storeGet(`inv_ai_results_${id}`, true),
+      storeGet(`ins_ai_results_${id}`, true),
     ]);
 
     setDtCards(dtC||[]);        setDtLoans(dtL||[]);     setDtLogs(dtLg||[]);
@@ -1226,6 +1253,11 @@ export default function App() {
     setDtSummary(dtSum||null);   setIncSummary(incSum||null);
     setSavSummary(savSum||null); setRetSummary(retSum||null);
     if (advResult) setAdvisorResult(advResult);
+    setDtAiResults(dtAiR || null);
+    setSavAiResults(savAiR || null);
+    setRetAiResults(retAiR || null);
+    setInvAiResults(invAiR || null);
+    setInsAiResults(insAiR || null);
 
     // Staleness detection
     if (advSnap) {
@@ -1346,6 +1378,36 @@ export default function App() {
     const insScore = typeof legacyHealth === "number" ? legacyHealth :
       (legacyHealth?.score || legacyHealth?.healthScore || 0);
 
+    const missingModules = [
+      !incSummary          && "Income",
+      !dtSummary           && "Debt",
+      !savSummary          && "Savings",
+      !retSummary          && "Retirement",
+      !investments         && "Investments",
+      legacyHealth == null && "Insurance",
+    ].filter(Boolean);
+
+    const missingNote = missingModules.length > 0
+      ? `\nNOTE: The following modules have no data yet: ${missingModules.join(", ")}. ` +
+        `Provide recommendations based on available data only. ` +
+        `For each missing module, briefly note what completing it would add to this analysis.`
+      : "";
+
+    const priorAdviceLines = [
+      dtAiResults  && `Debt strategy: ${truncate(extractAiText(dtAiResults))}`,
+      savAiResults && `Savings advice: ${truncate(extractAiText(savAiResults))}`,
+      retAiResults && `Retirement analysis: ${truncate(extractAiText(retAiResults))}`,
+      invAiResults && `Investment analysis: ${truncate(extractAiText(invAiResults))}`,
+      insAiResults && `Insurance analysis: ${truncate(extractAiText(insAiResults))}`,
+    ].filter(Boolean);
+
+    const priorAdviceSection = priorAdviceLines.length > 0
+      ? `\n\nPRIOR ADVICE FROM MODULE ADVISORS\n` +
+        `(Cross-reference these with current data. Note conflicts or reinforcements. ` +
+        `Treat advice older than 30 days as potentially outdated.)\n` +
+        priorAdviceLines.join("\n")
+      : "";
+
     const prompt = `You are a personal financial advisor reviewing a complete financial profile.
 Respond at depth level ${advisorDepth}: ${depthInstructions[advisorDepth]}
 
@@ -1378,7 +1440,7 @@ Please provide:
 2. Where my next $500/mo of discretionary income should go and why
 3. My biggest financial risk right now
 4. What would most improve my Freedom Score
-5. One 12-month milestone I should aim for`;
+5. One 12-month milestone I should aim for${missingNote}${priorAdviceSection}`;
 
     try {
       const res  = await callClaude(apiKey, {
