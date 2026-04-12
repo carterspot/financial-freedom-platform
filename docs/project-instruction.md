@@ -19,7 +19,7 @@ Financial Freedom Platform
 ├── 🏦 SavingsModule     (BUILT — v1.2 complete)
 ├── 📈 RetirementModule  (BUILT — v1.1 complete)
 ├── 💹 Investment Module (BUILT — v1.1 complete)
-├── 🏠 Dashboard         (BUILT — v1.0 complete)
+├── 🏠 Dashboard         (BUILT — v2.0 complete)
 ├── 🛡️ Insurance Tracker (BUILT — v1.0 complete)
 └── 🧠 AI Advisor        (PLANNED — holistic cross-module planning, capstone)
 ```

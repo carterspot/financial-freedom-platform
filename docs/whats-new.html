@@ -80,7 +80,7 @@
   <!-- Jump links -->
   <div class="nav-pills">
     <a href="#insurance-tracker" class="nav-pill">🛡️ Insurance Tracker v1.0</a>
-    <a href="#dashboard" class="nav-pill">🏠 Dashboard v1.0</a>
+    <a href="#dashboard" class="nav-pill">🏠 Dashboard v2.0</a>
     <a href="#investment-module" class="nav-pill">💹 Investment Module v1.1</a>
     <a href="#retirement-module" class="nav-pill">📈 Retirement Module v1.1</a>
     <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.2</a>
@@ -157,9 +157,50 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">🏠</div>
       <div>
         <div class="module-name">Dashboard</div>
-        <div class="module-version">v1.0</div>
+        <div class="module-version">v2.0</div>
       </div>
       <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-feature">✨ v2.0 — AI Advisor + Onboarding</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>AI Advisor panel — full financial picture in one analysis</h4>
+            <p>Right drawer on desktop, tab on mobile. Reads all 7 modules of data (income, debt, spending, savings, retirement, investments, insurance) plus prior advice from each module's AI. Surfaces missing modules, cross-references prior recommendations, and generates 5 prioritized action items. Three depth levels: Brief, Standard, Detailed.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Staleness detection — knows when your data changed</h4>
+            <p>Advisor result is stamped with a snapshot of each module's calculatedOn timestamp. If any module data changes after the last analysis, an amber "New data available · Re-analyze" badge appears on the button and inside the panel.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>New user onboarding flow</h4>
+            <p>First-time users (no profiles) see a full-screen profile creation overlay instead of an empty dashboard. After profile creation, a dismissible API key banner guides setup. A one-time "Your Dashboard" intro overlay explains the Freedom Score, modules, and AI Advisor.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--emerald)"></div>
+          <div class="change-body">
+            <h4>Freedom Score always in the center of the rings</h4>
+            <p>Score rendered inside the SVG center at all times. Empty rings show on no data (grey tracks, empty center). Score + label appear as soon as any module contributes data.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--blue)"></div>
+          <div class="change-body">
+            <h4>Settings tab</h4>
+            <p>AI Advisor depth selector (Brief / Standard / Detailed), API key management with masked display, profile edit and add, and a link to the legacy module directory at /legacy-landing/.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">

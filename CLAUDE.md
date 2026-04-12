@@ -12,6 +12,7 @@
 | 📈 RetirementModule | `modules/retirement.jsx` | ✅ v1.1 |
 | 💹 InvestmentModule | `modules/investment.jsx` | ✅ v1.1 |
 | 🛡️ InsuranceTracker | `modules/insurance.jsx` | ✅ v1.0 |
+| 🏠 Dashboard | `modules/dashboard.jsx` | ✅ v2.0 |
 | 🧠 AI Advisor | — | 📋 Capstone |
 
 ## Critical JSX Rules — violations crash the artifact

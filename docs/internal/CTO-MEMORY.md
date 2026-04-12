@@ -42,7 +42,7 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 ### Live Modules — GitHub Pages
 | Module | Version | File | URL |
 |--------|---------|------|-----|
-| Dashboard | v1.0 | `modules/dashboard.jsx` | `.../dashboard/` |
+| Dashboard | v2.0 | `modules/dashboard.jsx` | `.../dashboard/` |
 | DebtTracker | v1.5 | `modules/debt-tracker.jsx` | `.../debt/` |
 | IncomeTracker | v1.2 | `modules/income-tracker.jsx` | `.../income/` |
 | SpendingTracker | v1.8 | `modules/spending.jsx` | `.../spending/` |
@@ -124,7 +124,7 @@ modules/debt-tracker.jsx        ← DebtTracker (active)
 modules/spending.jsx             ← SpendingTracker (active, no -tracker suffix)
 modules/income-tracker.jsx       ← IncomeTracker (active)
 modules/income-stub.jsx          ← 2-LINE STUB — renamed from income.jsx (April 2026), ignore
-modules/dashboard.jsx            ← Dashboard (active — v1.0)
+modules/dashboard.jsx            ← Dashboard (active — v2.0)
 modules/insurance.jsx            ← InsuranceTracker (active — v1.0)
 modules/retirement.jsx           ← RetirementModule (active)
 modules/investment.jsx           ← InvestmentModule (active — v1.1)
@@ -152,6 +152,8 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 - ✅ Cloudflare Worker rollback — documented in docs/project-instruction.md
 - ✅ SavingsModule v1.2 — 4-tab layout, expandable fund/goal cards, AI Advisor tab, sav_ai_results_ key
 - ✅ Dashboard v1.0 — Freedom Rings, 6 charts, collapsible nav, Freedom Score engine, cross-module reads
+- ✅ Dashboard v2.0 — AI Advisor panel (drawer/tab), staleness detection, new user onboarding, Settings tab, score in rings center
+- ✅ Dashboard v2.0 patch — prior module AI results loaded, missing module detection, extractAiText multi-shape handler
 - ✅ InsuranceTracker v1.0 — PIN lock (usePinLock hook), Legacy Ring feed, 5 tabs, 3 AI features, ins_legacy_health_ key
 
 ---
@@ -215,10 +217,8 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 
 ## Next Up (in order)
 
-1. **AI Advisor data contract** — define what each module must expose; write contract doc before build slot
-2. **AI Advisor v1** — capstone; all modules must be stable first
-3. **Freedom Rings IP check** — verify ring concept before public launch
-4. **Graduation planning** — Next.js + Supabase architecture discussion
+1. **Freedom Rings IP check** — verify ring concept before public launch
+2. **Graduation planning** — Next.js + Supabase architecture discussion
 
 ---
 
