@@ -194,6 +194,34 @@ function calcMonthlyPayment(balance, rateDecimal, months) {
   return b * r / (1 - Math.pow(1+r, -n));
 }
 
+async function writeDtSummary(cards, loans, profileId) {
+  if (!profileId) return;
+  const activeCards = (cards  || []).filter(c => !c.closed);
+  const activeLoans = (loans  || []).filter(l => !l.closed);
+  const allDebts    = [...activeCards, ...activeLoans];
+  if (!allDebts.length) return;
+
+  const totalBalance     = allDebts.reduce((s, d) => s + toNum(d.balance ?? d.currentBalance), 0);
+  const totalMinPayments = allDebts.reduce((s, d) => s + toNum(d.monthlyPayment), 0);
+  const highestApr       = Math.max(...activeCards.map(c => toNum(c.apr)), ...activeLoans.map(l => toNum(l.interestRate)), 0);
+
+  const now  = new Date();
+  const in90 = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+  const promoExpiringSoon = activeCards.some(c => c.promoEndDate && new Date(c.promoEndDate) <= in90);
+
+  const summary = {
+    totalBalance:        Math.round(totalBalance     * 100) / 100,
+    totalMinPayments:    Math.round(totalMinPayments * 100) / 100,
+    highestApr,
+    promoExpiringSoon,
+    estimatedPayoffDate: null,
+    debtCount:           allDebts.length,
+    monthlyChange:       0,
+    calculatedOn:        new Date().toISOString(),
+  };
+  await storeSet(`dt_summary_${profileId}`, summary, true);
+}
+
 // F9 — single-debt payoff calculator
 function calcDebtPayoff(balance, annualRate, monthlyPmt) {
   const b = toNum(balance);
@@ -3602,6 +3630,8 @@ export default function App() {
         if (lm!=null) setLumpMode(lm);
         if (rm!=null) setRecalcMins(rm);
 
+        await writeDtSummary(c||[], l||[], id);
+
         // U5 — show morning affirmation on every open (no once-per-day gate)
         if ((c?.length||0)+(l?.length||0)>0) {
           setTimeout(()=>setShowMorning(true), 800);
@@ -3665,8 +3695,8 @@ export default function App() {
     setShowProfileModal(false);
   }
 
-  async function saveCards(next) { setCards(next); await storeSet(`dt_cards_${activeProfileId}`,next,true); }
-  async function saveLoans(next) { setLoans(next); await storeSet(`dt_loans_${activeProfileId}`,next,true); }
+  async function saveCards(next) { setCards(next); await storeSet(`dt_cards_${activeProfileId}`,next,true); await writeDtSummary(next, loans, activeProfileId); }
+  async function saveLoans(next) { setLoans(next); await storeSet(`dt_loans_${activeProfileId}`,next,true); await writeDtSummary(cards, next, activeProfileId); }
   async function saveLogs(next)  { setLogs(next);  await storeSet(`dt_logs_${activeProfileId}`,next,true); }
   async function saveAiResults(next) { setAiResults(next); await storeSet(`dt_ai_results_${activeProfileId}`,next,true); }
 
