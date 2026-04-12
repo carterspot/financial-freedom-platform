@@ -1,0 +1,35 @@
+{
+  "version": "inc_1.0",
+  "exportedAt": "2026-03-31T00:00:00.000Z",
+  "profileId": "pin_marcus_chen",
+  "streams": [
+    {
+      "id": "inc_marcus_001",
+      "name": "Accenture - Salary",
+      "type": "W2",
+      "amount": "3437",
+      "frequency": "Bi-Weekly",
+      "stabilityRating": "Stable",
+      "afterTax": true,
+      "startDate": "2022-06-01",
+      "endDate": "",
+      "notes": "Senior Product Manager. $110k gross, ~28% effective tax rate. Bi-weekly deposit ~$3,437.",
+      "categoryId": "inc_001",
+      "color": "#6366f1"
+    },
+    {
+      "id": "inc_marcus_002",
+      "name": "Freelance UX Consulting",
+      "type": "Self-Employment",
+      "amount": "1150",
+      "frequency": "Monthly",
+      "stabilityRating": "Variable",
+      "afterTax": false,
+      "startDate": "2023-01-01",
+      "endDate": "",
+      "notes": "Variable $1k–$1.5k/month via Stripe or PayPal. Set aside 25% for quarterly estimated taxes. Jan: $1,100 | Feb: $1,400 | Mar: $1,050.",
+      "categoryId": "inc_002",
+      "color": "#10b981"
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "version": "dt_1.0",
+  "exportedAt": "2026-03-31T00:00:00.000Z",
+  "profileId": "pin_marcus_chen",
+  "cards": [
+    {
+      "id": "dt_marcus_card_001",
+      "name": "Chase Sapphire Reserve",
+      "last4": "7743",
+      "color": "#6366f1",
+      "balance": "2380.00",
+      "limit": "8000",
+      "apr": "19.99",
+      "minPaymentMode": "auto",
+      "minPaymentFixed": "",
+      "monthlyPayment": "425",
+      "payoffMode": "payment",
+      "dueDay": "18",
+      "statementDay": "10",
+      "expiration": "11/27",
+      "originalBalance": "2380.00"
+    },
+    {
+      "id": "dt_marcus_card_002",
+      "name": "Citi Double Cash",
+      "last4": "3391",
+      "color": "#ef4444",
+      "balance": "4857.00",
+      "limit": "5500",
+      "apr": "24.99",
+      "minPaymentMode": "auto",
+      "minPaymentFixed": "",
+      "monthlyPayment": "185",
+      "payoffMode": "payment",
+      "dueDay": "25",
+      "statementDay": "17",
+      "expiration": "06/28",
+      "originalBalance": "4565.00"
+    }
+  ],
+  "loans": [
+    {
+      "id": "dt_marcus_loan_001",
+      "name": "Cityview Condo Mortgage",
+      "lender": "Rocket Mortgage",
+      "type": "mortgage",
+      "color": "#3b82f6",
+      "originalBalance": "425000",
+      "currentBalance": "418200.00",
+      "interestRate": "6.250",
+      "monthlyPayment": "2617.00",
+      "termMonths": 360,
+      "remainingMonths": "336",
+      "nextPaymentDay": "1",
+      "notes": "30yr fixed, purchased Jan 2024. HOA $385/mo billed separately. Approx $2,180 interest / $437 principal each month at current balance."
+    },
+    {
+      "id": "dt_marcus_loan_002",
+      "name": "2024 Honda CR-V",
+      "lender": "Honda Financial Services",
+      "type": "auto",
+      "color": "#f97316",
+      "originalBalance": "30000",
+      "currentBalance": "21400.00",
+      "interestRate": "7.100",
+      "monthlyPayment": "594.00",
+      "termMonths": 60,
+      "remainingMonths": "38",
+      "nextPaymentDay": "5",
+      "notes": "60-month loan, 22 months paid as of March 2026. On track to pay off Aug 2029."
+    }
+  ],
+  "logs": []
+}

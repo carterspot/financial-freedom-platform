@@ -1,0 +1,42 @@
+{
+  "version": "dt_1.0",
+  "exportedAt": "2026-03-31T00:00:00.000Z",
+  "profileId": "pin_emma_rodriguez",
+  "cards": [
+    {
+      "id": "dt_emma_card_001",
+      "name": "Discover It",
+      "last4": "4892",
+      "color": "#f97316",
+      "balance": "2350.78",
+      "limit": "6000",
+      "apr": "22.99",
+      "minPaymentMode": "auto",
+      "minPaymentFixed": "",
+      "monthlyPayment": "275",
+      "payoffMode": "payment",
+      "dueDay": "22",
+      "statementDay": "15",
+      "expiration": "09/28",
+      "originalBalance": "1847.32"
+    }
+  ],
+  "loans": [
+    {
+      "id": "dt_emma_loan_001",
+      "name": "Federal Student Loan",
+      "lender": "Navient",
+      "type": "student",
+      "color": "#8b5cf6",
+      "originalBalance": "100000",
+      "currentBalance": "97234.18",
+      "interestRate": "5.500",
+      "monthlyPayment": "650.00",
+      "termMonths": 120,
+      "remainingMonths": "108",
+      "nextPaymentDay": "10",
+      "notes": "Standard repayment, IBR eligible. Paying for ~1 year from $100k original."
+    }
+  ],
+  "logs": []
+}

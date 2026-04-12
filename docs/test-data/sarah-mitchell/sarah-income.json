@@ -1,0 +1,35 @@
+{
+  "version": "inc_1.0",
+  "exportedAt": "2026-03-31T00:00:00.000Z",
+  "profileId": "pin_sarah_mitchell",
+  "streams": [
+    {
+      "id": "inc_sarah_001",
+      "name": "Mitchell Landscape Architecture",
+      "type": "Self-Employment",
+      "amount": "8133",
+      "frequency": "Monthly",
+      "stabilityRating": "Variable",
+      "afterTax": false,
+      "startDate": "2019-03-01",
+      "endDate": "",
+      "notes": "Seasonal \u2014 strong Q1/Q3, slower Feb. Set aside 30% for taxes and SEP IRA. Q1 average: $8,133/mo (Jan $9,200, Feb $6,800, Mar $8,400).",
+      "categoryId": "inc_002",
+      "color": "#10b981"
+    },
+    {
+      "id": "inc_sarah_002",
+      "name": "Rental Property - Oak Street",
+      "type": "Rental",
+      "amount": "1850",
+      "frequency": "Monthly",
+      "stabilityRating": "Stable",
+      "afterTax": false,
+      "startDate": "2021-07-01",
+      "endDate": "",
+      "notes": "Gross rent $1,850/mo. Rental mortgage $1,500/mo. Net cash flow ~$350/mo before maintenance and property tax.",
+      "categoryId": "inc_004",
+      "color": "#3b82f6"
+    }
+  ]
+}

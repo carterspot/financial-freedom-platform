@@ -1,0 +1,21 @@
+{
+  "version": "inc_1.0",
+  "exportedAt": "2026-03-31T00:00:00.000Z",
+  "profileId": "pin_emma_rodriguez",
+  "streams": [
+    {
+      "id": "inc_emma_001",
+      "name": "Argano LLC - Salary",
+      "type": "W2",
+      "amount": "2580",
+      "frequency": "Bi-Weekly",
+      "stabilityRating": "Stable",
+      "afterTax": true,
+      "startDate": "2024-03-01",
+      "endDate": "",
+      "notes": "Direct deposit biweekly. $85k gross, ~27% effective tax rate = ~$5,160/mo net (~$2,580/paycheck).",
+      "categoryId": "inc_001",
+      "color": "#6366f1"
+    }
+  ]
+}
