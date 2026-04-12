@@ -97,6 +97,28 @@ async function storeSet(key, value, shared=false) {
   }
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
+async function writeSavSummary(funds, goals, profileId) {
+  const totalBalance      = (funds||[]).reduce((s,f) => s + parseFloat(f.balance||0), 0);
+  const fundedGoalCount   = (goals||[]).filter(g => g.currentAmount >= g.targetAmount).length;
+  const monthlyCommitment = (goals||[]).reduce((s,g) => s + parseFloat(g.monthlyContrib||0), 0);
+  const now  = new Date();
+  const in30 = new Date(now.getTime() + 30*24*60*60*1000);
+  const dueSoon = (goals||[]).filter(g => g.dueDate && new Date(g.dueDate) <= in30).length;
+  const baseline = await storeGet(`ffp_baseline_${profileId}`, true);
+  const emergencyMonths = baseline?.amount > 0
+    ? Math.round((totalBalance / baseline.amount) * 10) / 10
+    : 0;
+  const summary = {
+    totalBalance:       Math.round(totalBalance * 100) / 100,
+    goalCount:          (goals||[]).length,
+    fundedGoalCount,
+    emergencyMonths,
+    monthlyCommitment:  Math.round(monthlyCommitment * 100) / 100,
+    dueSoon,
+    calculatedOn:       new Date().toISOString()
+  };
+  await storeSet(`sav_summary_${profileId}`, summary, true);
+}
 const hasCloudStorage = () => _cloudAvailable === true;
 
 // --- Style helpers ------------------------------------------------------------
@@ -1724,6 +1746,7 @@ export default function App() {
         setCategories(cats||[]);
         setBaseline(bl||null);
         setAiResults(ai||null);
+        await writeSavSummary(f||[], g||[], id);
       }
       setLoading(false);
     }
@@ -1815,10 +1838,12 @@ export default function App() {
   async function saveFunds(next) {
     setFunds(next);
     await storeSet(`sav_funds_${activeProfileId}`,next,true);
+    await writeSavSummary(next, goals, activeProfileId);
   }
   async function saveGoals(next) {
     setGoals(next);
     await storeSet(`sav_goals_${activeProfileId}`,next,true);
+    await writeSavSummary(funds, next, activeProfileId);
   }
 
   async function saveApiKey(key) {
