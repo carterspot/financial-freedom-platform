@@ -1,20 +1,23 @@
-// FFP Dashboard v1.0
+// FFP Dashboard v2.0
 // modules/dashboard.jsx
 import { useState, useEffect } from "react";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const AVATAR_COLORS = ["#6366f1","#ec4899","#f97316","#10b981","#3b82f6","#8b5cf6","#f43f5e","#06b6d4"];
+const MODEL = "claude-sonnet-4-20250514";
 const COLOR = {
   primary:"#6366f1", success:"#10b981", warning:"#f59e0b", danger:"#ef4444",
   pink:"#ec4899", blue:"#3b82f6", orange:"#f97316", purple:"#8b5cf6", cyan:"#06b6d4"
 };
 const URLS = {
-  debt:       "https://carterspot.github.io/financial-freedom-platform/debt/",
-  income:     "https://carterspot.github.io/financial-freedom-platform/income/",
-  spending:   "https://carterspot.github.io/financial-freedom-platform/spending/",
-  savings:    "https://carterspot.github.io/financial-freedom-platform/savings/",
-  retirement: "https://carterspot.github.io/financial-freedom-platform/retirement/",
-  investment: "https://carterspot.github.io/financial-freedom-platform/investment/",
+  debt:          "https://carterspot.github.io/financial-freedom-platform/debt/",
+  income:        "https://carterspot.github.io/financial-freedom-platform/income/",
+  spending:      "https://carterspot.github.io/financial-freedom-platform/spending/",
+  savings:       "https://carterspot.github.io/financial-freedom-platform/savings/",
+  retirement:    "https://carterspot.github.io/financial-freedom-platform/retirement/",
+  investment:    "https://carterspot.github.io/financial-freedom-platform/investment/",
+  insurance:     "https://carterspot.github.io/financial-freedom-platform/insurance/",
+  legacyLanding: "/financial-freedom-platform/legacy-landing/",
 };
 
 // ─── Storage ─────────────────────────────────────────────────────────────────
@@ -46,7 +49,7 @@ async function storeSet(key, value, shared = false) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 
-// ─── API Probe ───────────────────────────────────────────────────────────────
+// ─── API ─────────────────────────────────────────────────────────────────────
 const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
 async function probeApiKey(key) {
   if (!key?.trim().startsWith("sk-ant-")) return "invalid";
@@ -58,6 +61,13 @@ async function probeApiKey(key) {
     });
     return res.ok ? "valid" : "invalid";
   } catch { return "unknown"; }
+}
+async function callClaude(key, body) {
+  return fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type":"application/json","anthropic-version":"2023-06-01","x-api-key": key.trim() },
+    body: JSON.stringify(body)
+  });
 }
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
@@ -90,7 +100,6 @@ function fmt$(n) {
   return (parseFloat(n)||0).toLocaleString("en-US", { minimumFractionDigits:0, maximumFractionDigits:0 });
 }
 function fmtPct(n) { return (parseFloat(n)||0).toFixed(1) + "%"; }
-
 function normalizeMonthly(stream) {
   const amt = parseFloat(stream.amount) || 0;
   switch (stream.frequency) {
@@ -105,26 +114,50 @@ function normalizeMonthly(stream) {
     default:             return amt;
   }
 }
-
 function daysUntil(dateStr) {
   if (!dateStr) return Infinity;
   return Math.ceil((new Date(dateStr) - new Date()) / 864e5);
 }
-
 function calcFreedomScore(dh, ih, sh, savH, rh) {
   return Math.round((dh*30 + ih*20 + sh*20 + savH*20 + rh*10) / 100);
 }
-
 function getActiveSpendingMonth(transactions) {
   const months = [...new Set((transactions||[]).map(tx => tx.date?.slice(0,7)).filter(Boolean))].sort();
   return months[months.length-1] || new Date().toISOString().slice(0,7);
 }
-
 function getAvatar(profile) {
   if (!profile) return { initials:"?", color:AVATAR_COLORS[0] };
   const name = profile.name || profile.id || "?";
   const initials = name.split(" ").map(w => w[0]||"").join("").toUpperCase().slice(0,2) || "?";
   return { initials, color: profile.avatarColor || AVATAR_COLORS[0] };
+}
+function timeAgo(isoString) {
+  if (!isoString) return "";
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+function renderAdvisorResult(text) {
+  return text.split('\n').map((line, i) => {
+    const trimmed = line.trim();
+    if (!trimmed) return <div key={i} style={{height:8}} />;
+    if (/^\d+\./.test(trimmed)) return (
+      <div key={i} style={{fontWeight:700, color:"#6366f1",
+        marginTop:12, marginBottom:4, fontSize:13}}>
+        {trimmed.replace(/\*\*/g,"")}
+      </div>
+    );
+    return (
+      <div key={i} style={{fontSize:13, color:"#94a3b8",
+        lineHeight:1.6, paddingLeft:8}}>
+        {trimmed.replace(/\*\*/g,"")}
+      </div>
+    );
+  });
 }
 
 // ─── NavRing ─────────────────────────────────────────────────────────────────
@@ -203,20 +236,18 @@ function EmptyState({ label, url, t }) {
   );
 }
 
-// ─── FreedomRings ────────────────────────────────────────────────────────────
+// ─── FreedomRings (v2.0 — score always in center of SVG) ─────────────────────
 function FreedomRings({ score, momentumProg, horizonProg, t }) {
   const [hov, setHov] = useState(null);
-  const cx = 110, cy = 110;
+  const cx = 90, cy = 90;
   const rings = [
-    { r:82, color:"#6366f1", pct:score/100,         label:"Score",    detail:`Freedom Score: ${score}`,                 url:URLS.debt },
-    { r:64, color:"#10b981", pct:momentumProg/100,  label:"Momentum", detail:`Cash-flow positive: ${Math.round(momentumProg)}%`, url:URLS.spending },
-    { r:46, color:"#f59e0b", pct:horizonProg/100,   label:"Horizon",  detail:`Debt payments made: ${Math.round(horizonProg)}%`, url:URLS.debt },
+    { r:82, color:"#6366f1", pct:score/100,          label:"Score",    detail:`Freedom Score: ${score}`,                  url:URLS.debt },
+    { r:64, color:"#10b981", pct:momentumProg/100,   label:"Momentum", detail:`Cash-flow positive: ${Math.round(momentumProg)}%`, url:URLS.spending },
+    { r:46, color:"#f59e0b", pct:horizonProg/100,    label:"Horizon",  detail:`Debt payments made: ${Math.round(horizonProg)}%`,  url:URLS.debt },
   ];
   return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
-      <div style={{ fontSize:28, fontWeight:800, color:"#6366f1", fontFamily:"monospace" }}>{score}</div>
-      <div style={{ fontSize:11, color:t.tx2, marginBottom:4 }}>Freedom Score</div>
-      <svg width="220" height="220" viewBox="0 0 220 220">
+      <svg width="180" height="180" viewBox="0 0 180 180">
         {rings.map((ring, i) => {
           const circ = 2 * Math.PI * ring.r;
           const offset = circ - Math.min(ring.pct,1) * circ;
@@ -233,31 +264,40 @@ function FreedomRings({ score, momentumProg, horizonProg, t }) {
             </g>
           );
         })}
-        {hov !== null
-          ? <text x={cx} y={cy+5} textAnchor="middle" fill={rings[hov].color} fontSize="10" fontWeight="700">
-              {rings[hov].detail}
+        {hov !== null ? (
+          <text x={cx} y={cy+5} textAnchor="middle" fill={rings[hov].color} fontSize="10" fontWeight="700">
+            {rings[hov].detail}
+          </text>
+        ) : score > 0 ? (
+          <>
+            <text x="90" y="84" textAnchor="middle"
+              fontSize="32" fontWeight="800" fontFamily="monospace"
+              fill="#6366f1">{score}</text>
+            <text x="90" y="100" textAnchor="middle"
+              fontSize="10" fontWeight="700" fill="#475569"
+              fontFamily="DM Sans,sans-serif"
+              style={{textTransform:"uppercase", letterSpacing:"1px"}}>
+              Freedom Score
             </text>
-          : <text x={cx} y={cy+5} textAnchor="middle" fill={t.tx3} fontSize="9">hover rings · click to open</text>
-        }
+          </>
+        ) : null}
       </svg>
     </div>
   );
 }
 
-// ─── WealthRings ─────────────────────────────────────────────────────────────
+// ─── WealthRings (v2.0 — score in center) ────────────────────────────────────
 function WealthRings({ retirementHealth, t }) {
   const [hov, setHov] = useState(null);
-  const cx = 110, cy = 110;
+  const cx = 90, cy = 90;
   const rings = [
-    { r:82, color:"#10b981", pct:0.8,                   label:"Growth",  detail:"Net worth growing",                       url:URLS.investment },
-    { r:64, color:"#06b6d4", pct:0,                     label:"Legacy",  detail:"Insurance coverage — coming soon",         url:null },
-    { r:46, color:"#8b5cf6", pct:retirementHealth/100,  label:"Horizon", detail:`Retirement: ${Math.round(retirementHealth)}% to goal`, url:URLS.retirement },
+    { r:82, color:"#10b981", pct:0.8,                  label:"Growth",  detail:"Net worth growing",                        url:URLS.investment },
+    { r:64, color:"#06b6d4", pct:0,                    label:"Legacy",  detail:"Insurance coverage — coming soon",          url:null },
+    { r:46, color:"#8b5cf6", pct:retirementHealth/100, label:"Horizon", detail:`Retirement: ${Math.round(retirementHealth)}% to goal`, url:URLS.retirement },
   ];
   return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
-      <div style={{ fontSize:28, fontWeight:800, color:"#10b981", fontFamily:"monospace" }}>100</div>
-      <div style={{ fontSize:11, color:t.tx2, marginBottom:4 }}>Wealth Score</div>
-      <svg width="220" height="220" viewBox="0 0 220 220">
+      <svg width="180" height="180" viewBox="0 0 180 180">
         {rings.map((ring, i) => {
           const circ = 2 * Math.PI * ring.r;
           const offset = circ - Math.min(ring.pct,1) * circ;
@@ -274,12 +314,23 @@ function WealthRings({ retirementHealth, t }) {
             </g>
           );
         })}
-        {hov !== null
-          ? <text x={cx} y={cy+5} textAnchor="middle" fill={rings[hov].color} fontSize="10" fontWeight="700">
-              {rings[hov].detail}
+        {hov !== null ? (
+          <text x={cx} y={cy+5} textAnchor="middle" fill={rings[hov].color} fontSize="10" fontWeight="700">
+            {rings[hov].detail}
+          </text>
+        ) : (
+          <>
+            <text x="90" y="84" textAnchor="middle"
+              fontSize="32" fontWeight="800" fontFamily="monospace"
+              fill="#10b981">100</text>
+            <text x="90" y="100" textAnchor="middle"
+              fontSize="10" fontWeight="700" fill="#475569"
+              fontFamily="DM Sans,sans-serif"
+              style={{textTransform:"uppercase", letterSpacing:"1px"}}>
+              Freedom Score
             </text>
-          : <text x={cx} y={cy+5} textAnchor="middle" fill={t.tx3} fontSize="9">hover rings · click to open</text>
-        }
+          </>
+        )}
       </svg>
     </div>
   );
@@ -516,10 +567,10 @@ function ChartRetirementRing({ accounts, profile, t }) {
       </svg>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginTop:8 }}>
         {[
-          { label:"Balance",   value:`$${fmt$(curr)}` },
-          { label:"Target",    value: target>0 ? `$${fmt$(target)}` : "Not set" },
-          { label:"Years Left",value: yearsLeft !== null ? `${yearsLeft}y` : "—" },
-          { label:"Status",    value: onTrack ? "✓ On Track" : "Needs Boost",
+          { label:"Balance",    value:`$${fmt$(curr)}` },
+          { label:"Target",     value: target>0 ? `$${fmt$(target)}` : "Not set" },
+          { label:"Years Left", value: yearsLeft !== null ? `${yearsLeft}y` : "—" },
+          { label:"Status",     value: onTrack ? "✓ On Track" : "Needs Boost",
             color: onTrack ? COLOR.success : COLOR.warning },
         ].map(s => (
           <div key={s.label} style={{ background:t.surf, borderRadius:8, padding:"6px 8px" }}>
@@ -573,10 +624,10 @@ function ChartWaterfall({ transactions, incStreams, cards, loans, t }) {
       });
     }
     const steps = [
-      { label:"Income",       val:totalIncome,   color:COLOR.success },
-      { label:"Debt Pmts",    val:debtPmt,        color:COLOR.danger },
-      { label:"Discretionary",val:discret,        color:COLOR.orange },
-      { label:"Net",          val:Math.abs(net),  color:net>=0?COLOR.success:COLOR.danger },
+      { label:"Income",        val:totalIncome,  color:COLOR.success },
+      { label:"Debt Pmts",     val:debtPmt,       color:COLOR.danger },
+      { label:"Discretionary", val:discret,       color:COLOR.orange },
+      { label:"Net",           val:Math.abs(net), color:net>=0?COLOR.success:COLOR.danger },
     ].filter(s => s.val > 0.01);
     let runX = 0;
     return steps.map((s,i) => {
@@ -630,56 +681,563 @@ function ChartWaterfall({ transactions, incStreams, cards, loans, t }) {
   );
 }
 
+// ─── ApiKeyModal ──────────────────────────────────────────────────────────────
+function ApiKeyModal({ onClose, onSave, t }) {
+  const [val, setVal] = useState("");
+  const [show, setShow] = useState(false);
+  const status = !val.trim() ? "empty" : val.trim().startsWith("sk-ant-") ? "valid" : "invalid";
+  const dotColor = { valid:COLOR.success, invalid:COLOR.danger, empty:t.tx3 }[status];
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.72)", zIndex:2000,
+      display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}
+      onClick={onClose}>
+      <div style={{ background:t.panelBg, borderRadius:20, width:"100%", maxWidth:440,
+        padding:24, boxShadow:"0 20px 60px rgba(0,0,0,.5)" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize:16, fontWeight:800, color:t.tx1, marginBottom:16 }}>
+          Enter your Anthropic API key
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
+          <input
+            type={show ? "text" : "password"}
+            placeholder="sk-ant-..."
+            value={val}
+            onChange={e => setVal(e.target.value)}
+            style={{ flex:1, background:t.surf, border:`1px solid ${t.border}`,
+              borderRadius:8, padding:"8px 12px", color:t.tx1, fontSize:13,
+              outline:"none", boxSizing:"border-box" }}
+          />
+          <span style={{ width:8, height:8, borderRadius:"50%", background:dotColor, flexShrink:0 }}/>
+          <button onClick={() => setShow(s => !s)}
+            style={{ background:"none", border:`1px solid ${t.border}`, borderRadius:6,
+              padding:"6px 10px", color:t.tx2, cursor:"pointer", fontSize:11, flexShrink:0 }}>
+            {show ? "Hide" : "Show"}
+          </button>
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={() => status === "valid" && onSave(val.trim())}
+            style={{ flex:1, background:status==="valid"?COLOR.primary:t.surf,
+              border:"none", borderRadius:10, padding:"9px 0",
+              color:status==="valid"?"#fff":t.tx3,
+              cursor:status==="valid"?"pointer":"default", fontWeight:700, fontSize:14 }}>
+            Save Key
+          </button>
+          <button onClick={onClose}
+            style={{ flex:1, background:t.surf, border:`1px solid ${t.border}`,
+              borderRadius:10, padding:"9px 0", color:t.tx1, cursor:"pointer",
+              fontWeight:600, fontSize:13 }}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── NewProfileModal ──────────────────────────────────────────────────────────
+function NewProfileModal({ onComplete, t }) {
+  const [name, setName] = useState("");
+  const [pin, setPin] = useState("");
+  const [avatarColor, setAvatarColor] = useState(AVATAR_COLORS[0]);
+  const canSubmit = name.trim().length > 0 && pin.length >= 4;
+  const firstLetter = name.trim() ? name.trim()[0].toUpperCase() : "?";
+
+  function handleCreate() {
+    if (!canSubmit) return;
+    const id = "profile_" + Date.now();
+    onComplete({ id, name: name.trim(), avatarColor, pin });
+  }
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"#020617", zIndex:3000,
+      display:"flex", alignItems:"center", justifyContent:"center",
+      fontFamily:"'DM Sans','Segoe UI',sans-serif", padding:24 }}>
+      <div style={{ width:"100%", maxWidth:440 }}>
+        <div style={{ textAlign:"center", marginBottom:28 }}>
+          <div style={{ width:56, height:56, borderRadius:14, background:avatarColor,
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontSize:26, margin:"0 auto 16px", color:"#fff", fontWeight:800 }}>
+            {firstLetter}
+          </div>
+          <div style={{ fontSize:22, fontWeight:800, color:"#f1f5f9", marginBottom:6 }}>
+            Welcome to Financial Freedom
+          </div>
+          <div style={{ fontSize:13, color:"#64748b" }}>
+            Let's set up your profile to get started
+          </div>
+        </div>
+
+        <div style={{ marginBottom:14 }}>
+          <label style={{ fontSize:11, color:"#94a3b8", display:"block",
+            marginBottom:4, fontWeight:600 }}>YOUR NAME</label>
+          <input
+            type="text" placeholder="e.g. Carter"
+            value={name} onChange={e => setName(e.target.value)}
+            style={{ width:"100%", background:"#1e293b", border:"1px solid #334155",
+              borderRadius:8, padding:"9px 12px", color:"#f1f5f9", fontSize:14,
+              boxSizing:"border-box", outline:"none" }}
+          />
+        </div>
+
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:11, color:"#94a3b8", marginBottom:8, fontWeight:600 }}>
+            AVATAR COLOR
+          </div>
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+            {AVATAR_COLORS.map(c => (
+              <button key={c} onClick={() => setAvatarColor(c)}
+                style={{ width:32, height:32, borderRadius:"50%", background:c, border:"none",
+                  cursor:"pointer",
+                  outline:avatarColor===c?"3px solid #fff":"2px solid transparent",
+                  outlineOffset:2, transition:"outline .1s" }}/>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginBottom:24 }}>
+          <label style={{ fontSize:11, color:"#94a3b8", display:"block",
+            marginBottom:4, fontWeight:600 }}>RECOVERY PIN</label>
+          <input
+            type="password" placeholder="Min 4 characters"
+            value={pin} onChange={e => setPin(e.target.value)}
+            style={{ width:"100%", background:"#1e293b", border:"1px solid #334155",
+              borderRadius:8, padding:"9px 12px", color:"#f1f5f9", fontSize:14,
+              boxSizing:"border-box", outline:"none" }}
+          />
+          <div style={{ fontSize:11, color:"#475569", marginTop:4 }}>
+            Used to unlock module PINs (e.g. Insurance Tracker). Store it somewhere safe.
+          </div>
+        </div>
+
+        <button onClick={handleCreate} disabled={!canSubmit}
+          style={{ width:"100%", background:canSubmit?COLOR.primary:"#1e293b",
+            border:"none", borderRadius:10, padding:"12px 0",
+            color:canSubmit?"#fff":"#475569", cursor:canSubmit?"pointer":"default",
+            fontWeight:700, fontSize:15, transition:"background .2s" }}>
+          Get Started
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── FirstVisitOverlay ────────────────────────────────────────────────────────
+function FirstVisitOverlay({ onDone, t }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(2,6,23,.9)", zIndex:2500,
+      display:"flex", alignItems:"center", justifyContent:"center",
+      fontFamily:"'DM Sans','Segoe UI',sans-serif", padding:24 }}>
+      <div style={{ background:t.panelBg, borderRadius:20, maxWidth:400, width:"100%",
+        padding:28, boxShadow:"0 20px 60px rgba(0,0,0,.6)", textAlign:"center" }}>
+        <div style={{ fontSize:32, marginBottom:12 }}>🏠</div>
+        <div style={{ fontSize:18, fontWeight:800, color:t.tx1, marginBottom:20 }}>
+          Your Dashboard
+        </div>
+        <div style={{ textAlign:"left", display:"flex", flexDirection:"column",
+          gap:12, marginBottom:24 }}>
+          {[
+            "Start with any module — your data syncs across all of them",
+            "The Freedom Score updates as you add data to each module",
+            "AI Advisor unlocks once you've added an API key",
+          ].map((bullet, i) => (
+            <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+              <span style={{ color:COLOR.primary, fontWeight:700, flexShrink:0, fontSize:16 }}>•</span>
+              <span style={{ fontSize:13, color:t.tx2, lineHeight:1.5 }}>{bullet}</span>
+            </div>
+          ))}
+        </div>
+        <button onClick={onDone}
+          style={{ width:"100%", background:COLOR.primary, border:"none", borderRadius:10,
+            padding:"10px 0", color:"#fff", cursor:"pointer", fontWeight:700, fontSize:14 }}>
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── AdvisorPanel ─────────────────────────────────────────────────────────────
+function AdvisorPanel({
+  apiKey, advisorDepth, advisorResult, advisorRunning, advisorStale,
+  dtSummary, incSummary, savSummary, retSummary, baseline, invVal, legacyHealth,
+  freedomScore, onRun, onClose, onOpenSettings, t
+}) {
+  const hasKey    = apiKey && apiKey.trim().length > 0;
+  const hasResult = advisorResult && advisorResult.text;
+  const insScore  = typeof legacyHealth === "number" ? legacyHealth :
+    (legacyHealth?.score || legacyHealth?.healthScore || 0);
+
+  const dataRows = [
+    { label:"Debt",        value: dtSummary  ? `$${fmt$(dtSummary.totalBalance)} across ${dtSummary.debtCount} accounts`        : "—" },
+    { label:"Income",      value: incSummary ? `$${fmt$(incSummary.monthlyTotal)}/mo · ${incSummary.streamCount} streams`        : "—" },
+    { label:"Spending",    value: baseline   ? `$${fmt$(baseline.amount)}/mo essential floor`                                    : "—" },
+    { label:"Savings",     value: savSummary ? `${savSummary.fundedGoalCount} of ${savSummary.goalCount} goals funded`           : "—" },
+    { label:"Retirement",  value: retSummary ? `${retSummary.fundedPct}% toward target`                                         : "—" },
+    { label:"Investments", value: invVal > 0 ? `$${fmt$(invVal)} portfolio`                                                      : "—" },
+    { label:"Insurance",   value: insScore > 0 ? `${insScore}% coverage score`                                                  : "—" },
+  ];
+
+  return (
+    <div style={{ height:"100%", display:"flex", flexDirection:"column" }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+        marginBottom:12, flexShrink:0 }}>
+        <div>
+          <div style={{ fontSize:14, fontWeight:800, color:t.tx1 }}>AI Advisor</div>
+          <div style={{ fontSize:11, color:COLOR.purple }}>
+            Depth: {["","Brief","Standard","Detailed"][advisorDepth]}
+          </div>
+        </div>
+        {onClose && (
+          <button onClick={onClose}
+            style={{ background:"none", border:"none", cursor:"pointer",
+              fontSize:20, color:t.tx3, padding:"2px 6px", lineHeight:1 }}>
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* Stale banner (only when result exists) */}
+      {advisorStale && hasResult && (
+        <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)",
+          borderRadius:8, padding:"8px 12px", marginBottom:10, fontSize:12,
+          color:COLOR.warning, flexShrink:0 }}>
+          Your data has changed · Re-analyze for updated advice
+        </div>
+      )}
+
+      {/* Content */}
+      <div style={{ flex:1, overflowY:"auto" }}>
+
+        {/* No API key */}
+        {!hasKey && (
+          <div style={{ textAlign:"center", padding:"28px 0" }}>
+            <div style={{ fontSize:28, marginBottom:12 }}>🔑</div>
+            <div style={{ fontSize:13, color:t.tx2, marginBottom:16, lineHeight:1.6 }}>
+              Add an API key in Settings to enable AI analysis
+            </div>
+            <button onClick={onOpenSettings}
+              style={{ background:COLOR.primary, border:"none", borderRadius:8,
+                padding:"8px 20px", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700 }}>
+              Open Settings
+            </button>
+          </div>
+        )}
+
+        {/* Running */}
+        {hasKey && advisorRunning && (
+          <div style={{ textAlign:"center", padding:"32px 0" }}>
+            <div style={{ fontSize:24, marginBottom:12, animation:"spin 1s linear infinite" }}>⟳</div>
+            <div style={{ fontSize:13, color:t.tx2 }}>Analyzing your financial picture…</div>
+          </div>
+        )}
+
+        {/* Has key, no result, not running — data preview */}
+        {hasKey && !advisorRunning && !hasResult && (
+          <div>
+            <div style={{ fontSize:11, color:t.tx3, fontWeight:700,
+              textTransform:"uppercase", letterSpacing:0.8, marginBottom:10 }}>
+              What I'll analyze
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:7, marginBottom:20 }}>
+              {dataRows.map(row => (
+                <div key={row.label} style={{ display:"flex", justifyContent:"space-between",
+                  alignItems:"flex-start", gap:8, fontSize:12 }}>
+                  <span style={{ color:t.tx3, fontWeight:600, flexShrink:0, width:76 }}>{row.label}</span>
+                  <span style={{ color:t.tx2, textAlign:"right" }}>{row.value}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={onRun}
+              style={{ width:"100%", background:COLOR.primary, border:"none", borderRadius:10,
+                padding:"10px 0", color:"#fff", cursor:"pointer", fontWeight:700, fontSize:14 }}>
+              Analyze My Finances
+            </button>
+          </div>
+        )}
+
+        {/* Has result */}
+        {hasKey && !advisorRunning && hasResult && (
+          <div>
+            <div style={{ fontSize:11, color:t.tx3, marginBottom:12 }}>
+              Analyzed {timeAgo(advisorResult.generatedAt)}
+              {" · "}
+              <span style={{ color:COLOR.primary, cursor:"pointer" }} onClick={onRun}>
+                Re-analyze
+              </span>
+            </div>
+            <div style={{ opacity: advisorStale ? 0.75 : 1 }}>
+              {renderAdvisorResult(advisorResult.text)}
+            </div>
+            {advisorStale && (
+              <button onClick={onRun}
+                style={{ width:"100%", marginTop:12, background:COLOR.warning+"18",
+                  border:`1px solid ${COLOR.warning}44`, borderRadius:8, padding:"8px 0",
+                  color:COLOR.warning, cursor:"pointer", fontSize:12, fontWeight:700 }}>
+                Re-analyze with new data
+              </button>
+            )}
+            <div style={{ display:"flex", gap:8, marginTop:14 }}>
+              <button onClick={() => navigator.clipboard?.writeText(advisorResult.text)}
+                style={{ flex:1, background:t.surf, border:`1px solid ${t.border}`,
+                  borderRadius:8, padding:"7px 0", color:t.tx2, cursor:"pointer", fontSize:12 }}>
+                📋 Copy
+              </button>
+              <button onClick={() => {
+                  const blob = new Blob([advisorResult.text], { type:"text/plain" });
+                  const url  = URL.createObjectURL(blob);
+                  const a    = document.createElement("a");
+                  a.href = url; a.download = "ai-advisor.txt"; a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                style={{ flex:1, background:t.surf, border:`1px solid ${t.border}`,
+                  borderRadius:8, padding:"7px 0", color:t.tx2, cursor:"pointer", fontSize:12 }}>
+                ⬇ Download
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── SettingsPanel ────────────────────────────────────────────────────────────
+function SettingsPanel({
+  advisorDepth, onDepthChange,
+  apiKey, onOpenApiKeyModal,
+  profiles, activeProfileId, onSwitchProfile, onAddProfile,
+  onClose, t
+}) {
+  const activeProfile = profiles.find(p => p.id === activeProfileId) || profiles[0];
+  const { initials, color } = getAvatar(activeProfile);
+  const maskedKey = apiKey && apiKey.length > 10
+    ? apiKey.slice(0,7) + "..." + apiKey.slice(-4)
+    : apiKey ? "(key set)" : "Not set";
+  const depthLabels = ["","Brief","Standard","Detailed"];
+  const depthDescs  = [
+    "",
+    "Short, simple answers. Best for quick checks.",
+    "Balanced detail with specific numbers. Recommended.",
+    "Comprehensive analysis with full reasoning.",
+  ];
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.72)", zIndex:1500,
+      display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}
+      onClick={onClose}>
+      <div style={{ background:t.panelBg, borderRadius:20, width:"100%", maxWidth:480,
+        padding:24, boxShadow:"0 20px 60px rgba(0,0,0,.5)", maxHeight:"85vh", overflowY:"auto" }}
+        onClick={e => e.stopPropagation()}>
+
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+          marginBottom:20 }}>
+          <div style={{ fontSize:16, fontWeight:800, color:t.tx1 }}>Settings</div>
+          <button onClick={onClose}
+            style={{ background:"none", border:"none", cursor:"pointer",
+              fontSize:20, color:t.tx3, padding:"2px 6px", lineHeight:1 }}>×</button>
+        </div>
+
+        {/* AI Advisor Depth */}
+        <div style={{ marginBottom:24 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:t.tx1, marginBottom:6 }}>
+            AI Response Detail
+          </div>
+          <div style={{ display:"flex", gap:6, marginBottom:8 }}>
+            {[1,2,3].map(d => (
+              <button key={d} onClick={() => onDepthChange(d)}
+                style={{ flex:1, background:advisorDepth===d?COLOR.primary:t.surf,
+                  border:`1px solid ${advisorDepth===d?COLOR.primary:t.border}`,
+                  borderRadius:8, padding:"7px 0",
+                  color:advisorDepth===d?"#fff":t.tx2,
+                  cursor:"pointer", fontSize:12,
+                  fontWeight:advisorDepth===d?700:500 }}>
+                {advisorDepth === d ? `${d} · ${depthLabels[d]} ✓` : `${d} · ${depthLabels[d]}`}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize:11, color:t.tx3 }}>{depthDescs[advisorDepth]}</div>
+        </div>
+
+        {/* Legacy Landing */}
+        <div style={{ marginBottom:20, background:t.surf, borderRadius:12, padding:"12px 14px" }}>
+          <div style={{ fontSize:12, fontWeight:700, color:t.tx1, marginBottom:2 }}>Module Directory</div>
+          <div style={{ fontSize:11, color:t.tx3, marginBottom:8 }}>The original module index page</div>
+          <a href={URLS.legacyLanding} target="_blank" rel="noreferrer"
+            style={{ fontSize:12, color:COLOR.primary, textDecoration:"none" }}>
+            Open Module Directory →
+          </a>
+        </div>
+
+        {/* API Key */}
+        <div style={{ marginBottom:20, background:t.surf, borderRadius:12, padding:"12px 14px" }}>
+          <div style={{ fontSize:12, fontWeight:700, color:t.tx1, marginBottom:4 }}>API Key</div>
+          <div style={{ fontSize:12, color:t.tx3, fontFamily:"monospace", marginBottom:8 }}>
+            {maskedKey}
+          </div>
+          <button onClick={onOpenApiKeyModal}
+            style={{ background:COLOR.primary, border:"none", borderRadius:8,
+              padding:"6px 16px", color:"#fff", cursor:"pointer", fontSize:12, fontWeight:600 }}>
+            Change Key
+          </button>
+        </div>
+
+        {/* Profile */}
+        <div style={{ background:t.surf, borderRadius:12, padding:"12px 14px" }}>
+          <div style={{ fontSize:12, fontWeight:700, color:t.tx1, marginBottom:10 }}>Profile</div>
+          {activeProfile && (
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+              <div style={{ width:36, height:36, borderRadius:"50%", background:color,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                color:"#fff", fontSize:13, fontWeight:700, flexShrink:0 }}>
+                {initials}
+              </div>
+              <div>
+                <div style={{ fontSize:13, fontWeight:700, color:t.tx1 }}>
+                  {activeProfile.name || activeProfile.id}
+                </div>
+                <div style={{ fontSize:11, color:t.tx3 }}>Active profile</div>
+              </div>
+            </div>
+          )}
+          {profiles.length > 1 && (
+            <div style={{ marginBottom:10 }}>
+              <div style={{ fontSize:11, color:t.tx3, marginBottom:6, fontWeight:600 }}>
+                SWITCH PROFILE
+              </div>
+              {profiles.filter(p => p.id !== activeProfileId).map(p => {
+                const av = getAvatar(p);
+                return (
+                  <button key={p.id} onClick={() => { onSwitchProfile(p.id); onClose(); }}
+                    style={{ display:"flex", alignItems:"center", gap:8, width:"100%",
+                      background:"none", border:`1px solid ${t.border}`, borderRadius:8,
+                      padding:"7px 10px", color:t.tx1, cursor:"pointer",
+                      fontSize:12, marginBottom:4 }}>
+                    <div style={{ width:24, height:24, borderRadius:"50%", background:av.color,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      color:"#fff", fontSize:10, fontWeight:700, flexShrink:0 }}>
+                      {av.initials}
+                    </div>
+                    <span>{p.name || p.id}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <button onClick={() => { onAddProfile(); onClose(); }}
+            style={{ width:"100%", background:COLOR.primary, border:"none",
+              borderRadius:8, padding:"7px 0", color:"#fff", cursor:"pointer",
+              fontSize:12, fontWeight:600 }}>
+            + Add Profile
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── App ─────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [darkMode, setDarkMode]           = useState(true);
-  const t  = useTheme(darkMode);
-  const { isMobile, isTablet }            = useBreakpoint();
+  const [darkMode, setDarkMode] = useState(true);
+  const t = useTheme(darkMode);
+  const { isMobile, isTablet } = useBreakpoint();
 
-  const [profiles, setProfiles]           = useState([]);
+  // Profile
+  const [profiles, setProfiles]               = useState([]);
   const [activeProfileId, setActiveProfileId] = useState(null);
-  const [apiKey, setApiKey]               = useState("");
-  const [apiKeyStatus, setApiKeyStatus]   = useState("unknown");
+  const [apiKey, setApiKey]                   = useState("");
+  const [apiKeyStatus, setApiKeyStatus]       = useState("unknown");
   const [showProfilePanel, setShowProfilePanel] = useState(false);
 
-  const [navPinned, setNavPinned]         = useState(false);
-  const [navHovered, setNavHovered]       = useState(false);
+  // Nav
+  const [navPinned, setNavPinned]   = useState(false);
+  const [navHovered, setNavHovered] = useState(false);
   const navExpanded = navPinned || navHovered;
 
-  const [dtCards, setDtCards]             = useState([]);
-  const [dtLoans, setDtLoans]             = useState([]);
-  const [dtLogs, setDtLogs]               = useState([]);
-  const [incStreams, setIncStreams]        = useState([]);
+  // Module data
+  const [dtCards, setDtCards]               = useState([]);
+  const [dtLoans, setDtLoans]               = useState([]);
+  const [dtLogs, setDtLogs]                 = useState([]);
+  const [incStreams, setIncStreams]          = useState([]);
   const [spTransactions, setSpTransactions] = useState([]);
-  const [baseline, setBaseline]           = useState(null);
-  const [savFunds, setSavFunds]           = useState([]);
-  const [savGoals, setSavGoals]           = useState([]);
-  const [retAccounts, setRetAccounts]     = useState([]);
-  const [retProfile, setRetProfile]       = useState(null);
-  const [investments, setInvestments]     = useState(null);
-  const [loading, setLoading]             = useState(true);
+  const [baseline, setBaseline]             = useState(null);
+  const [savFunds, setSavFunds]             = useState([]);
+  const [savGoals, setSavGoals]             = useState([]);
+  const [retAccounts, setRetAccounts]       = useState([]);
+  const [retProfile, setRetProfile]         = useState(null);
+  const [investments, setInvestments]       = useState(null);
+  const [legacyHealth, setLegacyHealth]     = useState(null);
+
+  // Summary keys
+  const [dtSummary, setDtSummary]   = useState(null);
+  const [incSummary, setIncSummary] = useState(null);
+  const [savSummary, setSavSummary] = useState(null);
+  const [retSummary, setRetSummary] = useState(null);
+
+  // Advisor
+  const [advisorOpen, setAdvisorOpen]       = useState(false);
+  const [advisorDepth, setAdvisorDepth]     = useState(() =>
+    parseInt(localStorage.getItem("dash_advisor_depth") || "2")
+  );
+  const [advisorResult, setAdvisorResult]   = useState(null);
+  const [advisorRunning, setAdvisorRunning] = useState(false);
+  const [advisorStale, setAdvisorStale]     = useState(false);
+
+  // UI
+  const [mobileTab, setMobileTab]             = useState("overview");
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [showSettings, setShowSettings]       = useState(false);
+  const [showApiKeyBanner, setShowApiKeyBanner] = useState(false);
+  const [showFirstVisit, setShowFirstVisit]   = useState(false);
+  const [isNewUser, setIsNewUser]             = useState(false);
+  const [showAddProfile, setShowAddProfile]   = useState(false);
+  const [loading, setLoading]                 = useState(true);
 
   async function loadModuleData(id) {
-    const [dtC, dtL, dtLg, incS, spTx, bdl, savF, savG, retA, retP, retAss, inv] =
-      await Promise.all([
-        storeGet(`dt_cards_${id}`, true),
-        storeGet(`dt_loans_${id}`, true),
-        storeGet(`dt_logs_${id}`, true),
-        storeGet(`inc_streams_${id}`, true),
-        storeGet(`sp_transactions_${id}`, true),
-        storeGet(`ffp_baseline_${id}`, true),
-        storeGet(`sav_funds_${id}`, true),
-        storeGet(`sav_goals_${id}`, true),
-        storeGet(`ret_accounts_${id}`, true),
-        storeGet(`ret_profile_${id}`, true),
-        storeGet(`ret_assumptions_${id}`, true),
-        storeGet(`ffp_investments_${id}`, true),
-      ]);
-    setDtCards(dtC||[]);      setDtLoans(dtL||[]);      setDtLogs(dtLg||[]);
-    setIncStreams(incS||[]);   setSpTransactions(spTx||[]); setBaseline(bdl||null);
-    setSavFunds(savF||[]);     setSavGoals(savG||[]);
-    setRetAccounts(retA||[]);  setRetProfile(retP||null);
-    setInvestments(inv||null);
+    const [
+      dtC, dtL, dtLg, incS, spTx, bdl, savF, savG, retA, retP, inv, lh,
+      dtSum, incSum, savSum, retSum, advResult, advSnap
+    ] = await Promise.all([
+      storeGet(`dt_cards_${id}`, true),
+      storeGet(`dt_loans_${id}`, true),
+      storeGet(`dt_logs_${id}`, true),
+      storeGet(`inc_streams_${id}`, true),
+      storeGet(`sp_transactions_${id}`, true),
+      storeGet(`ffp_baseline_${id}`, true),
+      storeGet(`sav_funds_${id}`, true),
+      storeGet(`sav_goals_${id}`, true),
+      storeGet(`ret_accounts_${id}`, true),
+      storeGet(`ret_profile_${id}`, true),
+      storeGet(`ffp_investments_${id}`, true),
+      storeGet(`ins_legacy_health_${id}`, true),
+      storeGet(`dt_summary_${id}`, true),
+      storeGet(`inc_summary_${id}`, true),
+      storeGet(`sav_summary_${id}`, true),
+      storeGet(`ret_summary_${id}`, true),
+      storeGet(`dash_advisor_result_${id}`, true),
+      storeGet(`dash_advisor_snapshot_${id}`, true),
+    ]);
+
+    setDtCards(dtC||[]);        setDtLoans(dtL||[]);     setDtLogs(dtLg||[]);
+    setIncStreams(incS||[]);     setSpTransactions(spTx||[]);  setBaseline(bdl||null);
+    setSavFunds(savF||[]);       setSavGoals(savG||[]);
+    setRetAccounts(retA||[]);    setRetProfile(retP||null);
+    setInvestments(inv||null);   setLegacyHealth(lh||null);
+    setDtSummary(dtSum||null);   setIncSummary(incSum||null);
+    setSavSummary(savSum||null); setRetSummary(retSum||null);
+    if (advResult) setAdvisorResult(advResult);
+
+    // Staleness detection
+    if (advSnap) {
+      const fp = JSON.stringify({
+        dt:  dtSum?.calculatedOn,
+        inc: incSum?.calculatedOn,
+        sav: savSum?.calculatedOn,
+        ret: retSum?.calculatedOn,
+      });
+      setAdvisorStale(JSON.stringify(advSnap) !== fp);
+    }
+
     setLoading(false);
   }
 
@@ -690,14 +1248,33 @@ export default function App() {
       const key   = await storeGet("cc_apikey", true);
       setProfiles(profs);
       if (key) { setApiKey(key); probeApiKey(key).then(setApiKeyStatus); }
-      const id = actId || profs[0]?.id || null;
-      setActiveProfileId(id);
-      const savedDark   = localStorage.getItem("dash_dark");
+      const savedDark = localStorage.getItem("dash_dark");
       if (savedDark !== null) setDarkMode(savedDark === "true");
       const savedPinned = localStorage.getItem("dash_nav_collapsed");
       if (savedPinned === "false") setNavPinned(true);
-      if (id) await loadModuleData(id);
-      else setLoading(false);
+
+      if (profs.length === 0) {
+        setIsNewUser(true);
+        setLoading(false);
+        return;
+      }
+
+      const id = actId || profs[0]?.id || null;
+      setActiveProfileId(id);
+
+      if (id) {
+        await loadModuleData(id);
+        if (!localStorage.getItem(`dash_first_visit_${id}`)) setShowFirstVisit(true);
+      } else {
+        setLoading(false);
+      }
+
+      if (!key) {
+        const dismissed = localStorage.getItem("dash_api_dismissed_date");
+        if (!dismissed || (Date.now() - new Date(dismissed).getTime()) > 7*24*60*60*1000) {
+          setShowApiKeyBanner(true);
+        }
+      }
     }
     boot();
   }, []);
@@ -709,7 +1286,10 @@ export default function App() {
     setDtCards([]); setDtLoans([]); setDtLogs([]);
     setIncStreams([]); setSpTransactions([]); setBaseline(null);
     setSavFunds([]); setSavGoals([]);
-    setRetAccounts([]); setRetProfile(null); setInvestments(null);
+    setRetAccounts([]); setRetProfile(null);
+    setInvestments(null); setLegacyHealth(null);
+    setDtSummary(null); setIncSummary(null); setSavSummary(null); setRetSummary(null);
+    setAdvisorResult(null); setAdvisorStale(false);
     setLoading(true);
     loadModuleData(id);
   }
@@ -727,13 +1307,111 @@ export default function App() {
     localStorage.setItem("dash_nav_collapsed", String(!next));
   }
 
-  // ── Computed values ────────────────────────────────────────────────────────
+  function handleDepthChange(d) {
+    setAdvisorDepth(d);
+    localStorage.setItem("dash_advisor_depth", String(d));
+  }
+
+  function handleSaveApiKey(key) {
+    setApiKey(key);
+    storeSet("cc_apikey", key, true);
+    probeApiKey(key).then(setApiKeyStatus);
+    setShowApiKeyModal(false);
+    setShowApiKeyBanner(false);
+  }
+
+  async function handleCreateProfile(profile) {
+    const updated = [...profiles, profile];
+    setProfiles(updated);
+    setActiveProfileId(profile.id);
+    await storeSet("cc_profiles", updated, true);
+    await storeSet("cc_active_profile", profile.id, true);
+    setIsNewUser(false);
+    setShowAddProfile(false);
+    setShowFirstVisit(true);
+    if (!apiKey) setShowApiKeyBanner(true);
+    await loadModuleData(profile.id);
+  }
+
+  async function runAdvisor() {
+    if (!apiKey || advisorRunning) return;
+    setAdvisorRunning(true);
+
+    const depthInstructions = {
+      1: "Give a brief, simple response. Maximum 3 bullet points per section. Use plain language, no jargon.",
+      2: "Give a standard response. Be specific with numbers. 4-6 points per section.",
+      3: "Give a detailed, comprehensive response. Include reasoning, context, and specific action steps."
+    };
+
+    const insScore = typeof legacyHealth === "number" ? legacyHealth :
+      (legacyHealth?.score || legacyHealth?.healthScore || 0);
+
+    const prompt = `You are a personal financial advisor reviewing a complete financial profile.
+Respond at depth level ${advisorDepth}: ${depthInstructions[advisorDepth]}
+
+INCOME
+Monthly: $${incSummary?.monthlyTotal || 0} | Stability: ${incSummary?.stablePct || 0}% stable | ${incSummary?.streamCount || 0} streams
+
+DEBT
+Total: $${dtSummary?.totalBalance || 0} | Monthly payments: $${dtSummary?.totalMinPayments || 0} | Highest APR: ${dtSummary?.highestApr || 0}%
+Promo expiring soon: ${dtSummary?.promoExpiringSoon ? "YES — action needed" : "No"}
+
+SPENDING
+Essential floor: $${baseline?.amount || 0}/mo
+
+SAVINGS
+Total: $${savSummary?.totalBalance || 0} | Goals: ${savSummary?.fundedGoalCount || 0} of ${savSummary?.goalCount || 0} funded | Emergency: ${savSummary?.emergencyMonths || 0} months
+
+RETIREMENT
+Balance: $${retSummary?.currentBalance || 0} | Target: $${retSummary?.targetNestEgg || 0} | Funded: ${retSummary?.fundedPct || 0}% | On track: ${retSummary?.onTrack ? "YES" : "NO"}
+
+INVESTMENTS
+Total invested: $${fmt$(invCost)} | Current value: $${fmt$(invVal)}
+
+INSURANCE
+Legacy health score: ${insScore}%
+
+FREEDOM SCORE: ${freedomScore}/100
+
+Please provide:
+1. Top 3 immediate actions ranked by financial impact
+2. Where my next $500/mo of discretionary income should go and why
+3. My biggest financial risk right now
+4. What would most improve my Freedom Score
+5. One 12-month milestone I should aim for`;
+
+    try {
+      const res  = await callClaude(apiKey, {
+        model: MODEL,
+        max_tokens: advisorDepth === 1 ? 600 : advisorDepth === 2 ? 1200 : 2000,
+        messages: [{ role:"user", content: prompt }]
+      });
+      const data = await res.json();
+      const text = data.content?.[0]?.text || "";
+      const result = { text, generatedAt: new Date().toISOString() };
+      setAdvisorResult(result);
+      setAdvisorStale(false);
+      await storeSet(`dash_advisor_result_${activeProfileId}`, result, true);
+      await storeSet(`dash_advisor_snapshot_${activeProfileId}`, {
+        dt:  dtSummary?.calculatedOn,
+        inc: incSummary?.calculatedOn,
+        sav: savSummary?.calculatedOn,
+        ret: retSummary?.calculatedOn,
+      }, true);
+    } catch(e) {
+      // result unchanged; panel will stay in pre-run state
+    } finally {
+      setAdvisorRunning(false);
+    }
+  }
+
+  // ── Computed values ──────────────────────────────────────────────────────────
   const today = new Date();
 
-  const origTotal = dtCards.reduce((s,c)=>s+(parseFloat(c.originalBalance)||0),0) +
-                    dtLoans.reduce((s,l)=>s+(parseFloat(l.originalBalance)||0),0);
-  const currTotal = dtCards.reduce((s,c)=>s+(parseFloat(c.balance)||0),0) +
-                    dtLoans.reduce((s,l)=>s+(parseFloat(l.currentBalance)||0),0);
+  const origTotal  = dtCards.reduce((s,c)=>s+(parseFloat(c.originalBalance)||0),0) +
+                     dtLoans.reduce((s,l)=>s+(parseFloat(l.originalBalance)||0),0);
+  const currTotal  = dtCards.reduce((s,c)=>s+(parseFloat(c.balance)||0),0) +
+                     dtLoans.reduce((s,l)=>s+(parseFloat(l.currentBalance)||0),0);
   const debtHealth = origTotal > 0 ? Math.min(((origTotal-currTotal)/origTotal)*100, 100) : 0;
 
   const stableStreams  = incStreams.filter(s => s.stabilityRating==="Stable"||s.stabilityRating==="Mostly Stable");
@@ -750,29 +1428,23 @@ export default function App() {
   const thisMonthTxns  = spTransactions.filter(tx => tx.date?.startsWith(activeMonth));
   const thisMonthSpend = thisMonthTxns.reduce((s,tx) => s+(parseFloat(tx.amount)||0), 0);
   const catSpendMap    = {};
-  thisMonthTxns.forEach(tx => {
-    const c = tx.categoryId||"unc";
-    catSpendMap[c] = (catSpendMap[c]||0) + (parseFloat(tx.amount)||0);
-  });
+  thisMonthTxns.forEach(tx => { const c = tx.categoryId||"unc"; catSpendMap[c] = (catSpendMap[c]||0)+(parseFloat(tx.amount)||0); });
   const bdlMap2 = {};
   (baseline?.breakdown||[]).forEach(b => { bdlMap2[b.categoryId] = parseFloat(b.average)||0; });
   const totalCats = Math.max(Object.keys(catSpendMap).length, 1);
   let catsIn = 0;
-  Object.entries(catSpendMap).forEach(([cid,spent]) => {
-    const avg = bdlMap2[cid];
-    if (!avg || spent <= avg) catsIn++;
-  });
+  Object.entries(catSpendMap).forEach(([cid,spent]) => { const avg = bdlMap2[cid]; if (!avg || spent <= avg) catsIn++; });
   const spendingHealth = (catsIn/totalCats)*100;
 
-  const fundedGoals  = savGoals.filter(g => (parseFloat(g.currentAmount)||0) >= (parseFloat(g.targetAmount)||1));
-  const savingsHealth = savGoals.length > 0 ? (fundedGoals.length/savGoals.length)*100 : 0;
-  const totalSavBal  = savFunds.reduce((s,f) => s+(parseFloat(f.balance)||0), 0);
+  const fundedGoals    = savGoals.filter(g => (parseFloat(g.currentAmount)||0) >= (parseFloat(g.targetAmount)||1));
+  const savingsHealth  = savGoals.length > 0 ? (fundedGoals.length/savGoals.length)*100 : 0;
+  const totalSavBal    = savFunds.reduce((s,f) => s+(parseFloat(f.balance)||0), 0);
 
-  const rateMap = { four_percent:4, three_point_three:3.3, five_percent:5 };
-  const planRate = rateMap[retProfile?.lockedPlan] || 4;
-  const targetNestEgg = retProfile?.targetMonthlyIncome
+  const rateMap        = { four_percent:4, three_point_three:3.3, five_percent:5 };
+  const planRate       = rateMap[retProfile?.lockedPlan] || 4;
+  const targetNestEgg  = retProfile?.targetMonthlyIncome
     ? (parseFloat(retProfile.targetMonthlyIncome)*12) / (planRate/100) : 0;
-  const retTotal      = retAccounts.reduce((s,a) => s+(parseFloat(a.currentBalance)||0), 0);
+  const retTotal       = retAccounts.reduce((s,a) => s+(parseFloat(a.currentBalance)||0), 0);
   const retirementHealth = targetNestEgg > 0 ? Math.min((retTotal/targetNestEgg)*100, 100) : 0;
 
   const invAccts = investments?.accounts || [];
@@ -781,20 +1453,23 @@ export default function App() {
     invCost += (parseFloat(p.costBasis)||0) * (parseFloat(p.shares)||0);
     invVal  += (parseFloat(p.currentPrice)||0) * (parseFloat(p.shares)||0);
   }));
-  const gainPct   = invCost > 0 ? ((invVal-invCost)/invCost)*100 : 0;
+  const gainPct      = invCost > 0 ? ((invVal-invCost)/invCost)*100 : 0;
   const investHealth = Math.min(Math.max(gainPct+50, 0), 100);
 
-  const freedomScore    = calcFreedomScore(debtHealth, incomeHealth, spendingHealth, savingsHealth, retirementHealth);
-  const monthlyDebtPmt  = [...dtCards,...dtLoans].reduce((s,d) => s+(parseFloat(d.minimumPayment||d.monthlyPayment)||0), 0);
-  const netCashflow     = monthlyIncome - thisMonthSpend - monthlyDebtPmt;
-  const momentumProg    = netCashflow > 0 ? Math.min((netCashflow/Math.max(monthlyIncome,1))*300, 100) : 0;
-  const currMonthStr    = today.toISOString().slice(0,7);
-  const actualPmts      = dtLogs.filter(l => l.date?.startsWith(currMonthStr)).reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
-  const horizonProg     = monthlyDebtPmt > 0 ? Math.min((actualPmts/monthlyDebtPmt)*100, 100) : 0;
+  const freedomScore   = calcFreedomScore(debtHealth, incomeHealth, spendingHealth, savingsHealth, retirementHealth);
+  const monthlyDebtPmt = [...dtCards,...dtLoans].reduce((s,d) => s+(parseFloat(d.minimumPayment||d.monthlyPayment)||0), 0);
+  const netCashflow    = monthlyIncome - thisMonthSpend - monthlyDebtPmt;
+  const momentumProg   = netCashflow > 0 ? Math.min((netCashflow/Math.max(monthlyIncome,1))*300, 100) : 0;
+  const currMonthStr   = today.toISOString().slice(0,7);
+  const actualPmts     = dtLogs.filter(l => l.date?.startsWith(currMonthStr)).reduce((s,l)=>s+(parseFloat(l.amount)||0),0);
+  const horizonProg    = monthlyDebtPmt > 0 ? Math.min((actualPmts/monthlyDebtPmt)*100, 100) : 0;
 
-  const netPosition  = totalSavBal + retTotal - currTotal;
-  const emergencyMo  = baseline?.amount && parseFloat(baseline.amount) > 0
+  const netPosition = totalSavBal + retTotal - currTotal;
+  const emergencyMo = baseline?.amount && parseFloat(baseline.amount) > 0
     ? (totalSavBal/parseFloat(baseline.amount)).toFixed(1) : null;
+
+  const insScoreNav = typeof legacyHealth === "number" ? legacyHealth :
+    (legacyHealth?.score || legacyHealth?.healthScore || 0);
 
   // Alerts
   const allAlerts = [];
@@ -820,8 +1495,8 @@ export default function App() {
         allAlerts.push({
           sev: funded ? "success" : "amber",
           title: funded ? `${g.name} ready to pay` : `${g.name} due in ${d} days`,
-          body: funded ? `$${fmt$(g.targetAmount)} funded ✓` : `$${fmt$(g.targetAmount-g.currentAmount)} short`,
-          href: URLS.savings
+          body:  funded ? `$${fmt$(g.targetAmount)} funded ✓` : `$${fmt$(g.targetAmount-g.currentAmount)} short`,
+          href:  URLS.savings
         });
       }
     }
@@ -837,20 +1512,34 @@ export default function App() {
   const sevOrd = { red:0, amber:1, info:2, success:3 };
   const alerts = allAlerts.sort((a,b) => sevOrd[a.sev]-sevOrd[b.sev]).slice(0,4);
 
-  // Nav
-  const activeProfile = profiles.find(p => p.id===activeProfileId) || profiles[0];
+  const activeProfile  = profiles.find(p => p.id===activeProfileId) || profiles[0];
   const { initials:avInit, color:avColor } = getAvatar(activeProfile);
   const apiDot = { valid:"#10b981", invalid:"#ef4444", unknown:"#f59e0b",
                    ok:"#10b981", error:"#ef4444" }[apiKeyStatus] || "#f59e0b";
+
   const navModules = [
-    { icon:"⚡",  label:"Debt",       color:"#ef4444", health:debtHealth,       amount:currTotal,  url:URLS.debt },
-    { icon:"💰",  label:"Income",     color:"#10b981", health:incomeHealth,     amount:monthlyIncome, url:URLS.income },
-    { icon:"📊",  label:"Spending",   color:"#f97316", health:spendingHealth,   amount:thisMonthSpend, url:URLS.spending },
-    { icon:"🏦",  label:"Savings",    color:"#6366f1", health:savingsHealth,    amount:totalSavBal, url:URLS.savings },
-    { icon:"📈",  label:"Retirement", color:"#8b5cf6", health:retirementHealth, amount:retTotal,   url:URLS.retirement },
-    { icon:"🛡️", label:"Insurance",  color:"#06b6d4", health:0,                amount:null,       url:null, soon:true },
-    { icon:"💹",  label:"Investments",color:"#3b82f6", health:investHealth,    amount:invVal>0?invVal:null, url:URLS.investment },
+    { icon:"⚡",  label:"Debt",        color:"#ef4444", health:debtHealth,       amount:currTotal,               url:URLS.debt },
+    { icon:"💰",  label:"Income",      color:"#10b981", health:incomeHealth,     amount:monthlyIncome,           url:URLS.income },
+    { icon:"📊",  label:"Spending",    color:"#f97316", health:spendingHealth,   amount:thisMonthSpend,          url:URLS.spending },
+    { icon:"🏦",  label:"Savings",     color:"#6366f1", health:savingsHealth,    amount:totalSavBal,             url:URLS.savings },
+    { icon:"📈",  label:"Retirement",  color:"#8b5cf6", health:retirementHealth, amount:retTotal,                url:URLS.retirement },
+    { icon:"💹",  label:"Investments", color:"#3b82f6", health:investHealth,     amount:invVal>0?invVal:null,    url:URLS.investment },
+    { icon:"🛡️", label:"Insurance",   color:"#06b6d4", health:insScoreNav,      amount:null,                   url:URLS.insurance },
   ];
+
+  // ── New user onboarding ────────────────────────────────────────────────────
+  if (isNewUser) {
+    return (
+      <NewProfileModal onComplete={handleCreateProfile} t={t}/>
+    );
+  }
+
+  // ── Add profile overlay ────────────────────────────────────────────────────
+  if (showAddProfile) {
+    return (
+      <NewProfileModal onComplete={handleCreateProfile} t={t}/>
+    );
+  }
 
   // ── Loading screen ─────────────────────────────────────────────────────────
   if (loading) {
@@ -863,13 +1552,45 @@ export default function App() {
     );
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Main render ────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight:"100vh", background:t.bg,
       fontFamily:"'DM Sans','Segoe UI',sans-serif", color:t.tx1 }}
       onClick={() => showProfilePanel && setShowProfilePanel(false)}>
 
-      {/* Top Nav Bar */}
+      {/* ── Modals ── */}
+      {showApiKeyModal && (
+        <ApiKeyModal
+          onClose={() => setShowApiKeyModal(false)}
+          onSave={handleSaveApiKey}
+          t={t}
+        />
+      )}
+      {showFirstVisit && (
+        <FirstVisitOverlay
+          onDone={() => {
+            setShowFirstVisit(false);
+            if (activeProfileId) localStorage.setItem(`dash_first_visit_${activeProfileId}`, "true");
+          }}
+          t={t}
+        />
+      )}
+      {showSettings && (
+        <SettingsPanel
+          advisorDepth={advisorDepth}
+          onDepthChange={handleDepthChange}
+          apiKey={apiKey}
+          onOpenApiKeyModal={() => { setShowSettings(false); setShowApiKeyModal(true); }}
+          profiles={profiles}
+          activeProfileId={activeProfileId}
+          onSwitchProfile={switchProfile}
+          onAddProfile={() => { setShowSettings(false); setShowAddProfile(true); }}
+          onClose={() => setShowSettings(false)}
+          t={t}
+        />
+      )}
+
+      {/* ── Top Nav ── */}
       <div style={{ background:t.deepBg, borderBottom:`1px solid ${t.border}`,
         padding:"10px 20px", display:"flex", justifyContent:"space-between", alignItems:"center",
         position:"sticky", top:0, zIndex:200 }}>
@@ -878,7 +1599,33 @@ export default function App() {
           <span style={{ fontWeight:800, fontSize:15 }}>Financial Freedom</span>
           <span style={{ fontSize:11, color:t.tx3 }}>· Dashboard</span>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          {activeProfileId && (
+            <button
+              onClick={() => {
+                setAdvisorOpen(o => !o);
+                if (isMobile) setMobileTab("advisor");
+              }}
+              style={{
+                background: advisorStale ? "#f59e0b18" : "#6366f118",
+                border: `1px solid ${advisorStale ? "#f59e0b44" : "#6366f144"}`,
+                borderRadius: 8, padding: "6px 12px",
+                color: advisorStale ? "#f59e0b" : "#6366f1",
+                cursor: "pointer", fontSize: 12, fontWeight: 700,
+                display: "flex", alignItems: "center", gap: 6
+              }}>
+              <span style={{ fontSize:14 }}>✦</span>
+              {advisorOpen ? "Close Advisor" : "AI Advisor"}
+              {advisorStale && (
+                <span style={{ width:6, height:6, borderRadius:"50%",
+                  background:"#f59e0b", flexShrink:0 }}/>
+              )}
+            </button>
+          )}
+          <button onClick={() => setShowSettings(true)}
+            style={{ background:"none", border:"none", cursor:"pointer",
+              fontSize:16, color:t.tx2, padding:"2px 6px" }}
+            title="Settings">⚙️</button>
           <button onClick={toggleDark}
             style={{ background:"none", border:"none", cursor:"pointer",
               fontSize:16, color:t.tx2, padding:"2px 6px" }}
@@ -928,8 +1675,35 @@ export default function App() {
         </div>
       </div>
 
-      {/* Body: sidebar + main */}
+      {/* ── API Key Banner ── */}
+      {showApiKeyBanner && !apiKey && (
+        <div style={{ background:"rgba(245,158,11,.07)", borderBottom:`1px solid rgba(245,158,11,.2)`,
+          padding:"10px 20px", display:"flex", alignItems:"center",
+          justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
+          <span style={{ fontSize:13, color:t.tx2 }}>
+            Add your Anthropic API key to enable AI features across all modules
+          </span>
+          <div style={{ display:"flex", gap:8 }}>
+            <button onClick={() => setShowApiKeyModal(true)}
+              style={{ background:COLOR.primary, border:"none", borderRadius:6,
+                padding:"5px 14px", color:"#fff", cursor:"pointer", fontSize:12, fontWeight:600 }}>
+              Add Key
+            </button>
+            <button onClick={() => {
+                setShowApiKeyBanner(false);
+                localStorage.setItem("dash_api_dismissed_date", new Date().toISOString());
+              }}
+              style={{ background:"none", border:`1px solid ${t.border}`, borderRadius:6,
+                padding:"5px 14px", color:t.tx2, cursor:"pointer", fontSize:12 }}>
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Body: sidebar + main + advisor drawer ── */}
       <div style={{ display:"flex" }}>
+
         {/* Sidebar */}
         {!isMobile && (
           <div
@@ -948,11 +1722,11 @@ export default function App() {
             <div style={{ flex:1, display:"flex", flexDirection:"column", gap:2, padding:"4px 8px" }}>
               {navModules.map(mod => (
                 <div key={mod.label}
-                  title={mod.soon ? `${mod.label} — Coming soon` : `Open ${mod.label}`}
+                  title={`Open ${mod.label}`}
                   onClick={() => mod.url && window.open(mod.url,"_blank")}
                   style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 6px",
                     borderRadius:8, cursor:mod.url?"pointer":"default",
-                    opacity:mod.soon?0.4:1, transition:"background .15s", whiteSpace:"nowrap" }}
+                    transition:"background .15s", whiteSpace:"nowrap" }}
                   onMouseEnter={e => { if(mod.url) e.currentTarget.style.background=t.surf; }}
                   onMouseLeave={e => { e.currentTarget.style.background="none"; }}>
                   <NavRing health={mod.health} color={mod.color} icon={mod.icon}/>
@@ -960,9 +1734,8 @@ export default function App() {
                     <>
                       <span style={{ fontSize:12, color:t.tx1, fontWeight:600, flex:1 }}>
                         {mod.label}
-                        {mod.soon && <span style={{ fontSize:9, color:t.tx3, marginLeft:4 }}>soon</span>}
                       </span>
-                      {mod.amount !== null && mod.amount !== undefined && !mod.soon && (
+                      {mod.amount !== null && mod.amount !== undefined && (
                         <span style={{ fontSize:11, color:mod.color, fontFamily:"monospace", fontWeight:700 }}>
                           ${fmt$(mod.amount)}
                         </span>
@@ -975,192 +1748,281 @@ export default function App() {
           </div>
         )}
 
-        {/* Main Content */}
-        <div style={{ flex:1, padding:isMobile?"12px":"20px", minWidth:0, overflowX:"hidden" }}>
-          {!activeProfileId ? (
-            <div style={{ textAlign:"center", padding:60, color:t.tx2 }}>
-              <div style={{ fontSize:32, marginBottom:12 }}>👋</div>
-              <div style={{ fontSize:16, fontWeight:700, marginBottom:8, color:t.tx1 }}>
-                Welcome to the Dashboard
-              </div>
-              <div style={{ fontSize:13 }}>Set up a profile in any module to get started.</div>
-            </div>
-          ) : (
-            <>
-              {/* Row 1: Freedom Rings + flanking stat tiles */}
-              <div style={{ display:"grid",
-                gridTemplateColumns: isMobile ? "1fr" : "1fr auto 1fr",
-                gap:16, marginBottom:16, alignItems:"start" }}>
+        {/* Main + Drawer wrapper */}
+        <div style={{ flex:1, display:"flex", minWidth:0 }}>
 
-                {/* Left tiles */}
-                {!isMobile && (
-                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {/* Main Content */}
+          <div style={{
+            flex: advisorOpen && !isMobile ? "0 0 60%" : "1 1 0",
+            padding: isMobile ? "12px" : "20px",
+            minWidth:0, overflowX:"hidden",
+            transition:"flex .25s ease",
+            boxSizing:"border-box"
+          }}>
+            {!activeProfileId ? (
+              <div style={{ textAlign:"center", padding:60, color:t.tx2 }}>
+                <div style={{ fontSize:32, marginBottom:12 }}>👋</div>
+                <div style={{ fontSize:16, fontWeight:700, marginBottom:8, color:t.tx1 }}>
+                  Welcome to the Dashboard
+                </div>
+                <div style={{ fontSize:13 }}>Set up a profile in any module to get started.</div>
+              </div>
+            ) : (
+              <>
+                {/* Row 1: Rings + flanking tiles */}
+                <div style={{ display:"grid",
+                  gridTemplateColumns: isMobile ? "1fr" : advisorOpen ? "1fr auto" : "1fr auto 1fr",
+                  gap:16, marginBottom:16, alignItems:"start" }}>
+
+                  {!isMobile && (
+                    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                      <StatTile label="Net Position"
+                        primary={`${netPosition>=0?"+":"-"}$${fmt$(Math.abs(netPosition))}`}
+                        secondary="savings + retirement − total debt"
+                        color={netPosition>=0?COLOR.success:COLOR.danger}
+                        onClick={() => window.open(URLS.debt,"_blank")}
+                        alt="Click to view Debt Tracker" t={t}/>
+                      <StatTile label="Monthly Income"
+                        primary={`$${fmt$(monthlyIncome)}/mo`}
+                        secondary={`${incStreams.length} active stream${incStreams.length!==1?"s":""}`}
+                        color={COLOR.success}
+                        onClick={() => window.open(URLS.income,"_blank")}
+                        alt="Click to view Income Tracker" t={t}/>
+                    </div>
+                  )}
+
+                  {/* Center: rings + baseline */}
+                  <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
+                    {freedomScore >= 100
+                      ? <WealthRings retirementHealth={retirementHealth} t={t}/>
+                      : <FreedomRings score={freedomScore} momentumProg={momentumProg} horizonProg={horizonProg} t={t}/>
+                    }
+                    <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
+                      borderRadius:12, padding:"12px 16px", width:"100%", boxSizing:"border-box" }}>
+                      <div style={{ fontSize:9, color:t.tx3, fontWeight:600,
+                        textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>
+                        Essential Monthly Expenses
+                      </div>
+                      {baseline ? (
+                        <div>
+                          <div style={{ fontSize:18, fontWeight:800, color:COLOR.warning, fontFamily:"monospace" }}>
+                            ${fmt$(baseline.amount)}
+                            <span style={{ fontSize:10, color:t.tx3, fontWeight:400 }}>/mo</span>
+                          </div>
+                          <div style={{ fontSize:11, color:t.tx2, marginTop:2 }}>
+                            income covers baseline ×{monthlyIncome > 0
+                              ? (monthlyIncome/parseFloat(baseline.amount)).toFixed(1) : "—"}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize:11, color:t.tx3 }}>
+                          — Run SpendingTracker to calculate
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {!isMobile && !advisorOpen && (
+                    <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                      <StatTile label="Total Debt"
+                        primary={`$${fmt$(currTotal)}`}
+                        secondary={origTotal > 0
+                          ? `${fmtPct((origTotal-currTotal)/origTotal*100)} paid off`
+                          : "No debt tracked"}
+                        color={currTotal < origTotal ? COLOR.success : COLOR.danger}
+                        onClick={() => window.open(URLS.debt,"_blank")}
+                        alt="Click to view Debt Tracker" t={t}/>
+                      <StatTile label="Savings Goals"
+                        primary={`${fundedGoals.length} of ${savGoals.length} funded`}
+                        secondary={emergencyMo ? `${emergencyMo}mo emergency coverage` : "No savings data"}
+                        color={COLOR.primary}
+                        onClick={() => window.open(URLS.savings,"_blank")}
+                        alt="Click to view Savings Module" t={t}/>
+                    </div>
+                  )}
+                </div>
+
+                {/* Mobile stat tiles */}
+                {isMobile && (
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
                     <StatTile label="Net Position"
                       primary={`${netPosition>=0?"+":"-"}$${fmt$(Math.abs(netPosition))}`}
-                      secondary="savings + retirement − total debt"
                       color={netPosition>=0?COLOR.success:COLOR.danger}
-                      onClick={() => window.open(URLS.debt,"_blank")}
-                      alt="Click to view Debt Tracker" t={t}/>
-                    <StatTile label="Monthly Income"
+                      onClick={() => window.open(URLS.debt,"_blank")} alt="" t={t}/>
+                    <StatTile label="Income"
                       primary={`$${fmt$(monthlyIncome)}/mo`}
-                      secondary={`${incStreams.length} active stream${incStreams.length!==1?"s":""}`}
                       color={COLOR.success}
-                      onClick={() => window.open(URLS.income,"_blank")}
-                      alt="Click to view Income Tracker" t={t}/>
-                  </div>
-                )}
-
-                {/* Center: rings + baseline */}
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
-                  {freedomScore >= 100
-                    ? <WealthRings retirementHealth={retirementHealth} t={t}/>
-                    : <FreedomRings score={freedomScore} momentumProg={momentumProg} horizonProg={horizonProg} t={t}/>
-                  }
-                  <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
-                    borderRadius:12, padding:"12px 16px", width:"100%", boxSizing:"border-box" }}>
-                    <div style={{ fontSize:9, color:t.tx3, fontWeight:600,
-                      textTransform:"uppercase", letterSpacing:0.8, marginBottom:4 }}>
-                      Essential Monthly Expenses
-                    </div>
-                    {baseline ? (
-                      <div>
-                        <div style={{ fontSize:18, fontWeight:800, color:COLOR.warning, fontFamily:"monospace" }}>
-                          ${fmt$(baseline.amount)}
-                          <span style={{ fontSize:10, color:t.tx3, fontWeight:400 }}>/mo</span>
-                        </div>
-                        <div style={{ fontSize:11, color:t.tx2, marginTop:2 }}>
-                          income covers baseline ×{monthlyIncome > 0
-                            ? (monthlyIncome/parseFloat(baseline.amount)).toFixed(1) : "—"}
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize:11, color:t.tx3 }}>
-                        — Run SpendingTracker to calculate
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right tiles */}
-                {!isMobile && (
-                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                      onClick={() => window.open(URLS.income,"_blank")} alt="" t={t}/>
                     <StatTile label="Total Debt"
                       primary={`$${fmt$(currTotal)}`}
-                      secondary={origTotal > 0
-                        ? `${fmtPct((origTotal-currTotal)/origTotal*100)} paid off`
-                        : "No debt tracked"}
-                      color={currTotal < origTotal ? COLOR.success : COLOR.danger}
-                      onClick={() => window.open(URLS.debt,"_blank")}
-                      alt="Click to view Debt Tracker" t={t}/>
-                    <StatTile label="Savings Goals"
-                      primary={`${fundedGoals.length} of ${savGoals.length} funded`}
-                      secondary={emergencyMo ? `${emergencyMo}mo emergency coverage` : "No savings data"}
+                      color={COLOR.danger}
+                      onClick={() => window.open(URLS.debt,"_blank")} alt="" t={t}/>
+                    <StatTile label="Savings"
+                      primary={`${fundedGoals.length}/${savGoals.length} goals`}
                       color={COLOR.primary}
-                      onClick={() => window.open(URLS.savings,"_blank")}
-                      alt="Click to view Savings Module" t={t}/>
+                      onClick={() => window.open(URLS.savings,"_blank")} alt="" t={t}/>
                   </div>
                 )}
-              </div>
 
-              {/* Mobile stat tiles */}
-              {isMobile && (
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
-                  <StatTile label="Net Position"
-                    primary={`${netPosition>=0?"+":"-"}$${fmt$(Math.abs(netPosition))}`}
-                    color={netPosition>=0?COLOR.success:COLOR.danger}
-                    onClick={() => window.open(URLS.debt,"_blank")} alt="" t={t}/>
-                  <StatTile label="Income"
-                    primary={`$${fmt$(monthlyIncome)}/mo`}
-                    color={COLOR.success}
-                    onClick={() => window.open(URLS.income,"_blank")} alt="" t={t}/>
-                  <StatTile label="Total Debt"
-                    primary={`$${fmt$(currTotal)}`}
-                    color={COLOR.danger}
-                    onClick={() => window.open(URLS.debt,"_blank")} alt="" t={t}/>
-                  <StatTile label="Savings"
-                    primary={`${fundedGoals.length}/${savGoals.length} goals`}
-                    color={COLOR.primary}
-                    onClick={() => window.open(URLS.savings,"_blank")} alt="" t={t}/>
-                </div>
-              )}
-
-              {/* Row 2: Alerts */}
-              {alerts.length > 0 && (
-                <div style={{ marginBottom:16 }}>
-                  <div style={{ fontSize:10, color:t.tx3, fontWeight:700,
-                    textTransform:"uppercase", letterSpacing:1, marginBottom:8 }}>Alerts</div>
-                  <div style={{ display:"grid",
-                    gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:10 }}>
-                    {alerts.map((a,i) => <AlertCard key={i} {...a} t={t}/>)}
+                {/* Mobile tabs */}
+                {isMobile && (
+                  <div style={{ display:"flex", gap:4, marginBottom:16 }}>
+                    {["overview","advisor"].map(tab => (
+                      <button key={tab} onClick={() => setMobileTab(tab)}
+                        style={{ flex:1, background:mobileTab===tab?COLOR.primary:t.surf,
+                          color:mobileTab===tab?"#fff":t.tx2,
+                          border:`1px solid ${mobileTab===tab?COLOR.primary:t.border}`,
+                          borderRadius:8, padding:"8px 0", fontSize:13, cursor:"pointer",
+                          fontWeight:mobileTab===tab?700:500, display:"flex",
+                          alignItems:"center", justifyContent:"center", gap:6 }}>
+                        {tab === "advisor" ? "✦ AI Advisor" : "Overview"}
+                        {tab === "advisor" && advisorStale && (
+                          <span style={{ width:6, height:6, borderRadius:"50%",
+                            background:"#f59e0b", flexShrink:0 }}/>
+                        )}
+                      </button>
+                    ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Row 3: Charts */}
-              <div style={{ fontSize:10, color:t.tx3, fontWeight:700,
-                textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Analytics</div>
-              <div style={{ display:"grid",
-                gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr 1fr" : "1fr 1fr 1fr",
-                gap:14 }}>
+                {/* Mobile: Advisor tab */}
+                {isMobile && mobileTab === "advisor" && (
+                  <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
+                    borderRadius:14, padding:16, minHeight:300 }}>
+                    <AdvisorPanel
+                      apiKey={apiKey}
+                      advisorDepth={advisorDepth}
+                      advisorResult={advisorResult}
+                      advisorRunning={advisorRunning}
+                      advisorStale={advisorStale}
+                      dtSummary={dtSummary}
+                      incSummary={incSummary}
+                      savSummary={savSummary}
+                      retSummary={retSummary}
+                      baseline={baseline}
+                      invVal={invVal}
+                      legacyHealth={legacyHealth}
+                      freedomScore={freedomScore}
+                      onRun={runAdvisor}
+                      onClose={null}
+                      onOpenSettings={() => setShowSettings(true)}
+                      t={t}
+                    />
+                  </div>
+                )}
 
-                {/* Chart 1: Over Budget */}
-                <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
-                  borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
-                  onClick={() => window.open(URLS.spending,"_blank")}
-                  title="Click to view SpendingTracker">
-                  <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>📊 Over Budget</div>
-                  <ChartOverBudget transactions={spTransactions} baseline={baseline} t={t}/>
-                </div>
+                {/* Overview content — desktop always, mobile when overview tab active */}
+                {(!isMobile || mobileTab === "overview") && (
+                  <>
+                    {alerts.length > 0 && (
+                      <div style={{ marginBottom:16 }}>
+                        <div style={{ fontSize:10, color:t.tx3, fontWeight:700,
+                          textTransform:"uppercase", letterSpacing:1, marginBottom:8 }}>Alerts</div>
+                        <div style={{ display:"grid",
+                          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:10 }}>
+                          {alerts.map((a,i) => <AlertCard key={i} {...a} t={t}/>)}
+                        </div>
+                      </div>
+                    )}
 
-                {/* Chart 2: Income Trend */}
-                <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
-                  borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
-                  onClick={() => window.open(URLS.income,"_blank")}
-                  title="Click to view IncomeTracker">
-                  <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>💰 Income Trend</div>
-                  <ChartIncomeTrend streams={incStreams} t={t}/>
-                </div>
+                    <div style={{ fontSize:10, color:t.tx3, fontWeight:700,
+                      textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Analytics</div>
+                    <div style={{ display:"grid",
+                      gridTemplateColumns: isMobile ? "1fr" : advisorOpen ? "1fr 1fr" : isTablet ? "1fr 1fr" : "1fr 1fr 1fr",
+                      gap:14 }}>
 
-                {/* Chart 3: DTI Gauge */}
-                <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
-                  borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
-                  onClick={() => window.open(URLS.debt,"_blank")}
-                  title="Click to view Debt Tracker">
-                  <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>⚖️ Debt-to-Income</div>
-                  <ChartDTI cards={dtCards} loans={dtLoans} monthlyIncome={monthlyIncome} t={t}/>
-                </div>
+                      <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
+                        borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
+                        onClick={() => window.open(URLS.spending,"_blank")}
+                        title="Click to view SpendingTracker">
+                        <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>📊 Over Budget</div>
+                        <ChartOverBudget transactions={spTransactions} baseline={baseline} t={t}/>
+                      </div>
 
-                {/* Chart 4: Savings Goals */}
-                <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
-                  borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
-                  onClick={() => window.open(URLS.savings,"_blank")}
-                  title="Click to view Savings Module">
-                  <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>🏦 Savings Goals</div>
-                  <ChartSavingsGoals goals={savGoals} t={t}/>
-                </div>
+                      <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
+                        borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
+                        onClick={() => window.open(URLS.income,"_blank")}
+                        title="Click to view IncomeTracker">
+                        <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>💰 Income Trend</div>
+                        <ChartIncomeTrend streams={incStreams} t={t}/>
+                      </div>
 
-                {/* Chart 5: Retirement Ring */}
-                <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
-                  borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
-                  onClick={() => window.open(URLS.retirement,"_blank")}
-                  title="Click to view Retirement Module">
-                  <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>📈 Retirement Progress</div>
-                  <ChartRetirementRing accounts={retAccounts} profile={retProfile} t={t}/>
-                </div>
+                      <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
+                        borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
+                        onClick={() => window.open(URLS.debt,"_blank")}
+                        title="Click to view Debt Tracker">
+                        <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>⚖️ Debt-to-Income</div>
+                        <ChartDTI cards={dtCards} loans={dtLoans} monthlyIncome={monthlyIncome} t={t}/>
+                      </div>
 
-                {/* Chart 6: Monthly P&L Waterfall */}
-                <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
-                  borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
-                  onClick={() => window.open(URLS.spending,"_blank")}
-                  title="Click to view SpendingTracker">
-                  <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>🌊 Monthly P&L</div>
-                  <ChartWaterfall
-                    transactions={spTransactions} incStreams={incStreams}
-                    cards={dtCards} loans={dtLoans} t={t}/>
-                </div>
-              </div>
-            </>
+                      <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
+                        borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
+                        onClick={() => window.open(URLS.savings,"_blank")}
+                        title="Click to view Savings Module">
+                        <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>🏦 Savings Goals</div>
+                        <ChartSavingsGoals goals={savGoals} t={t}/>
+                      </div>
+
+                      <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
+                        borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
+                        onClick={() => window.open(URLS.retirement,"_blank")}
+                        title="Click to view Retirement Module">
+                        <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>📈 Retirement Progress</div>
+                        <ChartRetirementRing accounts={retAccounts} profile={retProfile} t={t}/>
+                      </div>
+
+                      <div style={{ background:t.panelBg, border:`1px solid ${t.border}`,
+                        borderRadius:14, padding:"14px 16px", cursor:"pointer" }}
+                        onClick={() => window.open(URLS.spending,"_blank")}
+                        title="Click to view SpendingTracker">
+                        <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>🌊 Monthly P&L</div>
+                        <ChartWaterfall
+                          transactions={spTransactions} incStreams={incStreams}
+                          cards={dtCards} loans={dtLoans} t={t}/>
+                      </div>
+
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Desktop Advisor Drawer */}
+          {advisorOpen && !isMobile && (
+            <div style={{
+              flex: "0 0 40%",
+              background: "#0a0f1e",
+              borderLeft: "1px solid #1e293b",
+              padding: 16,
+              overflowY: "auto",
+              height: "calc(100vh - 54px)",
+              position: "sticky",
+              top: 54,
+              boxSizing: "border-box"
+            }}>
+              <AdvisorPanel
+                apiKey={apiKey}
+                advisorDepth={advisorDepth}
+                advisorResult={advisorResult}
+                advisorRunning={advisorRunning}
+                advisorStale={advisorStale}
+                dtSummary={dtSummary}
+                incSummary={incSummary}
+                savSummary={savSummary}
+                retSummary={retSummary}
+                baseline={baseline}
+                invVal={invVal}
+                legacyHealth={legacyHealth}
+                freedomScore={freedomScore}
+                onRun={runAdvisor}
+                onClose={() => setAdvisorOpen(false)}
+                onOpenSettings={() => { setAdvisorOpen(false); setShowSettings(true); }}
+                t={t}
+              />
+            </div>
           )}
+
         </div>
       </div>
     </div>

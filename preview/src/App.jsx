@@ -1,2 +1,2 @@
-import App from "../../modules/investment.jsx";
+import App from "../../modules/dashboard.jsx";
 export default App;
