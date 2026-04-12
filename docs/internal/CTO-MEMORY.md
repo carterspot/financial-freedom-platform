@@ -109,10 +109,14 @@ Build via Vite → output to `docs/{module}/` → push → auto-deploys in ~60s.
 - `ffp_categories_{profileId}` — master category list
 - `ffp_cat_rules_{profileId}` — auto-assignment rules
 
-### Cross-Module Shared Summary Keys (Dashboard reads these)
+### Cross-Module Shared Summary Keys (AI Advisor reads all of these)
 - `ffp_baseline_{profileId}` — written by SpendingTracker v1.8 — essential monthly expenses
 - `ffp_investments_{profileId}` — written by InvestmentModule — `{totalInvested, currentValue, unrealizedGain, positionCount, calculatedOn}`
 - `ins_legacy_health_{profileId}` — written by InsuranceTracker — Legacy ring % (0-100)
+- `dt_summary_{profileId}` — written by DebtTracker — `{totalBalance, totalMinPayments, highestApr, promoExpiringSoon, estimatedPayoffDate, monthlyChange, debtCount, calculatedOn}`
+- `inc_summary_{profileId}` — written by IncomeTracker — `{monthlyTotal, annualTotal, stablePct, streamCount, oneTimeTotal, monthlyChange, calculatedOn}`
+- `sav_summary_{profileId}` — written by SavingsModule — `{totalBalance, goalCount, fundedGoalCount, emergencyMonths, monthlyCommitment, dueSoon, calculatedOn}`
+- `ret_summary_{profileId}` — written by RetirementModule — `{currentBalance, targetNestEgg, fundedPct, onTrack, yearsToRetirement, monthlyContribution, lockedPlan, calculatedOn}`
 
 ### Module Filename Clarification
 ```

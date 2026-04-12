@@ -1129,6 +1129,12 @@ const hasCloudStorage = () => _cloudAvailable === true;
 - `dash_` — Dashboard
 - `ffp_` — Shared/cross-module (categories, rules)
 
+**AI Advisor summary keys (written by each module, read by AI Advisor):**
+- `dt_summary_{profileId}` — DebtTracker: `{totalBalance, totalMinPayments, highestApr, promoExpiringSoon, estimatedPayoffDate, monthlyChange, debtCount, calculatedOn}`
+- `inc_summary_{profileId}` — IncomeTracker: `{monthlyTotal, annualTotal, stablePct, streamCount, oneTimeTotal, monthlyChange, calculatedOn}`
+- `sav_summary_{profileId}` — SavingsModule: `{totalBalance, goalCount, fundedGoalCount, emergencyMonths, monthlyCommitment, dueSoon, calculatedOn}`
+- `ret_summary_{profileId}` — RetirementModule: `{currentBalance, targetNestEgg, fundedPct, onTrack, yearsToRetirement, monthlyContribution, lockedPlan, calculatedOn}`
+
 **Keys shared across ALL modules:**
 - `cc_profiles` — profile list
 - `cc_active_profile` — active profile id
