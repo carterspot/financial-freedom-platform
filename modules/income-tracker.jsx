@@ -1198,6 +1198,39 @@ function IncomeStreamModal({ open, onClose, initial, categories, onSave, t }) {
   );
 }
 
+// ─── AI Advisor Summary ───────────────────────────────────────────────────────
+async function writeIncSummary(streams, profileId) {
+  if (!streams?.length) return;
+
+  const FMULT = {
+    'Weekly': 4.333, 'Bi-Weekly': 2.167, 'Semi-Monthly': 2,
+    'Monthly': 1, 'Quarterly': 0.333, 'Annual': 0.0833, 'One-Time': 0
+  };
+
+  const active    = streams.filter(s => !s.endDate || new Date(s.endDate) > new Date());
+  const recurring = active.filter(s => s.frequency !== 'One-Time');
+  const oneTime   = active.filter(s => s.frequency === 'One-Time');
+
+  const monthlyTotal = recurring.reduce((s, st) =>
+    s + (parseFloat(st.amount || 0) * (FMULT[st.frequency] ?? 1)), 0
+  );
+  const stableMonthly = recurring
+    .filter(s => s.stabilityRating === 'Stable' || s.stabilityRating === 'Mostly Stable')
+    .reduce((s, st) => s + (parseFloat(st.amount || 0) * (FMULT[st.frequency] ?? 1)), 0);
+  const oneTimeTotal = oneTime.reduce((s, st) => s + parseFloat(st.amount || 0), 0);
+
+  const summary = {
+    monthlyTotal:  Math.round(monthlyTotal * 100) / 100,
+    annualTotal:   Math.round(monthlyTotal * 12 * 100) / 100,
+    stablePct:     monthlyTotal > 0 ? Math.round((stableMonthly / monthlyTotal) * 100) : 0,
+    streamCount:   active.length,
+    oneTimeTotal:  Math.round(oneTimeTotal * 100) / 100,
+    monthlyChange: 0,
+    calculatedOn:  new Date().toISOString()
+  };
+  await storeSet(`inc_summary_${profileId}`, summary, true);
+}
+
 // ─── App ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [loading, setLoading]     = useState(true);
@@ -1240,6 +1273,7 @@ export default function App() {
           storeGet(`ffp_categories_${id}`, true),
         ]);
         setStreams(ss || []);
+        await writeIncSummary(ss || [], id);
         if (!cats || cats.length === 0) {
           await storeSet(`ffp_categories_${id}`, DEFAULT_CATEGORIES, true);
           setCategories(DEFAULT_CATEGORIES);
@@ -1282,6 +1316,7 @@ export default function App() {
   async function saveStreams(next) {
     setStreams(next);
     await storeSet(`inc_streams_${activeProfileId}`, next, true);
+    await writeIncSummary(next, activeProfileId);
   }
 
   function handleSaveStream(stream) {
