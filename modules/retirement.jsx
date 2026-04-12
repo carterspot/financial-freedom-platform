@@ -1768,6 +1768,59 @@ function PlanTab({ yearlyData, projectedBalance, retProfile, setRetProfile,
   );
 }
 
+// --- writeRetSummary ----------------------------------------------------------
+async function writeRetSummary(accounts, profile, assumptions, profileId) {
+  if (!profile || !profileId) return;
+
+  const currentBalance = (accounts||[]).reduce((s,a) =>
+    s + parseFloat(a.currentBalance||0), 0
+  );
+
+  const planRates = { four_percent: 4, three_point_three: 3.3, five_percent: 5 };
+  const rate = planRates[profile.lockedPlan] || parseFloat(profile.customPlanRate||4);
+  const monthlySSIncome = calcMonthlySSIncome(accounts||[]);
+  const targetNestEgg = profile.targetMonthlyIncome
+    ? calcRequiredNestEgg(profile.targetMonthlyIncome, monthlySSIncome, rate)
+    : 0;
+
+  const fundedPct = targetNestEgg > 0
+    ? Math.min(Math.round((currentBalance/targetNestEgg)*100), 100)
+    : 0;
+
+  const yearsToRetirement = Math.max(
+    (parseInt(profile.retirementAge||65) - parseInt(profile.currentAge||35)), 0
+  );
+
+  // Use projectBalance (same function as the projection chart) to derive onTrack
+  const assm = assumptions || { returnRate:7, inflationRate:3, salaryGrowthRate:3 };
+  const yearlyData = (accounts||[]).length > 0 && profile.currentAge
+    ? projectBalance(accounts, profile, assm)
+    : [];
+  const projectedBalance = yearlyData.length > 0 ? yearlyData[yearlyData.length-1].balance : 0;
+  const onTrack = targetNestEgg > 0 ? projectedBalance >= targetNestEgg : false;
+
+  const monthlyContribution = (accounts||[]).reduce((s,a) => {
+    if (a.type === 'socialsecurity' || a.type === 'pension') return s;
+    if (a.contribType === 'percent' && profile.annualSalary) {
+      return s + (parseFloat(profile.annualSalary||0) * parseFloat(a.contribRate||0) / 100 / 12);
+    }
+    return s + parseFloat(a.contribRate||0);
+  }, 0);
+
+  const summary = {
+    currentBalance:      Math.round(currentBalance),
+    targetNestEgg:       Math.round(targetNestEgg),
+    fundedPct,
+    onTrack,
+    yearsToRetirement,
+    monthlyContribution: Math.round(monthlyContribution * 100) / 100,
+    lockedPlan:          profile.lockedPlan || 'four_percent',
+    calculatedOn:        new Date().toISOString()
+  };
+  await storeSet(`ret_summary_${profileId}`, summary, true);
+  console.log('summary written:', await storeGet(`ret_summary_${profileId}`, true));
+}
+
 // --- RetirementModule (export default) ----------------------------------------
 export default function RetirementModule() {
   const [loading,         setLoading]         = useState(true);
@@ -1856,6 +1909,12 @@ export default function RetirementModule() {
         if (assm) setAssumptions(a=>({...a,...assm}));
         if (ai)   setAiResults(ai);
         setBaseline(bl||null);
+        await writeRetSummary(
+          accs||[],
+          { currentAge:"", retirementAge:"65", annualSalary:"", targetMonthlyIncome:"", lockedPlan:null, ...(rp||{}) },
+          { returnRate:7, inflationRate:3, salaryGrowthRate:3, ...(assm||{}) },
+          aid
+        );
       }
       setLoading(false);
     }
@@ -1868,12 +1927,19 @@ export default function RetirementModule() {
 
   useEffect(()=>{
     if (!activeProfileId||loading) return;
-    storeSet(`ret_profile_${activeProfileId}`, retProfile, true);
+    (async()=>{
+      await storeSet(`ret_profile_${activeProfileId}`, retProfile, true);
+      await writeRetSummary(accounts, retProfile, assumptions, activeProfileId);
+    })();
   },[retProfile,activeProfileId,loading]);
 
   useEffect(()=>{
     if (!activeProfileId||loading) return;
-    storeSet(`ret_assumptions_${activeProfileId}`, assumptions, true);
+    const timer = setTimeout(async()=>{
+      await storeSet(`ret_assumptions_${activeProfileId}`, assumptions, true);
+      await writeRetSummary(accounts, retProfile, assumptions, activeProfileId);
+    }, 500);
+    return ()=>clearTimeout(timer);
   },[assumptions,activeProfileId,loading]);
 
   async function switchProfile(id) {
@@ -1919,6 +1985,7 @@ export default function RetirementModule() {
   async function saveAccounts(next) {
     setAccounts(next);
     await storeSet(`ret_accounts_${activeProfileId}`,next,true);
+    await writeRetSummary(next, retProfile, assumptions, activeProfileId);
   }
 
   async function saveApiKey(key) {
@@ -1950,6 +2017,7 @@ export default function RetirementModule() {
     const next = { ...retProfile, lockedPlan:planId };
     setRetProfile(next);
     await storeSet(`ret_profile_${activeProfileId}`,next,true);
+    await writeRetSummary(accounts, next, assumptions, activeProfileId);
   }
 
   async function handleSaveAiResults(text) {
