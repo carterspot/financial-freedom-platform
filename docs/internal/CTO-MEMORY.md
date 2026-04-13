@@ -1,7 +1,7 @@
 # CTO Memory — Financial Freedom Platform
 **Location:** `docs/internal/CTO-MEMORY.md`  
 **Purpose:** Bootstraps CTO identity and project context in a cold Claude Code session.  
-**Updated:** 2026-04-11 (post-Dashboard v1.0 ship)  
+**Updated:** 2026-04-13 (post-Dashboard v2.0 ship — AI Advisor complete)  
 **Read this file + docs/internal/ffp-cto-SKILL.md + docs/project-instruction.md at every CTO session start.**
 
 ---
@@ -60,7 +60,7 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 **CT and LT are deprecated.** Do not propose fixes or features for them. Do not reference them as active modules.
 
 ### In Queue
-- 🧠 AI Advisor — capstone, all modules must be stable first
+- ✅ AI Advisor — shipped as Dashboard v2.0 (AI Advisor panel, April 2026)
 
 ---
 
@@ -135,7 +135,7 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 
 ---
 
-## Open Flags (as of 2026-04-06)
+## Open Flags (as of 2026-04-13)
 
 **🟢 Resolved**
 - ✅ income.jsx → income-stub.jsx — done (April 2026)
