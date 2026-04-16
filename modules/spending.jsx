@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// SpendingTracker v1.8
+// SpendingTracker v1.9
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MODULE_PREFIX = "sp_";
 const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
@@ -18,6 +18,7 @@ const COLOR = {
   teal:     "#06b6d4",
 };
 const ACCOUNT_TYPES = ["Checking","Savings","Credit Card","Cash","Other"];
+const SCAN_CATEGORIES = ["Groceries","Dining Out","Gas","Shopping","Electronics","Household","Health & Medical","Personal Care","Entertainment","Clothing","Baby & Kids","Pet Care","Subscriptions","Other"];
 
 // ─── Default Categories ───────────────────────────────────────────────────────
 const DEFAULT_CATEGORIES = [
@@ -403,6 +404,67 @@ async function probeApiKey(key) {
     });
     return res.status === 200 ? "valid" : res.status === 401 ? "invalid" : "limited";
   } catch { return "unknown"; }
+}
+
+// ─── Receipt Scan Helpers ─────────────────────────────────────────────────────
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      resolve({ base64, mediaType: file.type || 'image/jpeg' });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function extractReceiptsFromImage(apiKey, base64, mediaType) {
+  const body = {
+    model: MODEL,
+    max_tokens: 2000,
+    messages: [{
+      role: "user",
+      content: [
+        { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+        { type: "text", text: `Extract all receipts visible in this image. For each receipt found return:
+- merchant: store or restaurant name (string)
+- date: purchase date in YYYY-MM-DD format (string; use today's date if unclear)
+- total: final charged total as a number (include tax, exclude tip if tip is handwritten separately)
+- items: array of line items, each with:
+  - description: item name (string)
+  - amount: item price as a number
+  - suggestedCategory: best match from this list only — Groceries, Dining Out, Gas, Shopping, Electronics, Household, Health & Medical, Personal Care, Entertainment, Clothing, Baby & Kids, Pet Care, Subscriptions, Other
+
+Return ONLY a JSON object in this exact shape: {"receipts": [...]}
+If no receipt is found, return: {"receipts": []}
+No explanation. No markdown. JSON only.` }
+      ]
+    }]
+  };
+  const res = await callClaude(apiKey, body);
+  const data = await res.json();
+  const raw = data.content?.[0]?.text || '{"receipts":[]}';
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed.receipts) ? parsed.receipts : [];
+  } catch { return []; }
+}
+
+function findDuplicate(receipt, transactions) {
+  const receiptDate = new Date(receipt.date);
+  const receiptAmount = Math.abs(parseFloat(receipt.total));
+  return transactions.find(tx => {
+    const txDate = new Date(tx.date);
+    const txAmount = Math.abs(parseFloat(tx.amount));
+    const daysDiff = Math.abs((receiptDate - txDate) / (1000 * 60 * 60 * 24));
+    const amountMatch = Math.abs(txAmount - receiptAmount) < 0.02;
+    const dateMatch = daysDiff <= 3;
+    const merchantWords = receipt.merchant?.toLowerCase().split(' ') || [];
+    const descWords = tx.description?.toLowerCase() || '';
+    const nameMatch = merchantWords.length > 0 && merchantWords.some(w => w.length > 3 && descWords.includes(w));
+    return amountMatch && dateMatch && nameMatch;
+  }) || null;
 }
 
 // ─── ProfileDropdown ──────────────────────────────────────────────────────────
@@ -910,7 +972,7 @@ function TransactionModal({ t, transaction, accounts, categories, rules, onSave,
     const amt = parseAmount(amount);
     if (!date || !description.trim() || amt === null) return;
     const isSinkingFundCandidate = ["quarterly","biannual","annual","one-time"].includes(recurrenceType);
-    onSave({ ...(transaction||{}), id:transaction?.id||generateId(), date, description:description.trim(), amount:amt, accountId, categoryId, notes, recurrenceType: recurrenceType||null, recurrencePattern: (recurrenceType && recurrenceType !== "monthly") ? recurrencePattern.trim() : null, isSinkingFundCandidate, categoryLocked:true, needsReview:false, importedAt:transaction?.importedAt||new Date().toISOString() });
+    onSave({ ...(transaction||{}), id:transaction?.id||generateId(), date, description:description.trim(), amount:amt, accountId, categoryId, notes, recurrenceType: recurrenceType||null, recurrencePattern: (recurrenceType && recurrenceType !== "monthly") ? recurrencePattern.trim() : null, isSinkingFundCandidate, categoryLocked:true, needsReview:false, importedAt:transaction?.importedAt||new Date().toISOString(), entryMethod: transaction?.entryMethod || "manual" });
   }
   function handleSaveRuleLocal(rule) { onSaveRule && onSaveRule(rule); setShowRuleForm(false); }
   function handleSaveNewCategory(newCat) { onSaveCategory && onSaveCategory(newCat); setCategoryId(newCat.id); setShowNewCat(false); }
@@ -1516,6 +1578,7 @@ function ImportWizard({ t, accounts, categories, rules, transactions, apiKey, on
         theirCategory: theirCat||null, notes: "", isSinkingFundCandidate: false,
         recurrencePattern: null, recurrenceType: null,
         importedAt: new Date().toISOString(),
+        entryMethod: "csv_import",
       };
 
       if (conflictMatch) {
@@ -1719,6 +1782,7 @@ function TransactionRow({ t, transaction, account, category, selectMode, selecte
 
 // ─── TransactionsTab ──────────────────────────────────────────────────────────
 function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey, presetCatId, range, onRangeChange, onUpdateTransactions, onUpdateAccounts, onUpdateRules, onUpdateCategories }) {
+  const bp = useBreakpoint();
   const [search,          setSearch]          = useState("");
   const [filterAccId,     setFilterAccId]     = useState("all");
   const [filterCatIds,    setFilterCatIds]    = useState(() => presetCatId ? [presetCatId] : []);
@@ -1731,6 +1795,8 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
   const [selectedIds,     setSelectedIds]     = useState(new Set());
   const [confirmBatch,    setConfirmBatch]    = useState(false);
   const [sinkingFilter,   setSinkingFilter]   = useState(false);
+  const [scanModalOpen,   setScanModalOpen]   = useState(false);
+  const [dupCheckState,   setDupCheckState]   = useState(null);
 
   useEffect(() => { if (presetCatId) setFilterCatIds([presetCatId]); }, [presetCatId]);
 
@@ -1853,6 +1919,81 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
     setShowImport(false);
   }
 
+  function buildScannedTx(receipt, options = {}) {
+    return {
+      id: generateId(),
+      accountId: null,
+      date: receipt.date,
+      description: receipt.merchant,
+      amount: -(Math.abs(parseFloat(receipt.total) || 0)),
+      categoryId: receipt.categoryId || null,
+      categoryLocked: !!receipt.categoryId,
+      ruleId: null,
+      theirCategory: null,
+      notes: '',
+      isSinkingFundCandidate: false,
+      recurrencePattern: '',
+      recurrenceType: null,
+      importedAt: new Date().toISOString(),
+      entryMethod: 'scan',
+      reconciled: options.reconciled || false,
+      reconciledWith: options.reconciledWith || null,
+    };
+  }
+
+  function saveScannedTxToList(receipt, currentTxns, options = {}) {
+    const newTx = buildScannedTx(receipt, options);
+    const updated = [...currentTxns, newTx];
+    onUpdateTransactions(updated);
+    return updated;
+  }
+
+  function processNextReceipt(queue, currentTxns) {
+    if (queue.length === 0) return;
+    const [receipt, ...rest] = queue;
+    const match = findDuplicate(receipt, currentTxns);
+    if (match) {
+      setDupCheckState({ receipt, match, queue: rest, currentTxns });
+    } else {
+      const updated = saveScannedTxToList(receipt, currentTxns);
+      processNextReceipt(rest, updated);
+    }
+  }
+
+  function handleScanConfirm(confirmedReceipts) {
+    setScanModalOpen(false);
+    processNextReceipt(confirmedReceipts, [...transactions]);
+  }
+
+  function handleDupSkip() {
+    const { match, queue, currentTxns } = dupCheckState;
+    const base = currentTxns || transactions;
+    const updated = base.map(tx =>
+      tx.id === match.id ? { ...tx, reconciled: true, reconciledWith: 'scan' } : tx
+    );
+    onUpdateTransactions(updated);
+    setDupCheckState(null);
+    processNextReceipt(queue, updated);
+  }
+
+  function handleDupReplace() {
+    const { receipt, match, queue, currentTxns } = dupCheckState;
+    const base = currentTxns || transactions;
+    const filtered = base.filter(tx => tx.id !== match.id);
+    setDupCheckState(null);
+    const newTx = buildScannedTx(receipt, { reconciled: true, reconciledWith: match.id });
+    const updated = [...filtered, newTx];
+    onUpdateTransactions(updated);
+    processNextReceipt(queue, updated);
+  }
+
+  function handleDupKeepBoth() {
+    const { receipt, queue, currentTxns } = dupCheckState;
+    setDupCheckState(null);
+    const updated = saveScannedTxToList(receipt, currentTxns || transactions);
+    processNextReceipt(queue, updated);
+  }
+
   const dcBtnStyle = (active) => ({
     background: active ? COLOR.primary : t.surf,
     color: active ? "#fff" : t.tx2,
@@ -1869,6 +2010,10 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
         <div style={{ display:"flex",gap:8,alignItems:"center" }}>
           <button onClick={toggleSelectMode} title={selectMode ? "Exit select mode" : "Select mode"}
             style={{ background:selectMode?COLOR.primary:t.surf,border:`1px solid ${selectMode?COLOR.primary:t.border}`,borderRadius:8,padding:"7px 10px",color:selectMode?"#fff":t.tx1,cursor:"pointer",fontSize:14 }}>☑</button>
+          <button onClick={() => setScanModalOpen(true)} title="Scan Receipt"
+            style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"7px 10px",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13,whiteSpace:"nowrap" }}>
+            {bp.isMobile ? "📷" : "📷 Scan Receipt"}
+          </button>
           <button onClick={() => setShowImport(true)} style={{ background:COLOR.primary,border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13 }}>+ Import CSV</button>
           <button onClick={() => setEditTx({})} style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:"7px 14px",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>+ Add</button>
         </div>
@@ -1965,6 +2110,28 @@ function TransactionsTab({ t, transactions, accounts, categories, rules, apiKey,
       )}
       {confirmId && <ConfirmModal t={t} message="Delete this transaction?" onConfirm={() => doDelete(confirmId)} onCancel={() => setConfirmId(null)} />}
       {confirmBatch && <ConfirmModal t={t} message={`Delete ${selectedIds.size} selected transaction${selectedIds.size>1?"s":""}? This cannot be undone.`} onConfirm={handleBatchDelete} onCancel={() => setConfirmBatch(false)} />}
+      {scanModalOpen && (
+        <ReceiptScanModal
+          open={scanModalOpen}
+          onClose={() => setScanModalOpen(false)}
+          onConfirm={handleScanConfirm}
+          apiKey={apiKey}
+          categories={categories}
+          t={t}
+          isMobile={bp.isMobile}
+        />
+      )}
+      {dupCheckState && (
+        <DuplicateCheckModal
+          open={!!dupCheckState}
+          receipt={dupCheckState?.receipt}
+          match={dupCheckState?.match}
+          onSkip={handleDupSkip}
+          onReplace={handleDupReplace}
+          onKeepBoth={handleDupKeepBoth}
+          t={t}
+        />
+      )}
     </div>
   );
 }
@@ -2654,6 +2821,280 @@ function TrendsTab({ t, transactions, categories, range, onNavigateToTxMonth }) 
         {monthData.every(d => d.totalExpense === 0) && (
           <div style={{ textAlign:"center",color:t.tx2,fontSize:13,padding:"16px 0" }}>No spending data in this range.</div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── ReceiptCard ──────────────────────────────────────────────────────────────
+function ReceiptCard({ t, draft, inp, onUpdate, onUpdateItem, onDiscard }) {
+  const { merchant, date, total, items, selectedCategory, itemsExpanded } = draft;
+  return (
+    <div style={{ border:`1px solid ${t.border}`,borderRadius:14,marginBottom:14,overflow:"hidden",borderTop:`3px solid #6366f1` }}>
+      <div style={{ padding:"12px 14px",background:t.surf }}>
+        <div style={{ display:"flex",gap:8,marginBottom:8 }}>
+          <input value={merchant} onChange={e => onUpdate({ merchant: e.target.value })}
+            placeholder="Merchant" style={{ ...inp, flex:2 }} />
+          <input type="date" value={date} onChange={e => onUpdate({ date: e.target.value })}
+            style={{ ...inp, flex:1 }} />
+        </div>
+        <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+          <label style={{ fontSize:11,color:t.tx2,fontWeight:600,whiteSpace:"nowrap" }}>TOTAL $</label>
+          <input type="number" value={total} onChange={e => onUpdate({ total: e.target.value })}
+            placeholder="0.00" style={{ ...inp, width:100 }} />
+          <div style={{ flex:1 }} />
+          <button onClick={onDiscard}
+            style={{ background:"transparent",border:`1px solid ${COLOR.danger}44`,borderRadius:7,padding:"4px 10px",color:COLOR.danger,cursor:"pointer",fontSize:12 }}>
+            Discard
+          </button>
+        </div>
+      </div>
+      {items && items.length > 0 ? (
+        <div style={{ padding:"0 14px" }}>
+          <button onClick={() => onUpdate({ itemsExpanded: !itemsExpanded })}
+            style={{ width:"100%",background:"transparent",border:"none",padding:"10px 0",color:t.tx2,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6,textAlign:"left" }}>
+            <span>{itemsExpanded ? "▲" : "▼"}</span>
+            <span>{items.length} line item{items.length > 1 ? "s" : ""}</span>
+          </button>
+          {itemsExpanded && (
+            <div style={{ paddingBottom:12 }}>
+              {items.map((item, ii) => {
+                const lowConf = !item.amount || !item.description;
+                return (
+                  <div key={ii} style={{ display:"grid",gridTemplateColumns:"1fr 70px 140px",gap:6,alignItems:"center",padding:"6px 0",
+                    borderBottom:`1px solid ${t.border}`,
+                    borderLeft: lowConf ? `3px solid ${COLOR.warning}` : "none",
+                    paddingLeft: lowConf ? 8 : 0 }}>
+                    <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                      <span style={{ fontSize:12,color:t.tx1 }}>{item.description || "—"}</span>
+                      {lowConf && <span style={{ fontSize:9,fontWeight:700,color:COLOR.warning,background:COLOR.warning+"22",borderRadius:4,padding:"1px 5px",flexShrink:0 }}>Review</span>}
+                    </div>
+                    <span style={{ fontSize:12,fontFamily:"monospace",color:t.tx2,textAlign:"right" }}>{item.amount ? fmt$(item.amount) : "—"}</span>
+                    <select value={item.selectedCategory || "Other"} onChange={e => onUpdateItem(ii, { selectedCategory: e.target.value })}
+                      style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:6,padding:"4px 6px",color:t.tx1,fontSize:11,boxSizing:"border-box",width:"100%" }}>
+                      {SCAN_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ padding:"10px 14px",display:"flex",alignItems:"center",gap:10 }}>
+          <label style={{ fontSize:12,color:t.tx2,fontWeight:600,whiteSpace:"nowrap" }}>CATEGORY</label>
+          <select value={selectedCategory || "Other"} onChange={e => onUpdate({ selectedCategory: e.target.value })}
+            style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:7,padding:"6px 10px",color:t.tx1,fontSize:13,flex:1,boxSizing:"border-box" }}>
+            {SCAN_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ReceiptScanModal ─────────────────────────────────────────────────────────
+function ReceiptScanModal({ open, onClose, onConfirm, apiKey, categories, t, isMobile }) {
+  const fileInputRef = useRef(null);
+  const [phase, setPhase] = useState("idle"); // "idle" | "loading" | "review" | "error" | "nokey"
+  const [drafts, setDrafts] = useState([]);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  useEffect(() => {
+    if (open) {
+      if (!apiKey) { setPhase("nokey"); return; }
+      setPhase("idle");
+      setDrafts([]);
+      setErrorMsg(null);
+      setTimeout(() => { if (fileInputRef.current) fileInputRef.current.click(); }, 120);
+    } else {
+      setPhase("idle");
+      setDrafts([]);
+      setErrorMsg(null);
+    }
+  }, [open]);
+
+  async function handleFiles(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setPhase("loading");
+    try {
+      const results = await Promise.all(files.map(async file => {
+        const { base64, mediaType } = await readFileAsBase64(file);
+        return extractReceiptsFromImage(apiKey, base64, mediaType);
+      }));
+      const allReceipts = results.flat();
+      if (allReceipts.length === 0) {
+        setErrorMsg("No receipts found in this image. Try a clearer photo.");
+        setPhase("error");
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      setDrafts(allReceipts.map(r => ({
+        _id: generateId(),
+        merchant: r.merchant || "",
+        date: r.date || today,
+        total: r.total != null ? String(r.total) : "",
+        items: (r.items || []).map(item => ({ ...item, selectedCategory: item.suggestedCategory || "Other" })),
+        selectedCategory: (!r.items || r.items.length === 0) ? "Other" : null,
+        itemsExpanded: false,
+      })));
+      setPhase("review");
+    } catch(err) {
+      setErrorMsg(aiErrorMsg(err));
+      setPhase("error");
+    }
+  }
+
+  function updateDraft(idx, patch) {
+    setDrafts(prev => prev.map((d, i) => i === idx ? { ...d, ...patch } : d));
+  }
+
+  function updateItem(draftIdx, itemIdx, patch) {
+    setDrafts(prev => prev.map((d, di) => {
+      if (di !== draftIdx) return d;
+      const items = d.items.map((item, ii) => ii === itemIdx ? { ...item, ...patch } : item);
+      return { ...d, items };
+    }));
+  }
+
+  function discard(idx) {
+    setDrafts(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function resolveCategory(name) {
+    if (!name) return null;
+    if (name.toLowerCase() === "other") return "exp_057";
+    const lc = name.toLowerCase();
+    return (
+      categories.find(c => c.name.toLowerCase() === lc)?.id ||
+      categories.find(c => c.name.toLowerCase().includes(lc))?.id ||
+      categories.find(c => lc.includes(c.name.toLowerCase().split(" / ")[0].trim().toLowerCase()))?.id ||
+      null
+    );
+  }
+
+  function handleConfirm() {
+    const confirmed = drafts.map(d => {
+      let categoryId;
+      if (d.items && d.items.length > 0) {
+        categoryId = resolveCategory(d.items[0]?.selectedCategory);
+      } else {
+        categoryId = resolveCategory(d.selectedCategory);
+      }
+      return { merchant: d.merchant, date: d.date, total: parseFloat(d.total) || 0, categoryId, items: d.items };
+    });
+    onConfirm(confirmed);
+  }
+
+  if (!open) return null;
+
+  const inp = { background:t.surf,border:`1px solid ${t.border}`,borderRadius:7,padding:"6px 10px",color:t.tx1,fontSize:13,boxSizing:"border-box" };
+
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.82)",zIndex:3000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:16,overflowY:"auto" }}>
+      <div style={{ background:t.panelBg,borderRadius:20,width:"100%",maxWidth:560,padding:24,boxShadow:"0 20px 60px rgba(0,0,0,.5)",marginTop:20,marginBottom:20 }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
+          <div style={{ fontWeight:800,fontSize:17,color:t.tx1 }}>📷 Scan Receipt</div>
+          <button onClick={onClose} style={{ background:"transparent",border:"none",color:t.tx3,cursor:"pointer",fontSize:20,lineHeight:1,padding:"0 4px" }}>×</button>
+        </div>
+
+        <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display:"none" }} onChange={handleFiles} />
+
+        {phase === "nokey" && (
+          <div style={{ padding:"24px 0",textAlign:"center",color:t.tx2,fontSize:13 }}>
+            Add your API key first (🔑 in the toolbar)
+          </div>
+        )}
+
+        {phase === "idle" && (
+          <div style={{ padding:"24px 0",textAlign:"center",color:t.tx2,fontSize:13 }}>
+            Opening file picker…
+          </div>
+        )}
+
+        {phase === "loading" && (
+          <div style={{ textAlign:"center",padding:"36px 0" }}>
+            <div style={{ width:36,height:36,border:"3px solid #6366f1",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 12px" }} />
+            <div style={{ fontSize:14,color:t.tx2 }}>Scanning receipts…</div>
+          </div>
+        )}
+
+        {phase === "error" && (
+          <div style={{ padding:"16px 0" }}>
+            <div style={{ background:COLOR.warning+"18",border:`1px solid ${COLOR.warning}44`,borderRadius:10,padding:"12px 16px",fontSize:13,color:COLOR.warning,marginBottom:16 }}>
+              {errorMsg}
+            </div>
+            <button onClick={() => { setPhase("idle"); setTimeout(() => { if (fileInputRef.current) { fileInputRef.current.value = ""; fileInputRef.current.click(); } }, 120); }}
+              style={{ background:COLOR.primary,border:"none",borderRadius:10,padding:"9px 20px",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13 }}>
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {phase === "review" && (
+          <div>
+            {drafts.length === 0 && (
+              <div style={{ textAlign:"center",color:t.tx2,fontSize:13,padding:"16px 0" }}>All receipts discarded.</div>
+            )}
+            {drafts.map((draft, di) => (
+              <ReceiptCard key={draft._id} t={t} draft={draft} inp={inp}
+                onUpdate={patch => updateDraft(di, patch)}
+                onUpdateItem={(ii, patch) => updateItem(di, ii, patch)}
+                onDiscard={() => discard(di)} />
+            ))}
+            {drafts.length > 0 && (
+              <button onClick={handleConfirm}
+                style={{ width:"100%",background:COLOR.success,border:"none",borderRadius:10,padding:"11px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:14,marginTop:8 }}>
+                ✓ Confirm All ({drafts.length})
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── DuplicateCheckModal ──────────────────────────────────────────────────────
+function DuplicateCheckModal({ open, receipt, match, onSkip, onReplace, onKeepBoth, t }) {
+  if (!open || !receipt || !match) return null;
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.82)",zIndex:3500,display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
+      <div style={{ background:t.panelBg,borderRadius:20,width:"100%",maxWidth:480,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.5)" }}>
+        <div style={{ background:COLOR.warning,padding:"14px 20px" }}>
+          <div style={{ fontWeight:800,fontSize:15,color:"#fff" }}>Possible Duplicate Found</div>
+        </div>
+        <div style={{ padding:24 }}>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20 }}>
+            <div style={{ background:t.surf,borderRadius:12,padding:14 }}>
+              <div style={{ fontSize:10,color:t.tx3,fontWeight:700,marginBottom:8,letterSpacing:0.5 }}>EXISTING TRANSACTION</div>
+              <div style={{ fontSize:13,color:t.tx1,fontWeight:600,marginBottom:4 }}>{match.description}</div>
+              <div style={{ fontSize:12,color:t.tx2 }}>{match.date}</div>
+              <div style={{ fontFamily:"monospace",fontSize:14,fontWeight:800,color:COLOR.danger,marginTop:6 }}>{fmt$(Math.abs(match.amount))}</div>
+            </div>
+            <div style={{ background:t.surf,borderRadius:12,padding:14 }}>
+              <div style={{ fontSize:10,color:t.tx3,fontWeight:700,marginBottom:8,letterSpacing:0.5 }}>SCANNED RECEIPT</div>
+              <div style={{ fontSize:13,color:t.tx1,fontWeight:600,marginBottom:4 }}>{receipt.merchant}</div>
+              <div style={{ fontSize:12,color:t.tx2 }}>{receipt.date}</div>
+              <div style={{ fontFamily:"monospace",fontSize:14,fontWeight:800,color:COLOR.danger,marginTop:6 }}>{fmt$(Math.abs(receipt.total))}</div>
+            </div>
+          </div>
+          <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+            <button onClick={onSkip}
+              style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"10px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>
+              Skip (don't save) — mark existing as reconciled
+            </button>
+            <button onClick={onReplace}
+              style={{ background:COLOR.warning,border:"none",borderRadius:10,padding:"10px 0",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:13 }}>
+              Replace existing with scanned receipt
+            </button>
+            <button onClick={onKeepBoth}
+              style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:10,padding:"10px 0",color:t.tx1,cursor:"pointer",fontWeight:600,fontSize:13 }}>
+              Keep Both
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
