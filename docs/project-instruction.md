@@ -15,7 +15,7 @@ Financial Freedom Platform
 ├── 🏦 LoanTracker       (BUILT — v1.2 complete)
 ├── ⚡ DebtTracker       (BUILT — v1.5 complete)
 ├── 💰 IncomeTracker     (BUILT — v1.2 complete)
-├── 📊 SpendingTracker   (BUILT — v1.8 complete)
+├── 📊 SpendingTracker   (BUILT — v1.9 complete)
 ├── 🏦 SavingsModule     (BUILT — v1.2 complete)
 ├── 📈 RetirementModule  (BUILT — v1.1 complete)
 ├── 💹 Investment Module (BUILT — v1.1 complete)
@@ -45,7 +45,7 @@ Modules are deployed as static builds via Vite to `docs/{module}/` subfolders. G
 ```
 https://carterspot.github.io/financial-freedom-platform/dashboard/  ← Dashboard v2.0 (entry point — root redirects here)
 https://carterspot.github.io/financial-freedom-platform/debt/       ← DebtTracker v1.5
-https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.8
+https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.9
 https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.2
 https://carterspot.github.io/financial-freedom-platform/savings/    ← SavingsModule v1.2
 https://carterspot.github.io/financial-freedom-platform/retirement/ ← RetirementModule v1.1
@@ -1293,6 +1293,7 @@ docs/
 - ✅ Investment Module v1.0 — taxable brokerage, stocks, ETFs, AI price update, ffp_investments_ key
 - ✅ SavingsModule v1.2 — 4-tab layout, expandable fund/goal cards, AI Advisor tab, sav_ai_results_ key
 - ✅ Platform Dashboard v1.0 — Freedom Rings, 6 charts, collapsible nav, cross-module reads, 228 KB build
+- ✅ SpendingTracker v1.9 — receipt scan (camera + photo library), multi-receipt per image, review screen, AI-suggested categories, duplicate detection + reconciliation prompt, entryMethod tracking
 - [ ] AI Advisor — holistic cross-module planning with manual correction layer (capstone — standalone module, distinct from Dashboard v2.0 AI panel)
 - [ ] Node graph v2 — draggable nodes, edge highlighting, Investment module node
 - [ ] Graduation — Next.js + Supabase hosted app

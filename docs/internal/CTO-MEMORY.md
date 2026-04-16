@@ -45,7 +45,7 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 | Dashboard | v2.0 | `modules/dashboard.jsx` | `.../dashboard/` |
 | DebtTracker | v1.5 | `modules/debt-tracker.jsx` | `.../debt/` |
 | IncomeTracker | v1.2 | `modules/income-tracker.jsx` | `.../income/` |
-| SpendingTracker | v1.8 | `modules/spending.jsx` | `.../spending/` |
+| SpendingTracker | v1.9 | `modules/spending.jsx` | `.../spending/` |
 | SavingsModule | v1.2 | `modules/savings.jsx` | `.../savings/` |
 | RetirementModule | v1.1 | `modules/retirement.jsx` | `.../retirement/` |
 | InvestmentModule | v1.1 | `modules/investment.jsx` | `.../investment/` |
@@ -218,7 +218,7 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 ## Next Up (in order)
 
 1. ✅ **Freedom Rings IP check** — complete (2026-04-15). Name clear, ring visual safe, "Close the Rings/Your Rings" off limits (Apple trademark). CTA phrase decision pending. Research doc: `docs/research/ip-check-freedom-rings.md`.
-2. **SpendingTracker v1.9** — receipt scan build prompt written (`docs/build-prompts/spending-v1.9-receipt-scan.md`). Sent to Code Dev. Awaiting ship report. Carter has incoming updates to review before Graduation planning begins.
+2. ✅ **SpendingTracker v1.9** — shipped (2026-04-15, commit f8a70ef). Receipt scan, multi-receipt review screen, duplicate detection + reconciliation prompt, entryMethod tracking. 329 KB build. Carter has incoming updates to review before Graduation planning begins.
 3. **Graduation planning** — Next.js + Supabase architecture discussion. Blocked until Carter's incoming updates are reviewed and resolved.
 
 ## Deferred Architectural Decisions

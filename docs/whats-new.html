@@ -84,7 +84,7 @@
     <a href="#investment-module" class="nav-pill">💹 Investment Module v1.1</a>
     <a href="#retirement-module" class="nav-pill">📈 Retirement Module v1.1</a>
     <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.2</a>
-    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.8</a>
+    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.9</a>
     <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.2</a>
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.5</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
@@ -560,9 +560,50 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#f97316,#f59e0b)">📊</div>
       <div>
         <div class="module-name">SpendingTracker</div>
-        <div class="module-version">v1.8</div>
+        <div class="module-version">v1.9</div>
       </div>
       <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-feature">✨ New Feature — v1.9</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Receipt scan — camera and photo library</h4>
+            <p>Tap 📷 Scan Receipt in the Transactions tab to capture or upload receipt images. Uses Claude's vision model to extract merchant name, date, total, and every line item. Works on mobile (rear camera) and desktop (file picker). Multiple image files can be selected at once.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Multiple receipts per image</h4>
+            <p>One photo can contain multiple receipts — Claude finds and extracts them all. Results are consolidated into a single review screen regardless of how many receipts or images were submitted.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Review screen — edit before confirming</h4>
+            <p>Every extracted receipt appears as an editable card: merchant name, date, total, and per-line-item category dropdowns. AI-suggested categories are pre-filled. Low-confidence items (blank description or zero amount) are flagged in amber for manual review. Nothing is saved until you confirm.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--amber)"></div>
+          <div class="change-body">
+            <h4>Duplicate detection and reconciliation prompt</h4>
+            <p>Before saving a scanned receipt, SpendingTracker checks existing transactions for a match (same amount, date within 3 days, similar merchant name). If a match is found, a side-by-side comparison appears: Skip (mark existing as reconciled), Replace (swap old with new), or Keep Both. Prevents double-counting when you scan before your bank statement imports.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Entry method tracking</h4>
+            <p>All transactions now carry an entryMethod field: "scan" for receipt scans, "csv_import" for bank statement imports, "manual" for hand-entered transactions. Additive — no changes to existing stored data.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">
