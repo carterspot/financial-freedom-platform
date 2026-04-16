@@ -1311,6 +1311,12 @@ docs/
 - Savings Module — alert system when sinking fund due date approaches and fund is underfunded
 - All modules — apply `appendChild/removeChild` export anchor fix to CardTracker, LoanTracker, DebtTracker, IncomeTracker on next touch (same silent export bug)
 
+### V2 / Graduation Architecture (deferred — requires Supabase relational layer)
+- **Cross-module transfer reconciliation** — When a user transfers money between accounts (checking → savings, checking → credit card payment, checking → brokerage, 401k contribution), the same event appears as an outflow in one module and an inflow in another. In v1, the Transfer category (`trn_001`) handles this well enough — tag it, exclude from budget totals. True cross-module linking requires a shared transactions table with foreign keys. Deferred to Graduation (Next.js + Supabase). Architectural decision logged 2026-04-15.
+
+### Dashboard Backlog (low priority ideas)
+- **Money flow visualization (Sankey diagram)** — Visual map of how money moves: Income sources → spending categories, income → savings funds, income → investments, investments → spending. Width of each flow represents dollar amount. Would live on the Dashboard as an optional view. Gives users an intuitive picture of their full financial flow at a glance. Referenced Mint/personal finance precedent. Vet and spec before building. Logged 2026-04-15.
+
 ---
 
 ## How to Use This Project

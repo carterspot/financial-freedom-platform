@@ -217,8 +217,14 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 
 ## Next Up (in order)
 
-1. **Freedom Rings IP check** — verify ring concept before public launch
-2. **Graduation planning** — Next.js + Supabase architecture discussion
+1. ✅ **Freedom Rings IP check** — complete (2026-04-15). Name clear, ring visual safe, "Close the Rings/Your Rings" off limits (Apple trademark). CTA phrase decision pending. Research doc: `docs/research/ip-check-freedom-rings.md`.
+2. **SpendingTracker v1.9** — receipt scan build prompt written (`docs/build-prompts/spending-v1.9-receipt-scan.md`). Sent to Code Dev. Awaiting ship report. Carter has incoming updates to review before Graduation planning begins.
+3. **Graduation planning** — Next.js + Supabase architecture discussion. Blocked until Carter's incoming updates are reviewed and resolved.
+
+## Deferred Architectural Decisions
+
+- **Cross-module transfer reconciliation** — v1 answer is Transfer category (`trn_001`), excluded from budget totals. Full cross-module linking (checking → savings, checking → credit card, checking → brokerage) requires a shared relational transactions table. Deferred to Graduation / Supabase. Logged 2026-04-15.
+- **Money flow Sankey diagram** — Dashboard feature idea: visual map of income → spending categories → savings → investments. Low priority. Vet and spec before building. Logged 2026-04-15.
 
 ---
 
