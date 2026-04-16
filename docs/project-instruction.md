@@ -43,13 +43,14 @@ Modules are deployed as static builds via Vite to `docs/{module}/` subfolders. G
 
 **Live module URLs:**
 ```
+https://carterspot.github.io/financial-freedom-platform/dashboard/  ← Dashboard v2.0 (entry point — root redirects here)
 https://carterspot.github.io/financial-freedom-platform/debt/       ← DebtTracker v1.5
 https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.8
 https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.2
 https://carterspot.github.io/financial-freedom-platform/savings/    ← SavingsModule v1.2
 https://carterspot.github.io/financial-freedom-platform/retirement/ ← RetirementModule v1.1
-https://carterspot.github.io/financial-freedom-platform/investment/ ← InvestmentModule v1.0
-https://carterspot.github.io/financial-freedom-platform/dashboard/  ← Dashboard v1.0
+https://carterspot.github.io/financial-freedom-platform/investment/ ← InvestmentModule v1.1
+https://carterspot.github.io/financial-freedom-platform/insurance/  ← InsuranceTracker v1.0
 ```
 
 **Module filename clarification (critical for Code prompts):**
@@ -1292,7 +1293,7 @@ docs/
 - ✅ Investment Module v1.0 — taxable brokerage, stocks, ETFs, AI price update, ffp_investments_ key
 - ✅ SavingsModule v1.2 — 4-tab layout, expandable fund/goal cards, AI Advisor tab, sav_ai_results_ key
 - ✅ Platform Dashboard v1.0 — Freedom Rings, 6 charts, collapsible nav, cross-module reads, 228 KB build
-- [ ] AI Advisor — holistic cross-module planning with manual correction layer (capstone)
+- [ ] AI Advisor — holistic cross-module planning with manual correction layer (capstone — standalone module, distinct from Dashboard v2.0 AI panel)
 - [ ] Node graph v2 — draggable nodes, edge highlighting, Investment module node
 - [ ] Graduation — Next.js + Supabase hosted app
 - [ ] React Native / Expo — iOS + Android
