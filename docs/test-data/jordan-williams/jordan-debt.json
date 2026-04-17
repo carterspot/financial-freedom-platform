@@ -1,0 +1,42 @@
+{
+  "version": "dt_1.0",
+  "exportedAt": "2026-03-31T00:00:00.000Z",
+  "profileId": "pin_jordan_williams",
+  "cards": [
+    {
+      "id": "dt_jordan_card_001",
+      "name": "Chase Freedom Unlimited",
+      "last4": "6621",
+      "color": "#f97316",
+      "balance": "3980.00",
+      "limit": "7500",
+      "apr": "22.49",
+      "minPaymentMode": "auto",
+      "minPaymentFixed": "",
+      "monthlyPayment": "275",
+      "payoffMode": "payment",
+      "dueDay": "22",
+      "statementDay": "14",
+      "expiration": "07/28",
+      "originalBalance": "3200.00"
+    }
+  ],
+  "loans": [
+    {
+      "id": "dt_jordan_loan_001",
+      "name": "2023 Tesla Model 3",
+      "lender": "Tesla Financial Services",
+      "type": "auto",
+      "color": "#ef4444",
+      "originalBalance": "42000",
+      "currentBalance": "24100.00",
+      "interestRate": "6.800",
+      "monthlyPayment": "698.00",
+      "termMonths": 48,
+      "remainingMonths": "27",
+      "nextPaymentDay": "5",
+      "notes": "2023 Model 3 LR AWD. EV but still has charging costs. Commutes SD-Temecula 3x/week."
+    }
+  ],
+  "logs": []
+}
