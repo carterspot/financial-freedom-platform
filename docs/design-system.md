@@ -24,6 +24,12 @@ function useTheme(dm) {
 }
 ```
 
+### tx2 vs tx3 — when to use each
+
+**`tx2` (#94a3b8)** — secondary text with real informational weight. Use for: subheadings, section tags, descriptive captions, field labels, helper text that guides the user. Any label that sits below or alongside a primary element to provide category or section context belongs here.
+
+**`tx3` (#475569)** — de-emphasized chrome only. Use for: breadcrumbs, timestamps, divider labels, meta date stamps, count badges that are supplemental rather than navigational. If the user would lose meaning without it, it's probably `tx2` not `tx3`.
+
 ---
 
 ## Accent Colors
