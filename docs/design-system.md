@@ -26,9 +26,11 @@ function useTheme(dm) {
 
 ### tx2 vs tx3 — when to use each
 
-**`tx2` (#94a3b8)** — secondary text with real informational weight. Use for: subheadings, section tags, descriptive captions, field labels, helper text that guides the user. Any label that sits below or alongside a primary element to provide category or section context belongs here.
+**`tx2` (#94a3b8)** — any text a user is expected to read. Use for: labels, nav links, breadcrumbs, metadata, subheadings, section tags, descriptive captions, field labels, helper text. If a user would lose context or orientation without it, use `tx2` minimum.
 
-**`tx3` (#475569)** — de-emphasized chrome only. Use for: breadcrumbs, timestamps, divider labels, meta date stamps, count badges that are supplemental rather than navigational. If the user would lose meaning without it, it's probably `tx2` not `tx3`.
+**`tx3` (#475569)** — truly invisible chrome only. Use for: placeholder text, dividers, search result section tags, decorative separators. Text that is structural scaffolding rather than content.
+
+**Hover rule:** when a `tx2` resting state is applied to an interactive element, hover should step up to `tx1` — not stay at `tx2` — so the hover state remains visible.
 
 ---
 
