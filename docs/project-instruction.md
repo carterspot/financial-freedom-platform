@@ -1293,7 +1293,13 @@ docs/
 - ✅ Investment Module v1.0 — taxable brokerage, stocks, ETFs, AI price update, ffp_investments_ key
 - ✅ SavingsModule v1.2 — 4-tab layout, expandable fund/goal cards, AI Advisor tab, sav_ai_results_ key
 - ✅ Platform Dashboard v1.0 — Freedom Rings, 6 charts, collapsible nav, cross-module reads, 228 KB build
+- ✅ InvestmentModule v1.1 — dark mode default fix, profile avatar + fallback selector
+- ✅ InsuranceTracker v1.0 — PIN lock (usePinLock hook), Legacy Ring feed, 5 tabs, 3 AI features, ins_legacy_health_ key
+- ✅ Dashboard v2.0 — AI Advisor panel (drawer/tab), staleness detection, new user onboarding, Settings tab, score in rings center, prior module AI results loaded
 - ✅ SpendingTracker v1.9 — receipt scan (camera + photo library), multi-receipt per image, review screen, AI-suggested categories, duplicate detection + reconciliation prompt, entryMethod tracking
+- ✅ Test data generator — `scripts/generate-test-data.js`, seeded RNG, 5 personas, week/month modes, exact bank CSV formats, JSON debt/income exports (commit 3fbdc9d)
+- ✅ Help Wiki scaffold — `docs/wiki/`, 26 files (wiki.css + index + 24 article stubs), client-side search, 6 sections, tx2/tx3 design rule applied
+- [ ] SpendingTracker v1.10 — splits (`isSplit`, `splits[]`, `cat_split` parent), standalone reconciliation/dedup system. Designed, not yet prompted.
 - [ ] AI Advisor — holistic cross-module planning with manual correction layer (capstone — standalone module, distinct from Dashboard v2.0 AI panel)
 - [ ] Node graph v2 — draggable nodes, edge highlighting, Investment module node
 - [ ] Graduation — Next.js + Supabase hosted app
