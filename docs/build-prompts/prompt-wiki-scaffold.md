@@ -23,7 +23,7 @@ Build the complete file scaffold for the FFP Help Wiki at `docs/wiki/`. This inc
 
 - One shared stylesheet (`wiki.css`)
 - One index / landing page (`index.html`)
-- 28 article stub files organized into 6 subdirectories
+- 24 article stub files organized into 6 subdirectories
 - All files cross-linked correctly
 - Zero placeholder Lorem Ipsum — use structured placeholder comments instead (see Article Stub Spec below)
 
@@ -68,7 +68,7 @@ docs/wiki/
 └── glossary.html
 ```
 
-Total: 1 CSS file + 1 index + 26 article stubs = 28 files.
+Total: 1 CSS file + 1 index + 24 article stubs = 26 files.
 
 ---
 
@@ -436,7 +436,7 @@ The sidebar also always shows a top-level section list linking to the first arti
 
 Before committing, verify:
 
-- [ ] All 28 files exist at the correct paths
+- [ ] All 26 files exist at the correct paths
 - [ ] CSS path depth is correct per file (root vs subdirectory)
 - [ ] Every article has: nav bar, breadcrumb, H1, meta date, correct H2 stubs, see-also block
 - [ ] Sidebar nav in each article shows correct section and highlights active article
@@ -462,7 +462,7 @@ git push
 ## Report Format
 
 Reply with:
-1. Confirmation all 28 files created
+1. Confirmation all 26 files created
 2. Any structural decisions you made that deviated from this spec and why
 3. CSS pixel count (approximate lines) so CTO can gauge file size
 4. One sentence on any cross-linking edge cases encountered
