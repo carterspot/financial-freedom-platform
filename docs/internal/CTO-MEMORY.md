@@ -1,7 +1,7 @@
 # CTO Memory — Financial Freedom Platform
 **Location:** `docs/internal/CTO-MEMORY.md`  
 **Purpose:** Bootstraps CTO identity and project context in a cold Claude Code session.  
-**Updated:** 2026-04-17 (post-SpendingTracker v1.9 ship, IP check complete, test data generator prompted)  
+**Updated:** 2026-04-17 (wiki scaffold scoped and built, Opus 4.7 model policy locked, session complete)  
 **Read this file + docs/internal/ffp-cto-SKILL.md + docs/project-instruction.md at every CTO session start.**
 
 ---
@@ -155,6 +155,7 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 - ✅ Dashboard v2.0 — AI Advisor panel (drawer/tab), staleness detection, new user onboarding, Settings tab, score in rings center
 - ✅ Dashboard v2.0 patch — prior module AI results loaded, missing module detection, extractAiText multi-shape handler
 - ✅ InsuranceTracker v1.0 — PIN lock (usePinLock hook), Legacy Ring feed, 5 tabs, 3 AI features, ins_legacy_health_ key
+- ✅ Help Wiki scaffold — 26 files at docs/wiki/, wiki.css, index + search, article stubs with H2 outlines, Intercom-ready HTML (April 2026)
 
 ---
 
@@ -218,8 +219,11 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 ## Next Up (in order)
 
 1. ✅ **Freedom Rings IP check** — complete (2026-04-15). Name clear, ring visual safe, "Close the Rings/Your Rings" off limits (Apple trademark). CTA phrase decision pending. Research doc: `docs/research/ip-check-freedom-rings.md`.
-2. ✅ **SpendingTracker v1.9** — shipped (2026-04-15, commit f8a70ef). Receipt scan, multi-receipt review screen, duplicate detection + reconciliation prompt, entryMethod tracking. 329 KB build. Carter has incoming updates to review before Graduation planning begins.
-3. **Graduation planning** — Next.js + Supabase architecture discussion. Blocked until Carter's incoming updates are reviewed and resolved.
+2. ✅ **SpendingTracker v1.9** — shipped (2026-04-15, commit f8a70ef). Receipt scan, multi-receipt review screen, duplicate detection + reconciliation prompt, entryMethod tracking. 329 KB build.
+3. ✅ **Help Wiki scaffold** — complete (2026-04-17). 26-file HTML structure at `docs/wiki/`. Shared `wiki.css` with FFP design tokens, index page with client-side search, 24 article stubs across 6 sections with correct H2 outlines and `<!-- CONTENT -->` markers. Intercom-ready HTML format confirmed. Build prompt: `docs/build-prompts/prompt-wiki-scaffold.md`.
+4. **Wiki content pass** — CTO writes 26 articles (200–400 words each). Getting Started section first (5 articles), then Glossary (1 page, high value), then Troubleshooting (4 articles), then module deep-dives. Estimate 4–6 CTO sessions. No Code involvement — content writing only.
+5. **Test persona update** — Code updates Emma, Marcus, Sarah, Jordan, Taylor data files for Insurance, Investment, and Dashboard modules. Single Code Clone, one session. Prompt pending.
+6. **Graduation planning** — Next.js + Supabase architecture discussion. Blocked until Carter's incoming updates are reviewed and resolved.
 
 ## Deferred Architectural Decisions
 
@@ -227,6 +231,34 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 - **Money flow Sankey diagram** — Dashboard feature idea: visual map of income → spending categories → savings → investments. Low priority. Vet and spec before building. Logged 2026-04-15.
 
 ---
+
+## Model Selection Policy
+
+**CTO role (this session type):** Always Sonnet 4.6. Planning, architecture,
+documentation, and build prompt writing. No benefit from Opus overhead.
+
+**Code Clones — default:** Sonnet 4.6. Handles wiki content, doc updates,
+bug fixes, single-file surgical edits, audit passes, test data generation,
+and anything touching only `docs/`.
+
+**Code Clones — upgrade trigger:** Opus 4.7. Used when the build prompt
+header contains `## Model: claude-opus-4-7`. Code runs
+`/model claude-opus-4-7` at session start before reading any files.
+
+**Opus 4.7 use cases:** New module builds from scratch (2000+ line JSX),
+AI Advisor capstone, multi-file architectural changes, cross-module data
+contract work, any session where reasoning depth and agentic precision are
+the limiting factor — not just output length.
+
+**Why not Opus 4.7 by default:** Opus 4.7 tokenizer uses ~35% more tokens
+than 4.6 for identical text. Same per-token price, but sessions burn through
+rate limits faster. The coding improvement is real (SWE-bench +6.8 pts,
+best-in-class tool use at 77.3% MCP-Atlas) but not needed for maintenance,
+docs, or simple module patches.
+
+**Model policy is enforced in the build prompt, not at session start.**
+CTO specifies the model in every prompt header. Carter doesn't need to
+remember — it's embedded.
 
 ## Team Communication Norms
 

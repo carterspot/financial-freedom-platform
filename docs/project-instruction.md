@@ -1246,7 +1246,10 @@ docs/
 ├── income-quickstart.html  — IncomeTracker quick start guide
 ├── spending-quickstart.html— SpendingTracker quick start guide
 ├── ffp-categories.xlsx     — Default category set (56 categories, 13 sections)
-└── design-system.md        — Full component patterns and visual specs
+├── design-system.md        — Full component patterns and visual specs
+└── wiki/                   — Help Wiki (scaffold April 2026, content in progress)
+                               index.html + wiki.css + 24 article stubs across 6 sections
+                               Sections: getting-started/ modules/ ai-advisor/ data/ troubleshooting/ glossary.html
 ```
 
 **Updating artifact URLs:** Edit the `CONFIG` block at the top of `docs/index.html` directly on GitHub (pencil icon). One line per module. Takes 30 seconds.
@@ -1298,7 +1301,7 @@ docs/
 - ✅ Dashboard v2.0 — AI Advisor panel (drawer/tab), staleness detection, new user onboarding, Settings tab, score in rings center, prior module AI results loaded
 - ✅ SpendingTracker v1.9 — receipt scan (camera + photo library), multi-receipt per image, review screen, AI-suggested categories, duplicate detection + reconciliation prompt, entryMethod tracking
 - ✅ Test data generator — `scripts/generate-test-data.js`, seeded RNG, 5 personas, week/month modes, exact bank CSV formats, JSON debt/income exports (commit 3fbdc9d)
-- ✅ Help Wiki scaffold — `docs/wiki/`, 26 files (wiki.css + index + 24 article stubs), client-side search, 6 sections, tx2/tx3 design rule applied
+- ✅ Help Wiki scaffold — docs/wiki/ (26 files, Intercom-ready HTML, client-side search, April 2026)
 - [ ] SpendingTracker v1.10 — splits (`isSplit`, `splits[]`, `cat_split` parent), standalone reconciliation/dedup system. Designed, not yet prompted.
 - [ ] AI Advisor — holistic cross-module planning with manual correction layer (capstone — standalone module, distinct from Dashboard v2.0 AI panel)
 - [ ] Node graph v2 — draggable nodes, edge highlighting, Investment module node

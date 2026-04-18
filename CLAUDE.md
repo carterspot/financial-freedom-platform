@@ -15,6 +15,27 @@
 | 🏠 Dashboard | `modules/dashboard.jsx` | ✅ v2.0 |
 | 🧠 AI Advisor | — | 📋 Capstone |
 
+## Model Selection Policy
+
+Default model for all Code sessions: **claude-sonnet-4-6**
+
+Upgrade to **claude-opus-4-7** only when the build prompt header contains:
+`## Model: claude-opus-4-7`
+
+When Opus 4.7 is specified, run `/model claude-opus-4-7` at session start
+before reading any files.
+
+**Opus 4.7 sessions:** New module builds from scratch, AI Advisor capstone,
+multi-file architectural changes, any session where the build prompt
+explicitly requests it.
+
+**Sonnet 4.6 sessions:** Wiki content, doc updates, bug fixes, single-file
+surgical edits, audit passes, test data generation, memory file updates,
+anything touching only docs/.
+
+Note: Opus 4.7 tokenizer uses ~35% more tokens than 4.6 for identical text.
+Factor this into session planning for rate limit budgeting.
+
 ## Critical JSX Rules — violations crash the artifact
 1. Always `return (` or `return <` with a space — never `return<`
 2. Never define JSX-returning functions inside a component — hoist all to top level
