@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Adding Your API Key — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="what-is-ffp.html" class="wiki-nav-mobile-link active">Getting Started</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="../modules/dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="../ai-advisor/how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="../data/backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="../troubleshooting/api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">Getting Started</div>
+        <a href="what-is-ffp.html" class="sidebar-link">What is FFP?</a>
+        <a href="setup-profile.html" class="sidebar-link">Setup Profile</a>
+        <a href="add-api-key.html" class="sidebar-link active">Add API Key</a>
+        <a href="first-week.html" class="sidebar-link">First Week Checklist</a>
+        <a href="freedom-score.html" class="sidebar-link">Freedom Score</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="what-is-ffp.html">Getting Started</a><span>›</span>
+        Adding Your API Key
+      </div>
+      <h1>Adding Your API Key</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain that the API key enables AI features across all modules. Without it the app works normally but AI analysis, batch categorization, and the AI Advisor are unavailable. -->
+
+      <h2>Why you need an API key</h2>
+      <!-- CONTENT: Explain that FFP uses Claude (Anthropic's AI) for smart features. The key is yours — FFP never stores it on its servers, it's kept in your browser's cloud-synced storage. You pay only for what you use. -->
+
+      <h2>Getting your key from Anthropic</h2>
+      <!-- CONTENT: Step-by-step instructions: go to console.anthropic.com → API Keys → Create Key. Note the key starts with "sk-ant-". Mention usage-based billing and that typical usage is very low cost. -->
+
+      <h2>Where to enter it</h2>
+      <!-- CONTENT: Describe the 🔑 key icon in the top nav bar, how to paste the key, and that it syncs across devices if cloud sync is active. Note that it's shared across all modules — enter once, works everywhere. -->
+
+      <h2>Testing your key</h2>
+      <!-- CONTENT: Explain the status indicator dot in the nav bar — green = valid format, amber = unknown, red = invalid. Describe how to trigger a real API test (e.g. run an AI analysis in SpendingTracker). -->
+
+      <h2>Keeping your key secure</h2>
+      <!-- CONTENT: Best practices — don't share it, don't paste it into other apps, Anthropic lets you revoke and regenerate keys at any time. FFP routes all calls through a proxy — your key is never exposed in network requests. -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to troubleshooting/api-key-issues.html, ai-advisor/privacy.html, ai-advisor/how-it-works.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>How the AI Advisor Works — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="how-it-works.html" class="wiki-nav-mobile-link active">AI Advisor</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="../modules/dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="../data/backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="../troubleshooting/api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">AI Advisor</div>
+        <a href="how-it-works.html" class="sidebar-link active">How It Works</a>
+        <a href="depth-settings.html" class="sidebar-link">Depth Settings</a>
+        <a href="privacy.html" class="sidebar-link">Privacy</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="how-it-works.html">AI Advisor</a><span>›</span>
+        How the AI Advisor Works
+      </div>
+      <h1>How the AI Advisor Works</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain that the AI Advisor uses Claude (Anthropic) to provide personalized financial guidance based on your actual module data. It's not a generic chatbot — it reads your specific debts, income, spending, savings, and goals before generating any recommendation. -->
+
+      <h2>What data it reads</h2>
+      <!-- CONTENT: List the data the AI Advisor pulls from each module before generating a response — debt balances and APRs, income streams, spending baseline and category totals, savings goal progress, retirement projections, investment allocation, and insurance coverage status. Explain that data never leaves your browser in raw form — only a structured summary is sent. Link to privacy.html. -->
+
+      <h2>How it generates recommendations</h2>
+      <!-- CONTENT: Explain the prompt-response flow — FFP assembles a structured financial snapshot from your module data, sends it to the Claude API along with your question or the analysis trigger, and displays the response. Describe the difference between module-specific analysis (run from within a module) and the full cross-module analysis (run from the Dashboard). -->
+
+      <h2>Confidence and limitations</h2>
+      <!-- CONTENT: Set expectations — the AI Advisor provides guidance based on the data you've entered. If data is missing or stale, recommendations may not reflect your true situation. Explain that recommendations are informational, not professional financial advice. List the known limitations: no real-time market data, no tax calculation, no account connectivity. -->
+
+      <h2>Re-running your analysis</h2>
+      <!-- CONTENT: Explain when to re-run — after importing new transactions, after paying down a debt, after adding a new goal. Describe the Analyze button location in each module and on the Dashboard. Mention that each run is a new API call and incurs a small cost against your Anthropic account. -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to ai-advisor/depth-settings.html, ai-advisor/privacy.html, getting-started/add-api-key.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>

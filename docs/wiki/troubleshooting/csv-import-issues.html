@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>CSV Import Issues — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="api-key-issues.html" class="wiki-nav-mobile-link active">Troubleshooting</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="../modules/dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="../ai-advisor/how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="../data/backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">Troubleshooting</div>
+        <a href="api-key-issues.html" class="sidebar-link">API Key Not Working</a>
+        <a href="csv-import-issues.html" class="sidebar-link active">CSV Import Issues</a>
+        <a href="data-not-syncing.html" class="sidebar-link">Data Not Syncing</a>
+        <a href="module-not-loading.html" class="sidebar-link">Module Not Loading</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="api-key-issues.html">Troubleshooting</a><span>›</span>
+        CSV Import Issues
+      </div>
+      <h1>CSV Import Issues</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain that CSV import issues are the most common friction point in FFP setup. Most problems fall into one of five categories: wrong column mapping, reversed debit/credit signs, duplicate transactions, encoding issues, or bank-specific format quirks. -->
+
+      <h2>Column mapping</h2>
+      <!-- CONTENT: Explain how FFP auto-detects date, description, and amount columns using common header names (Date, Transaction Date, Description, Memo, Amount, Debit, Credit). Describe the column mapper UI that appears when auto-detection fails — how to manually assign each column from a dropdown. Common failure: bank exports with non-standard header names or no header row at all. -->
+
+      <h2>Sign direction (debits vs credits)</h2>
+      <!-- CONTENT: Explain the two CSV sign conventions — some banks export all transactions as positive amounts with a separate Debit/Credit column; others use negative amounts for spending and positive for income in a single Amount column. Describe the sign toggle in the import UI and how to tell which format your bank uses (check if Starbucks shows as positive or negative). -->
+
+      <h2>Duplicate transactions</h2>
+      <!-- CONTENT: Explain how FFP detects duplicates — compares date, amount, and description against existing transactions within a 3-day window. Describe the duplicate review screen, how to resolve false positives (legitimate repeat transactions on the same day), and how to adjust sensitivity in settings. -->
+
+      <h2>Encoding and special characters</h2>
+      <!-- CONTENT: Explain UTF-8 vs Windows-1252 encoding — some bank exports use legacy encoding, causing garbled characters in merchant names. Describe how to re-save the file in UTF-8 using a text editor (Notepad on Windows: Save As → UTF-8 encoding). Also mention BOM (byte order mark) issues and how to strip it. -->
+
+      <h2>Bank-specific known issues</h2>
+      <!-- CONTENT: List known quirks per bank — Chase checking has a Type column that can confuse auto-mapping; Wells Fargo uses MM/DD/YYYY date format; BofA credit card exports have no header row on some account types; Citi Premier uses two date columns (Trans Date + Post Date) and FFP uses Trans Date. Link to modules/spending-tracker.html for the full import walkthrough. -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to modules/spending-tracker.html, getting-started/first-week.html, ai-advisor/how-it-works.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Switching Devices or Browsers — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="backup-restore.html" class="wiki-nav-mobile-link active">Your Data</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="../modules/dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="../ai-advisor/how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="../troubleshooting/api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">Your Data</div>
+        <a href="backup-restore.html" class="sidebar-link">Backup &amp; Restore</a>
+        <a href="switching-devices.html" class="sidebar-link active">Switching Devices</a>
+        <a href="delete-data.html" class="sidebar-link">Deleting Data</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="backup-restore.html">Your Data</a><span>›</span>
+        Switching Devices or Browsers
+      </div>
+      <h1>Switching Devices or Browsers</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain that FFP's data lives in browser storage. Moving to a new device or browser requires either enabling cloud sync (automatic) or performing a manual backup-and-restore (one-time export/import). -->
+
+      <h2>Cloud sync — how it works</h2>
+      <!-- CONTENT: Explain cloud sync — when enabled, FFP uses the browser's built-in cloud storage layer (Chrome sync storage, Firefox sync, Safari iCloud) to replicate data across signed-in devices automatically. Describe how to enable it in Settings → Storage. Note that sync is profile-scoped and may take a few minutes to propagate. -->
+
+      <h2>Local Only mode</h2>
+      <!-- CONTENT: Explain Local Only mode — data is stored only in the current browser, never synced. Useful for shared computers or privacy-sensitive environments. Describe the tradeoff: no cross-device access, no automatic backup. Recommend taking manual JSON backups frequently in this mode. -->
+
+      <h2>Transferring your data manually</h2>
+      <!-- CONTENT: Step-by-step for a manual device transfer — export full JSON backup on the old device, open the app on the new device, import the backup file. Point to data/backup-restore.html for detailed import steps. Mention that the API key is also stored in browser storage and will need to be re-entered on the new device. -->
+
+      <h2>Recovery PIN</h2>
+      <!-- CONTENT: Explain the recovery PIN scenario — if you lose access to the device where you set up your profile and don't have a backup, the recovery PIN lets you prove identity and restore your profile on a new device. Describe how to set the recovery PIN (Settings → Profile → Recovery PIN) and how to use it during setup on a new device. Link to getting-started/setup-profile.html. -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to data/backup-restore.html, getting-started/setup-profile.html, troubleshooting/data-not-syncing.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>

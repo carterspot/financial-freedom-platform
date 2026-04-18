@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Module Not Loading — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="api-key-issues.html" class="wiki-nav-mobile-link active">Troubleshooting</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="../modules/dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="../ai-advisor/how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="../data/backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">Troubleshooting</div>
+        <a href="api-key-issues.html" class="sidebar-link">API Key Not Working</a>
+        <a href="csv-import-issues.html" class="sidebar-link">CSV Import Issues</a>
+        <a href="data-not-syncing.html" class="sidebar-link">Data Not Syncing</a>
+        <a href="module-not-loading.html" class="sidebar-link active">Module Not Loading</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="api-key-issues.html">Troubleshooting</a><span>›</span>
+        Module Not Loading
+      </div>
+      <h1>Module Not Loading</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain that most module loading failures are caused by cached stale code, browser extension conflicts, or storage quota exceeded. Run through the steps below in order before contacting support. -->
+
+      <h2>Check the platform status</h2>
+      <!-- CONTENT: Explain that FFP is a static GitHub Pages app — there is no server to go down. If the module URL loads but the UI is blank or erroring, the issue is local. If the page itself won't load (DNS failure, 404), describe how to verify you're using the correct URL and that GitHub Pages isn't experiencing an outage. Provide the correct base URL for the platform. -->
+
+      <h2>Clear your browser cache</h2>
+      <!-- CONTENT: Step-by-step for clearing cached assets without clearing localStorage (which would delete your data). In Chrome: DevTools → Application → Cache Storage → right-click → Delete. Alternatively, open the app in an Incognito window — if it loads there, cache is the issue. Describe how to force-reload (Ctrl+Shift+R / Cmd+Shift+R). -->
+
+      <h2>Try a different browser</h2>
+      <!-- CONTENT: Explain that browser extension conflicts (ad blockers, privacy tools, script blockers) can prevent modules from loading. Testing in a different browser or in a clean profile isolates whether the issue is extension-related. Note that FFP is tested on Chrome, Firefox, and Safari — report issues in other browsers as bugs. -->
+
+      <h2>Contact support</h2>
+      <!-- CONTENT: Explain where to report persistent loading issues — link to the GitHub Issues page for the FFP repository. Describe what to include in a bug report: browser and version, operating system, the specific module that won't load, any console errors (F12 → Console tab), and steps to reproduce. Mention that the GitHub repo is the canonical place for bug tracking. -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to troubleshooting/data-not-syncing.html, data/backup-restore.html, troubleshooting/api-key-issues.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>

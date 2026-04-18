@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Backup and Restore — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="backup-restore.html" class="wiki-nav-mobile-link active">Your Data</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="../modules/dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="../ai-advisor/how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="../troubleshooting/api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">Your Data</div>
+        <a href="backup-restore.html" class="sidebar-link active">Backup &amp; Restore</a>
+        <a href="switching-devices.html" class="sidebar-link">Switching Devices</a>
+        <a href="delete-data.html" class="sidebar-link">Deleting Data</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="backup-restore.html">Your Data</a><span>›</span>
+        Backup and Restore
+      </div>
+      <h1>Backup and Restore</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain that FFP stores all data in your browser and relies on you to back it up. The backup system is built into the app and takes under a minute. A backup file lets you restore to any device or browser. -->
+
+      <h2>JSON backup — full data export</h2>
+      <!-- CONTENT: Step-by-step for exporting a full JSON backup from Settings → Data → Export. Explain what the file contains — all profiles, all module data, all category rules. Describe the filename format (ffp-backup-YYYY-MM-DD.json). Recommend saving to cloud storage or email to yourself. -->
+
+      <h2>CSV export</h2>
+      <!-- CONTENT: Explain per-module CSV exports — each module has an Export to CSV button that exports its structured data in a spreadsheet-friendly format. Contrast with the full JSON backup (CSV is human-readable but cannot be re-imported into FFP). Use case: sharing data with a financial advisor or loading into Excel. -->
+
+      <h2>Restoring from a backup</h2>
+      <!-- CONTENT: Step-by-step for importing a backup file — Settings → Data → Import → select your .json file. Explain the validation step (FFP checks the file version and structure before importing). Describe what happens if a profile already exists with the same ID. -->
+
+      <h2>Replace vs Merge on import</h2>
+      <!-- CONTENT: Explain the two import modes. Replace: wipes existing data for the matching profile and loads the backup cleanly — best for full device migrations. Merge: adds backup data on top of existing data, useful for combining records from two devices. Warn that Merge can create duplicates if both devices have the same transaction history. -->
+
+      <h2>Backup schedule recommendation</h2>
+      <!-- CONTENT: Recommend a backup cadence — export a full JSON backup at least monthly, and always before clearing browser data, switching devices, or resetting the app. Suggest naming convention (ffp-backup-YYYY-MM-DD-full.json) and storage locations (Google Drive, iCloud, email). -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to data/switching-devices.html, data/delete-data.html, troubleshooting/data-not-syncing.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Investment Module — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="dashboard.html" class="wiki-nav-mobile-link active">Modules Guide</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="../ai-advisor/how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="../data/backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="../troubleshooting/api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">Modules Guide</div>
+        <a href="dashboard.html" class="sidebar-link">Dashboard</a>
+        <a href="debt-tracker.html" class="sidebar-link">Debt Tracker</a>
+        <a href="spending-tracker.html" class="sidebar-link">Spending Tracker</a>
+        <a href="income-tracker.html" class="sidebar-link">Income Tracker</a>
+        <a href="savings-module.html" class="sidebar-link">Savings Module</a>
+        <a href="retirement-module.html" class="sidebar-link">Retirement Module</a>
+        <a href="investment-module.html" class="sidebar-link active">Investment Module</a>
+        <a href="insurance-tracker.html" class="sidebar-link">Insurance Tracker</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="dashboard.html">Modules Guide</a><span>›</span>
+        Investment Module
+      </div>
+      <h1>Investment Module</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain that Investment Module tracks taxable brokerage and non-retirement investment accounts. It records positions, cost basis, dividends, and lets you request AI-powered price updates. Portfolio data feeds the Net Position tile on the Dashboard. -->
+
+      <h2>Adding accounts and positions</h2>
+      <!-- CONTENT: Step-by-step for adding a brokerage account (name, institution, account type) and then adding positions within it (ticker/name, shares, cost basis per share, purchase date). Explain that multiple accounts can be added and positions aggregate to a portfolio view. -->
+
+      <h2>Tracking cost basis and gains</h2>
+      <!-- CONTENT: Explain how FFP calculates cost basis (shares × cost per share), current value (shares × current price), and unrealized gain/loss. Describe the FIFO vs average cost method toggle. Link to glossary.html for Cost Basis and Unrealized Gain. -->
+
+      <h2>AI price updates</h2>
+      <!-- CONTENT: Explain the AI price update feature — send your ticker list to the AI, which returns current market prices and updates your position values. Note this is an AI lookup, not a live market feed. Describe how to trigger it and how often to run it. Requires an API key. -->
+
+      <h2>Dividend logging</h2>
+      <!-- CONTENT: Step-by-step for logging a dividend payment — ticker, date, per-share amount, reinvestment vs cash. Explain how reinvested dividends update the share count and cost basis. Show how total dividends appear in the portfolio summary. -->
+
+      <h2>Portfolio allocation chart</h2>
+      <!-- CONTENT: Describe the SVG allocation donut chart — shows portfolio split by asset type (stocks, ETFs, bonds, other) and by account. Explain how to update allocation targets and see the variance from target. -->
+
+      <h2>AI analysis</h2>
+      <!-- CONTENT: Describe the investment AI analysis — evaluates concentration risk, dividend yield, allocation drift, and overlap with retirement accounts. Suggests rebalancing actions and flags single-stock overexposure. Requires an API key. Explain the Analyze button and output format. -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to modules/retirement-module.html, ai-advisor/how-it-works.html, glossary.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Help Center — Financial Freedom Platform</title>
+  <link rel="stylesheet" href="wiki.css"/>
+</head>
+<body>
+
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+
+  <div class="wiki-index-hero">
+    <h1>How can we help?</h1>
+    <p>Search articles, guides, and troubleshooting steps for the Financial Freedom Platform.</p>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" placeholder="Search help articles…" id="searchInput" autocomplete="off"/>
+      <div class="search-dropdown" id="searchDropdown"></div>
+    </div>
+  </div>
+
+  <div class="index-content">
+
+    <div class="index-section-title">Browse by Category</div>
+    <div class="category-grid">
+      <a href="getting-started/what-is-ffp.html" class="category-card">
+        <span class="category-icon">🚀</span>
+        <div>
+          <span class="category-name">Getting Started</span>
+          <span class="category-desc">Set up your profile, API key, and first steps</span>
+        </div>
+      </a>
+      <a href="modules/dashboard.html" class="category-card">
+        <span class="category-icon">📦</span>
+        <div>
+          <span class="category-name">Modules Guide</span>
+          <span class="category-desc">Deep dives into every module in the platform</span>
+        </div>
+      </a>
+      <a href="ai-advisor/how-it-works.html" class="category-card">
+        <span class="category-icon">🧠</span>
+        <div>
+          <span class="category-name">AI Advisor</span>
+          <span class="category-desc">How the AI works, depth settings, and privacy</span>
+        </div>
+      </a>
+      <a href="data/backup-restore.html" class="category-card">
+        <span class="category-icon">💾</span>
+        <div>
+          <span class="category-name">Your Data</span>
+          <span class="category-desc">Backup, restore, sync, and data management</span>
+        </div>
+      </a>
+      <a href="troubleshooting/api-key-issues.html" class="category-card">
+        <span class="category-icon">🔧</span>
+        <div>
+          <span class="category-name">Troubleshooting</span>
+          <span class="category-desc">Fix common issues with import, sync, and more</span>
+        </div>
+      </a>
+      <a href="glossary.html" class="category-card">
+        <span class="category-icon">📖</span>
+        <div>
+          <span class="category-name">Glossary</span>
+          <span class="category-desc">Definitions for platform terms and concepts</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="index-section-title">Popular Articles</div>
+    <div class="popular-list">
+      <a href="getting-started/setup-profile.html" class="popular-item">
+        <div class="popular-item-left">
+          <div class="popular-item-title">Setting up your profile</div>
+          <div class="popular-item-section">Getting Started</div>
+        </div>
+        <span class="popular-item-arrow">›</span>
+      </a>
+      <a href="getting-started/add-api-key.html" class="popular-item">
+        <div class="popular-item-left">
+          <div class="popular-item-title">Adding your API key</div>
+          <div class="popular-item-section">Getting Started</div>
+        </div>
+        <span class="popular-item-arrow">›</span>
+      </a>
+      <a href="modules/spending-tracker.html" class="popular-item">
+        <div class="popular-item-left">
+          <div class="popular-item-title">Importing a CSV in SpendingTracker</div>
+          <div class="popular-item-section">Modules Guide</div>
+        </div>
+        <span class="popular-item-arrow">›</span>
+      </a>
+      <a href="modules/debt-tracker.html" class="popular-item">
+        <div class="popular-item-left">
+          <div class="popular-item-title">Avalanche vs Snowball — which to choose?</div>
+          <div class="popular-item-section">Modules Guide</div>
+        </div>
+        <span class="popular-item-arrow">›</span>
+      </a>
+      <a href="getting-started/freedom-score.html" class="popular-item">
+        <div class="popular-item-left">
+          <div class="popular-item-title">Understanding the Freedom Score</div>
+          <div class="popular-item-section">Getting Started</div>
+        </div>
+        <span class="popular-item-arrow">›</span>
+      </a>
+      <a href="data/backup-restore.html" class="popular-item">
+        <div class="popular-item-left">
+          <div class="popular-item-title">Backup and restore your data</div>
+          <div class="popular-item-section">Your Data</div>
+        </div>
+        <span class="popular-item-arrow">›</span>
+      </a>
+      <a href="troubleshooting/api-key-issues.html" class="popular-item">
+        <div class="popular-item-left">
+          <div class="popular-item-title">API key not working</div>
+          <div class="popular-item-section">Troubleshooting</div>
+        </div>
+        <span class="popular-item-arrow">›</span>
+      </a>
+      <a href="glossary.html" class="popular-item">
+        <div class="popular-item-left">
+          <div class="popular-item-title">What is a sinking fund?</div>
+          <div class="popular-item-section">Glossary</div>
+        </div>
+        <span class="popular-item-arrow">›</span>
+      </a>
+    </div>
+
+  </div>
+
+  <footer class="wiki-footer">
+    Can't find what you need? <a href="#">Contact us</a>
+  </footer>
+
+  <script>
+    const articleIndex = [
+      { title: "What is Financial Freedom Platform?", url: "getting-started/what-is-ffp.html", section: "Getting Started" },
+      { title: "Setting Up Your Profile", url: "getting-started/setup-profile.html", section: "Getting Started" },
+      { title: "Adding Your API Key", url: "getting-started/add-api-key.html", section: "Getting Started" },
+      { title: "Your First Week Checklist", url: "getting-started/first-week.html", section: "Getting Started" },
+      { title: "Understanding the Freedom Score", url: "getting-started/freedom-score.html", section: "Getting Started" },
+      { title: "Dashboard", url: "modules/dashboard.html", section: "Modules Guide" },
+      { title: "Debt Tracker", url: "modules/debt-tracker.html", section: "Modules Guide" },
+      { title: "Spending Tracker", url: "modules/spending-tracker.html", section: "Modules Guide" },
+      { title: "Income Tracker", url: "modules/income-tracker.html", section: "Modules Guide" },
+      { title: "Savings Module", url: "modules/savings-module.html", section: "Modules Guide" },
+      { title: "Retirement Module", url: "modules/retirement-module.html", section: "Modules Guide" },
+      { title: "Investment Module", url: "modules/investment-module.html", section: "Modules Guide" },
+      { title: "Insurance Tracker", url: "modules/insurance-tracker.html", section: "Modules Guide" },
+      { title: "How the AI Advisor Works", url: "ai-advisor/how-it-works.html", section: "AI Advisor" },
+      { title: "AI Advisor Depth Settings", url: "ai-advisor/depth-settings.html", section: "AI Advisor" },
+      { title: "AI Advisor Privacy", url: "ai-advisor/privacy.html", section: "AI Advisor" },
+      { title: "Backup and Restore", url: "data/backup-restore.html", section: "Your Data" },
+      { title: "Switching Devices or Browsers", url: "data/switching-devices.html", section: "Your Data" },
+      { title: "Deleting Your Data", url: "data/delete-data.html", section: "Your Data" },
+      { title: "API Key Not Working", url: "troubleshooting/api-key-issues.html", section: "Troubleshooting" },
+      { title: "CSV Import Issues", url: "troubleshooting/csv-import-issues.html", section: "Troubleshooting" },
+      { title: "Data Not Syncing Between Devices", url: "troubleshooting/data-not-syncing.html", section: "Troubleshooting" },
+      { title: "Module Not Loading", url: "troubleshooting/module-not-loading.html", section: "Troubleshooting" },
+      { title: "Glossary", url: "glossary.html", section: "Glossary" },
+    ];
+
+    const input = document.getElementById('searchInput');
+    const dropdown = document.getElementById('searchDropdown');
+
+    input.addEventListener('input', function () {
+      const query = this.value.trim().toLowerCase();
+      dropdown.innerHTML = '';
+      if (!query) { dropdown.classList.remove('visible'); return; }
+
+      const matches = articleIndex.filter(a =>
+        a.title.toLowerCase().includes(query) || a.section.toLowerCase().includes(query)
+      ).slice(0, 8);
+
+      if (matches.length === 0) {
+        dropdown.classList.remove('visible');
+        return;
+      }
+
+      matches.forEach(function (article) {
+        const a = document.createElement('a');
+        a.href = article.url;
+        a.className = 'search-result';
+        a.innerHTML = article.title + '<span class="search-result-section">' + article.section + '</span>';
+        dropdown.appendChild(a);
+      });
+      dropdown.classList.add('visible');
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('visible');
+      }
+    });
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { dropdown.classList.remove('visible'); this.blur(); }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Spending Tracker — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="dashboard.html" class="wiki-nav-mobile-link active">Modules Guide</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="../ai-advisor/how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="../data/backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="../troubleshooting/api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">Modules Guide</div>
+        <a href="dashboard.html" class="sidebar-link">Dashboard</a>
+        <a href="debt-tracker.html" class="sidebar-link">Debt Tracker</a>
+        <a href="spending-tracker.html" class="sidebar-link active">Spending Tracker</a>
+        <a href="income-tracker.html" class="sidebar-link">Income Tracker</a>
+        <a href="savings-module.html" class="sidebar-link">Savings Module</a>
+        <a href="retirement-module.html" class="sidebar-link">Retirement Module</a>
+        <a href="investment-module.html" class="sidebar-link">Investment Module</a>
+        <a href="insurance-tracker.html" class="sidebar-link">Insurance Tracker</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="dashboard.html">Modules Guide</a><span>›</span>
+        Spending Tracker
+      </div>
+      <h1>Spending Tracker</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain that Spending Tracker is where you import and categorize transactions from bank and credit card statements. It builds your spending baseline, contributes to the Momentum Ring, and powers the AI Advisor's spending analysis. -->
+
+      <h2>Importing a bank or credit card CSV</h2>
+      <!-- CONTENT: Step-by-step for downloading a CSV from your bank (Chase, Wells Fargo, BofA, Discover, Citi) and importing it. Explain the date range selector, the column auto-mapping step, and the debit/credit sign convention. Link to troubleshooting/csv-import-issues.html for format errors. -->
+
+      <h2>Category rules</h2>
+      <!-- CONTENT: Explain how category rules work — merchant keyword → category mappings that auto-apply on each import. Describe how to create, edit, and delete rules. Mention that rules are profile-scoped and persist across imports. -->
+
+      <h2>AI batch categorization</h2>
+      <!-- CONTENT: Describe the AI batch categorization feature — send uncategorized transactions to the AI in one pass, review the suggested categories, accept or override individual assignments. Requires an API key. Explain how it learns from your existing rules to improve future passes. -->
+
+      <h2>Reviewing flagged transactions</h2>
+      <!-- CONTENT: Explain the flagged transactions queue — transactions that couldn't be auto-matched, have ambiguous categories, or exceed the duplicate threshold. Describe how to confirm, reassign, or delete each flagged item. -->
+
+      <h2>Your spending baseline</h2>
+      <!-- CONTENT: Explain the spending baseline concept — the sum of all Essential-category transactions averaged over your import history. Describe how to mark categories as Essential vs Discretionary, and how the baseline feeds into the Savings and Retirement modules. Link to glossary.html for Baseline Monthly Expenses. -->
+
+      <h2>Trends and history</h2>
+      <!-- CONTENT: Describe the trends view — monthly spending totals, category breakdown over time, month-over-month comparison. Explain how to filter by category, merchant, or date range. Mention the export-to-CSV option for external analysis. -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to ai-advisor/how-it-works.html, troubleshooting/csv-import-issues.html, modules/savings-module.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>

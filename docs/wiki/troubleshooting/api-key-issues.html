@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>API Key Not Working — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="api-key-issues.html" class="wiki-nav-mobile-link active">Troubleshooting</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="../modules/dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="../ai-advisor/how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="../data/backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">Troubleshooting</div>
+        <a href="api-key-issues.html" class="sidebar-link active">API Key Not Working</a>
+        <a href="csv-import-issues.html" class="sidebar-link">CSV Import Issues</a>
+        <a href="data-not-syncing.html" class="sidebar-link">Data Not Syncing</a>
+        <a href="module-not-loading.html" class="sidebar-link">Module Not Loading</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="api-key-issues.html">Troubleshooting</a><span>›</span>
+        API Key Not Working
+      </div>
+      <h1>API Key Not Working</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain the most common causes of API key failures and how to diagnose them using the status indicator in the nav bar. Most issues are format errors or billing problems — not app bugs. -->
+
+      <h2>Check your key format</h2>
+      <!-- CONTENT: Explain that valid Anthropic API keys start with "sk-ant-" and are over 100 characters long. Common mistakes: accidentally copying extra whitespace at the start or end, copying only part of the key, or using a key from a different service (OpenAI keys start with "sk-" without "ant-"). Describe how to re-copy from console.anthropic.com. -->
+
+      <h2>Status indicator colors</h2>
+      <!-- CONTENT: Describe all four indicator states — Green dot: key format valid and API reachable. Amber dot: key saved but not yet tested (just entered or app just loaded). Red dot: key rejected by the API (invalid, revoked, or billing issue). Grey/no dot: no key entered. Explain how to trigger a test by running any AI analysis. -->
+
+      <h2>Rate limiting</h2>
+      <!-- CONTENT: Explain Anthropic rate limits — new accounts have low default limits. If you run many analyses quickly, you may hit a 429 (rate limit exceeded) error. Describe the error message shown in the AI Advisor panel. Recommend waiting 60 seconds and retrying. Provide the Anthropic console link to check usage and request limit increases. -->
+
+      <h2>Key entered in the wrong module</h2>
+      <!-- CONTENT: Clarify that the API key is global — entered once via the key icon in the nav bar, it applies to all modules. You do NOT enter the key inside each module separately. If AI features show as disabled despite having a key, check that it was entered via the nav bar key icon, not a different field. -->
+
+      <h2>Getting a new key</h2>
+      <!-- CONTENT: Step-by-step for revoking a broken key and generating a fresh one at console.anthropic.com. Explain how to delete the old key from the API Keys list, create a new one, copy it immediately (it's shown only once), and paste it into FFP. Note that regenerating a key doesn't affect your billing or usage history. -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to getting-started/add-api-key.html, ai-advisor/privacy.html, ai-advisor/how-it-works.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>

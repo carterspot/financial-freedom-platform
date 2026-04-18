@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Data Not Syncing Between Devices — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="api-key-issues.html" class="wiki-nav-mobile-link active">Troubleshooting</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="../modules/dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="../ai-advisor/how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="../data/backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">Troubleshooting</div>
+        <a href="api-key-issues.html" class="sidebar-link">API Key Not Working</a>
+        <a href="csv-import-issues.html" class="sidebar-link">CSV Import Issues</a>
+        <a href="data-not-syncing.html" class="sidebar-link active">Data Not Syncing</a>
+        <a href="module-not-loading.html" class="sidebar-link">Module Not Loading</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="api-key-issues.html">Troubleshooting</a><span>›</span>
+        Data Not Syncing Between Devices
+      </div>
+      <h1>Data Not Syncing Between Devices</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain the two most common causes of sync failures: cloud sync is disabled (data is in Local Only mode), or the browser's sync layer hasn't propagated yet. Walk through the diagnostic steps before suggesting a manual transfer. -->
+
+      <h2>Cloud sync requirements</h2>
+      <!-- CONTENT: List what's required for sync to work — same browser on both devices (Chrome sync, Firefox Sync, or Safari iCloud), signed into the same browser account, cloud sync enabled in FFP Settings → Storage. Note that cross-browser sync (e.g. Chrome on one device, Safari on another) is NOT supported — FFP uses each browser's native sync layer. -->
+
+      <h2>Local Only mode explained</h2>
+      <!-- CONTENT: Explain that Local Only mode is a deliberate setting that disables sync — data never leaves the device. Describe how to check if Local Only mode is active (Settings → Storage → Storage Mode shows "Local Only"). Describe how to switch to Cloud Sync mode and what happens to existing data (it's migrated to the sync layer on next save). -->
+
+      <h2>Force-refreshing storage</h2>
+      <!-- CONTENT: Describe the force-refresh steps — close all tabs of the app, wait 30 seconds for sync to propagate, reopen. If data still missing, go to Settings → Storage → Refresh Sync. Explain what this does (re-reads the sync layer and reloads all module data). Warn that this is non-destructive — it cannot overwrite newer local data with older synced data. -->
+
+      <h2>Manual backup as fallback</h2>
+      <!-- CONTENT: Explain that if sync is unreliable or unavailable, a manual JSON backup is always the most reliable transfer method. Provide the short path: export on device A, import on device B. Link to data/backup-restore.html and data/switching-devices.html. -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to data/switching-devices.html, data/backup-restore.html, getting-started/setup-profile.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AI Advisor Privacy — FFP Help</title>
+  <link rel="stylesheet" href="../wiki.css"/>
+</head>
+<body>
+  <nav class="wiki-nav">
+    <div class="wiki-nav-inner">
+      <div class="wiki-nav-left">
+        <div class="wiki-logo"></div>
+        <span class="wiki-product">Financial Freedom Platform</span>
+        <span class="wiki-help-pill">Help</span>
+      </div>
+      <a href="https://carterspot.github.io/financial-freedom-platform/dashboard/" class="wiki-app-link">← Back to App</a>
+    </div>
+  </nav>
+  <nav class="wiki-nav-mobile">
+    <a href="../index.html" class="wiki-nav-mobile-link">Help</a>
+    <a href="how-it-works.html" class="wiki-nav-mobile-link active">AI Advisor</a>
+  </nav>
+  <div class="wiki-layout">
+    <aside class="wiki-sidebar">
+      <div class="sidebar-back"><a href="../index.html" class="sidebar-back-link">← Help Center</a></div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">All Sections</div>
+        <a href="../getting-started/what-is-ffp.html" class="sidebar-link">🚀 Getting Started</a>
+        <a href="../modules/dashboard.html" class="sidebar-link">📦 Modules Guide</a>
+        <a href="how-it-works.html" class="sidebar-link">🧠 AI Advisor</a>
+        <a href="../data/backup-restore.html" class="sidebar-link">💾 Your Data</a>
+        <a href="../troubleshooting/api-key-issues.html" class="sidebar-link">🔧 Troubleshooting</a>
+        <a href="../glossary.html" class="sidebar-link">📖 Glossary</a>
+      </div>
+      <div class="sidebar-section-group">
+        <div class="sidebar-section-label">AI Advisor</div>
+        <a href="how-it-works.html" class="sidebar-link">How It Works</a>
+        <a href="depth-settings.html" class="sidebar-link">Depth Settings</a>
+        <a href="privacy.html" class="sidebar-link active">Privacy</a>
+      </div>
+    </aside>
+    <main class="wiki-main">
+      <div class="breadcrumb">
+        <a href="../index.html">Help</a><span>›</span>
+        <a href="how-it-works.html">AI Advisor</a><span>›</span>
+        AI Advisor Privacy
+      </div>
+      <h1>AI Advisor Privacy</h1>
+      <div class="meta">Last updated: April 2026</div>
+
+      <!-- CONTENT: Introduction — explain that privacy is a core design principle for FFP's AI features. All your financial data is stored locally in your browser. Only a structured, anonymized summary is sent to the AI when you explicitly trigger an analysis. -->
+
+      <h2>What leaves your device</h2>
+      <!-- CONTENT: Be specific about what is included in the AI prompt — aggregated financial figures (total debt, income range, savings rate, category totals), not raw transaction descriptions or account numbers. Explain what is explicitly excluded — your name, full account numbers, Social Security numbers, policy numbers, and merchant-level transaction descriptions. -->
+
+      <h2>How your data is used</h2>
+      <!-- CONTENT: Explain Anthropic's API data handling — prompts sent via the API are not used to train Claude models (as of the documented policy). Reference the API terms. Clarify that FFP does not operate a backend server — your data goes directly from your browser to the Anthropic API using your own API key. FFP never sees it. -->
+
+      <h2>Your API key</h2>
+      <!-- CONTENT: Explain that your API key is stored in your browser's localStorage (cloud-synced if cloud sync is active). It is never sent to FFP's servers. All API calls are made client-side, directly to Anthropic. Explain that you can revoke or rotate your key at any time from console.anthropic.com. Link to getting-started/add-api-key.html and troubleshooting/api-key-issues.html. -->
+
+      <h2>Opting out of AI features</h2>
+      <!-- CONTENT: Explain that AI features are entirely optional — the app works fully without an API key. Describe how to disable AI analysis buttons and hide the AI Advisor panel in Settings. Clarify that removing your API key immediately disables all AI calls — no data cleanup needed since nothing was stored by FFP. -->
+
+      <div class="see-also">
+        <h4>See Also</h4>
+        <!-- CONTENT: Links to getting-started/add-api-key.html, troubleshooting/api-key-issues.html, data/delete-data.html -->
+      </div>
+    </main>
+  </div>
+</body>
+</html>
