@@ -1,6 +1,24 @@
-// FFP Dashboard v2.0
+// FFP Dashboard v2.0.1
 // modules/dashboard.jsx
 import { useState, useEffect } from "react";
+
+// ─── Split-aware transaction expander ────────────────────────────────────────
+// Mirrors accumulateTx in modules/spending.jsx. A split parent has
+// categoryId === 'cat_split' with real category allocations in tx.splits[].
+// This flattens a parent into one pseudo-transaction per split child so any
+// downstream category aggregation works correctly.
+function expandSplitTx(tx) {
+  if (tx && tx.isSplit && Array.isArray(tx.splits) && tx.splits.length > 0) {
+    return tx.splits.map(s => ({
+      ...tx,
+      categoryId: s.categoryId,
+      amount: tx.amount < 0 ? -Math.abs(s.amount) : Math.abs(s.amount),
+      notes: s.notes || tx.notes,
+      _fromSplitParentId: tx.id,
+    }));
+  }
+  return [tx];
+}
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const AVATAR_COLORS = ["#6366f1","#ec4899","#f97316","#10b981","#3b82f6","#8b5cf6","#f43f5e","#06b6d4"];
@@ -354,7 +372,10 @@ function WealthRings({ retirementHealth, t }) {
 function ChartOverBudget({ transactions, baseline, t }) {
   if (!transactions.length) return <EmptyState label="SpendingTracker" url={URLS.spending} t={t}/>;
   const activeMonth = getActiveSpendingMonth(transactions);
-  const monthTxns = transactions.filter(tx => tx.date?.startsWith(activeMonth));
+  const monthTxns = transactions
+    .filter(tx => tx.date?.startsWith(activeMonth))
+    .flatMap(expandSplitTx)
+    .filter(tx => tx.categoryId !== 'cat_split');
   const catSpend = {};
   monthTxns.forEach(tx => {
     const cat = tx.categoryId || "Uncategorized";
@@ -612,8 +633,11 @@ function ChartWaterfall({ transactions, incStreams, cards, loans, t }) {
   }).reduce((sum, s) => sum + normalizeMonthly(s), 0);
   const totalSpend  = monthTxns.reduce((s,tx) => s + (parseFloat(tx.amount)||0), 0);
   const net         = totalIncome - totalSpend;
+  const catGroupTxns = monthTxns
+    .flatMap(expandSplitTx)
+    .filter(tx => tx.categoryId !== 'cat_split');
   const catGroups   = {};
-  monthTxns.forEach(tx => {
+  catGroupTxns.forEach(tx => {
     const cat = tx.categoryId || "Uncategorized";
     catGroups[cat] = (catGroups[cat]||0) + (parseFloat(tx.amount)||0);
   });
@@ -1489,8 +1513,11 @@ Please provide:
   const activeMonth    = getActiveSpendingMonth(spTransactions);
   const thisMonthTxns  = spTransactions.filter(tx => tx.date?.startsWith(activeMonth));
   const thisMonthSpend = thisMonthTxns.reduce((s,tx) => s+(parseFloat(tx.amount)||0), 0);
+  const thisMonthByCat = thisMonthTxns
+    .flatMap(expandSplitTx)
+    .filter(tx => tx.categoryId !== 'cat_split');
   const catSpendMap    = {};
-  thisMonthTxns.forEach(tx => { const c = tx.categoryId||"unc"; catSpendMap[c] = (catSpendMap[c]||0)+(parseFloat(tx.amount)||0); });
+  thisMonthByCat.forEach(tx => { const c = tx.categoryId||"unc"; catSpendMap[c] = (catSpendMap[c]||0)+(parseFloat(tx.amount)||0); });
   const bdlMap2 = {};
   (baseline?.breakdown||[]).forEach(b => { bdlMap2[b.categoryId] = parseFloat(b.average)||0; });
   const totalCats = Math.max(Object.keys(catSpendMap).length, 1);

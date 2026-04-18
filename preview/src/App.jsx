@@ -1,2 +1,2 @@
-import App from "../../modules/spending.jsx";
+import App from "../../modules/dashboard.jsx";
 export default App;

@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/financial-freedom-platform/spending/",
+  base: "/financial-freedom-platform/dashboard/",
   plugins: [react()],
   resolve: {
     alias: {
@@ -17,7 +17,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "../docs/spending",
+    outDir: "../docs/dashboard",
     emptyOutDir: true,
   },
 })
