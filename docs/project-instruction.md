@@ -15,7 +15,7 @@ Financial Freedom Platform
 ├── 🏦 LoanTracker       (BUILT — v1.2 complete)
 ├── ⚡ DebtTracker       (BUILT — v1.5 complete)
 ├── 💰 IncomeTracker     (BUILT — v1.2 complete)
-├── 📊 SpendingTracker   (BUILT — v1.9 complete)
+├── 📊 SpendingTracker   (BUILT — v1.10 complete)
 ├── 🏦 SavingsModule     (BUILT — v1.2 complete)
 ├── 📈 RetirementModule  (BUILT — v1.1 complete)
 ├── 💹 Investment Module (BUILT — v1.1 complete)
@@ -45,7 +45,7 @@ Modules are deployed as static builds via Vite to `docs/{module}/` subfolders. G
 ```
 https://carterspot.github.io/financial-freedom-platform/dashboard/  ← Dashboard v2.0 (entry point — root redirects here)
 https://carterspot.github.io/financial-freedom-platform/debt/       ← DebtTracker v1.5
-https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.9
+https://carterspot.github.io/financial-freedom-platform/spending/   ← SpendingTracker v1.10
 https://carterspot.github.io/financial-freedom-platform/income/     ← IncomeTracker v1.2
 https://carterspot.github.io/financial-freedom-platform/savings/    ← SavingsModule v1.2
 https://carterspot.github.io/financial-freedom-platform/retirement/ ← RetirementModule v1.1
@@ -465,7 +465,7 @@ ffp_categories_{profileId} (shared) — seeded on first run if empty
 
 ---
 
-## Module 5: SpendingTracker (COMPLETE — v1.8)
+## Module 5: SpendingTracker (COMPLETE — v1.10)
 
 ### What it is
 Tracks spending transactions via CSV import from any bank or credit card statement. Owns the shared rules engine (`ffp_cat_rules_`) and is the first module to provide full category management UI. AI batch categorization on import, actuals view with 3-month rolling average, and a full rules CRUD interface.
@@ -520,6 +520,37 @@ sp_selected_range_{profileId}  (shared) — date range when range mode is active
 - Dark mode contrast pass — account nickname, RulesTab headers, empty-state placeholders upgraded from `tx3` → `tx2`
 - Edit Transaction modal — "+ Create Rule from This" pre-fills RuleModal and applies retroactively on save; "+ New Category" (`NewCategoryModal`: name/icon/type/color) immediately selects new category and saves to `ffp_categories_`
 - Transfer category `trn_001` added to `DEFAULT_CATEGORIES` — seeded on init and profile switch if missing
+
+### v1.10 features (April 2026) — Transaction splits + standalone Reconcile tab
+
+**Prompt 1 — Transaction splits (`isSplit`, `splits[]`, `SPLIT_CATEGORY_ID`):**
+- New sentinel constant `SPLIT_CATEGORY_ID = 'cat_split'` — not a real category, filtered out of the category `<select>`
+- `TransactionModal` gains a "Split transaction / Remove split" toggle below the category row
+- When active: hides single-category select, renders per-split rows (amount + category + optional notes) with a "＋ Add line item" button (max 8) and a live `"Allocated $X of $Y"` indicator — red unless the sum exactly equals `Math.abs(amount)` (see Deferred Architectural Decisions: no rounding slack in v1)
+- Save validation: sum must match exactly, every split must have a categoryId, minimum 2 splits
+- `accumulateTx` helper (hoisted, top level) expands split parents into per-child category totals across `SummaryTab` + `TrendsTab` — `cat_split` never appears in any budget total
+- `computeRollingAvg` + `computeRollingAvgIncome` updated to match split children by categoryId
+- `TransactionRow` shows `⎇ Split (N)` badge on split parents
+- CSV export keeps one row per transaction; split parents get category = `"Split"` and notes appended with `[Split: Groceries $45.00 / Household $30.00]`
+
+**Prompt 2 — Standalone Reconcile tab (post-hoc cross-method dedup):**
+- New top-level tab "Reconcile" with red pill count badge when unresolved pairs exist
+- `findDuplicatePairs(transactions, dismissedPairs)` — amount-bucketed detection (exact match to the penny, then date delta ≤ 3 days, then Jaccard similarity on lowercased token sets ≥ 0.5). Performant on 5,000+ transactions.
+- Compares only at top level — split parents compared by total `amount`; split children are internal to their parent and never surfaced as separate records
+- Pairs already cross-reconciled (`a.reconciledWith === b.id` or vice versa — scan-flow output from v1.9) are skipped automatically; no P3 prompt was needed, this folded into P2
+- Four actions per pair: Keep A (deletes B, marks A reconciled), Keep B (deletes A, marks B reconciled), Keep Both (marks both reconciled, dismisses pair), Not a duplicate (dismisses only)
+- Destructive actions route through `ConfirmModal` — no `window.confirm` (JSX rule 3)
+- Dismissed pairs persist in new shared key `sp_dedup_dismissed_{profileId}` as `[{ pairKey, dismissedAt }]`. `pairKey` is the two transaction IDs sorted lexically and joined by `:` — stable across reloads
+- Deletes flow through existing `saveTransactions` → `recalcBaseline` path, so removing an essential-tagged transaction updates `ffp_baseline_` immediately
+- Existing entry-time dedup flows (`buildDedupData` + `ImportStep4` CSV dedup, `findDuplicate` + `DuplicateCheckModal` scan dedup) are untouched — this tab is the catch-all for cross-method duplicates they can't see
+
+### v1.9 features (April 2026) — Receipt scan + duplicate detection
+- `📷 Scan Receipt` button in Transactions tab — camera capture (mobile) or file picker (desktop), multi-file selection
+- Claude vision model extracts merchant / date / total / per-line items across multiple receipts per image
+- Consolidated review screen — editable cards with AI-suggested categories pre-filled, low-confidence items (blank description or zero amount) flagged amber
+- `findDuplicate(receipt, transactions)` pre-save check — same amount, date ±3 days, similar merchant → side-by-side `DuplicateCheckModal` with Skip (mark existing reconciled) / Replace / Keep Both
+- `entryMethod` field added to every transaction: `"scan"` / `"csv_import"` / `"manual"` — additive, no migration needed
+- `reconciled` + `reconciledWith` fields added to scan-flow output — consumed by v1.10 Reconcile tab
 
 ### v1.8 features (April 2026) — Baseline Monthly Expenses
 
@@ -578,6 +609,8 @@ ffp_cat_rules_{profileId}      (shared) — SHARED, Spending owns CRUD
 ffp_import_maps_{profileId}    (shared) — column mapper settings per account
 ffp_baseline_{profileId}       (shared) — WRITTEN by SpendingTracker, READ by Savings + Retirement
                                            { amount, breakdown, calculatedOn, monthsUsed }
+sp_dedup_dismissed_{profileId} (shared) — v1.10 Reconcile tab dismissals
+                                           [{ pairKey, dismissedAt }]  pairKey = sorted(idA,idB).join(":")
 ```
 
 ### Transaction schema
@@ -1302,7 +1335,7 @@ docs/
 - ✅ SpendingTracker v1.9 — receipt scan (camera + photo library), multi-receipt per image, review screen, AI-suggested categories, duplicate detection + reconciliation prompt, entryMethod tracking
 - ✅ Test data generator — `scripts/generate-test-data.js`, seeded RNG, 5 personas, week/month modes, exact bank CSV formats, JSON debt/income exports (commit 3fbdc9d)
 - ✅ Help Wiki scaffold — docs/wiki/ (26 files, Intercom-ready HTML, client-side search, April 2026)
-- [ ] SpendingTracker v1.10 — splits (`isSplit`, `splits[]`, `cat_split` parent), standalone reconciliation/dedup system. Designed, not yet prompted.
+- ✅ SpendingTracker v1.10 — transaction splits (`isSplit`, `splits[]`, `SPLIT_CATEGORY_ID`) + standalone Reconcile tab (post-hoc cross-method dedup, `sp_dedup_dismissed_` key). Commits b217d13 + 3120017 (April 2026). Build 340.64 KB.
 - [ ] AI Advisor — holistic cross-module planning with manual correction layer (capstone — standalone module, distinct from Dashboard v2.0 AI panel)
 - [ ] Node graph v2 — draggable nodes, edge highlighting, Investment module node
 - [ ] Graduation — Next.js + Supabase hosted app

@@ -1,7 +1,7 @@
 # CTO Memory — Financial Freedom Platform
 **Location:** `docs/internal/CTO-MEMORY.md`  
 **Purpose:** Bootstraps CTO identity and project context in a cold Claude Code session.  
-**Updated:** 2026-04-17 (wiki scaffold scoped and built, Opus 4.7 model policy locked, session complete)  
+**Updated:** 2026-04-18 (SpendingTracker v1.10 shipped — splits + standalone Reconcile tab; model policy, wiki scaffold prior sessions)  
 **Read this file + docs/internal/ffp-cto-SKILL.md + docs/project-instruction.md at every CTO session start.**
 
 ---
@@ -45,7 +45,7 @@ Carter brings vision/request → CTO chat (this session) → architecture decisi
 | Dashboard | v2.0 | `modules/dashboard.jsx` | `.../dashboard/` |
 | DebtTracker | v1.5 | `modules/debt-tracker.jsx` | `.../debt/` |
 | IncomeTracker | v1.2 | `modules/income-tracker.jsx` | `.../income/` |
-| SpendingTracker | v1.9 | `modules/spending.jsx` | `.../spending/` |
+| SpendingTracker | v1.10 | `modules/spending.jsx` | `.../spending/` |
 | SavingsModule | v1.2 | `modules/savings.jsx` | `.../savings/` |
 | RetirementModule | v1.1 | `modules/retirement.jsx` | `.../retirement/` |
 | InvestmentModule | v1.1 | `modules/investment.jsx` | `.../investment/` |
@@ -156,6 +156,8 @@ modules/loan-tracker.jsx         ← LoanTracker (deprecated, do not touch)
 - ✅ Dashboard v2.0 patch — prior module AI results loaded, missing module detection, extractAiText multi-shape handler
 - ✅ InsuranceTracker v1.0 — PIN lock (usePinLock hook), Legacy Ring feed, 5 tabs, 3 AI features, ins_legacy_health_ key
 - ✅ Help Wiki scaffold — 26 files at docs/wiki/, wiki.css, index + search, article stubs with H2 outlines, Intercom-ready HTML (April 2026)
+- ✅ SpendingTracker v1.10 P1 — transaction splits (`isSplit`, `splits[]`, `SPLIT_CATEGORY_ID` sentinel). TransactionModal split toggle + per-line category allocation, live "Allocated $X of $Y" validator, accumulateTx helper expands splits into category totals across SummaryTab + TrendsTab, computeRollingAvg patched. Commit b217d13 (2026-04-18).
+- ✅ SpendingTracker v1.10 P2 — standalone Reconcile tab. Post-hoc cross-method duplicate detection (manual + csv_import + scan). Amount-bucketed detection, Jaccard similarity, `sp_dedup_dismissed_{profileId}` persistence. Actions: Keep A / Keep B / Keep Both / Not a duplicate. Existing scan/import flows untouched. `reconciledWith` filter folded in (no P3 needed). Commit 3120017 (2026-04-18).
 
 ---
 
@@ -221,9 +223,10 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 1. ✅ **Freedom Rings IP check** — complete (2026-04-15). Name clear, ring visual safe, "Close the Rings/Your Rings" off limits (Apple trademark). CTA phrase decision pending. Research doc: `docs/research/ip-check-freedom-rings.md`.
 2. ✅ **SpendingTracker v1.9** — shipped (2026-04-15, commit f8a70ef). Receipt scan, multi-receipt review screen, duplicate detection + reconciliation prompt, entryMethod tracking. 329 KB build.
 3. ✅ **Help Wiki scaffold** — complete (2026-04-17). 26-file HTML structure at `docs/wiki/`. Shared `wiki.css` with FFP design tokens, index page with client-side search, 24 article stubs across 6 sections with correct H2 outlines and `<!-- CONTENT -->` markers. Intercom-ready HTML format confirmed. Build prompt: `docs/build-prompts/prompt-wiki-scaffold.md`.
-4. **Wiki content pass** — CTO writes 26 articles (200–400 words each). Getting Started section first (5 articles), then Glossary (1 page, high value), then Troubleshooting (4 articles), then module deep-dives. Estimate 4–6 CTO sessions. No Code involvement — content writing only.
-5. **Test persona update** — Code updates Emma, Marcus, Sarah, Jordan, Taylor data files for Insurance, Investment, and Dashboard modules. Single Code Clone, one session. Prompt pending.
-6. **Graduation planning** — Next.js + Supabase architecture discussion. Blocked until Carter's incoming updates are reviewed and resolved.
+4. ✅ **SpendingTracker v1.10** — shipped (2026-04-18, commits b217d13 + 3120017). P1: transaction splits (`isSplit`, `splits[]`, `SPLIT_CATEGORY_ID`). P2: standalone Reconcile tab with cross-method post-hoc dedup, `sp_dedup_dismissed_{profileId}` storage. Build 340.64 KB. Build prompts: `docs/build-prompts/spending-v1.10-p1-splits.md`, `docs/build-prompts/spending-v1.10-p2-dedup-panel.md`. P3 folded into P2 — no separate prompt needed.
+5. **Wiki content pass** — CTO writes 26 articles (200–400 words each). Getting Started section first (5 articles), then Glossary (1 page, high value), then Troubleshooting (4 articles), then module deep-dives. Estimate 4–6 CTO sessions. No Code involvement — content writing only.
+6. **Test persona update** — Code updates Emma, Marcus, Sarah, Jordan, Taylor data files for Insurance, Investment, and Dashboard modules. Single Code Clone, one session. Prompt pending. Must include split transactions in Emma's SpendingTracker CSV and a few reconcilable duplicates to exercise v1.10.
+7. **Graduation planning** — Next.js + Supabase architecture discussion. Blocked until Carter's incoming updates are reviewed and resolved.
 
 ## Deferred Architectural Decisions
 

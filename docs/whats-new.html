@@ -84,7 +84,7 @@
     <a href="#investment-module" class="nav-pill">💹 Investment Module v1.1</a>
     <a href="#retirement-module" class="nav-pill">📈 Retirement Module v1.1</a>
     <a href="#savings-module" class="nav-pill">🏦 Savings Module v1.2</a>
-    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.9</a>
+    <a href="#spending-tracker" class="nav-pill">📊 SpendingTracker v1.10</a>
     <a href="#income-tracker" class="nav-pill">💰 IncomeTracker v1.2</a>
     <a href="#debt-tracker" class="nav-pill">⚡ DebtTracker v1.5</a>
     <a href="#card-tracker" class="nav-pill">💳 CardTracker v3.1</a>
@@ -560,9 +560,43 @@
       <div class="module-icon" style="background:linear-gradient(135deg,#f97316,#f59e0b)">📊</div>
       <div>
         <div class="module-name">SpendingTracker</div>
-        <div class="module-version">v1.9</div>
+        <div class="module-version">v1.10</div>
       </div>
       <div class="module-date">April 2026</div>
+    </div>
+
+    <div class="release">
+      <div class="release-tag tag-feature">✨ New Feature — v1.10</div>
+      <div class="changes">
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Transaction splits — one purchase, many categories</h4>
+            <p>Tap "Split transaction" in the Add/Edit Transaction screen to divide one purchase across up to 8 categories. Each split line has its own amount, category, and optional note. A live "Allocated $X of $Y" indicator turns green when the splits add up exactly to the transaction total. Splits show as a ⎇ Split (N) badge in the transaction list, and every summary/trends view correctly attributes each split line to its own category — so a single Walmart run spread across Groceries, Household, and Personal shows up in all three buckets.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Reconcile tab — catch duplicates across manual, import, and scan</h4>
+            <p>A new Reconcile tab scans every transaction and flags likely duplicates across all entry methods. Same amount, date within 3 days, and a similar description gets pulled into a side-by-side review. This catches overlaps your bank import or receipt scan couldn't see — like a transaction you typed manually last week that shows up again in today's CSV. Four actions per pair: Keep A, Keep B, Keep Both, or Not a duplicate. Dismissed pairs never resurface. The tab badge tells you how many unresolved pairs remain.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--amber)"></div>
+          <div class="change-body">
+            <h4>Split totals flow through everything</h4>
+            <p>Splits aren't a cosmetic tag — they're aggregated into the Summary tab totals, the Trends tab charts, the 3-month rolling average, and the Baseline Monthly Expenses calculation. The split parent never shows up as its own category; only the per-line categories do. Your budget picture stays accurate no matter how you break a receipt down.</p>
+          </div>
+        </div>
+        <div class="change">
+          <div class="change-dot" style="background:var(--indigo)"></div>
+          <div class="change-body">
+            <h4>Exact-to-the-penny validation</h4>
+            <p>Splits must sum exactly to the transaction total — no slack. The allocation indicator stays red until the math is right. This keeps split data trustworthy for every downstream view and prevents a common category of silent reporting errors. Rounding slack may be revisited if Plaid integration introduces ±$0.01 drift later.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="release">

@@ -7,7 +7,7 @@
 | 🏦 LoanTracker | `modules/loan-tracker.jsx` | ✅ v1.2 |
 | ⚡ DebtTracker | `modules/debt-tracker.jsx` | ✅ v1.5 |
 | 💰 IncomeTracker | `modules/income-tracker.jsx` | ✅ v1.2 |
-| 📊 SpendingTracker | `modules/spending.jsx` | ✅ v1.9 |
+| 📊 SpendingTracker | `modules/spending.jsx` | ✅ v1.10 |
 | 🏦 SavingsModule | `modules/savings.jsx` | ✅ v1.2 |
 | 📈 RetirementModule | `modules/retirement.jsx` | ✅ v1.1 |
 | 💹 InvestmentModule | `modules/investment.jsx` | ✅ v1.1 |

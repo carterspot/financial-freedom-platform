@@ -258,11 +258,11 @@ body{background:var(--bg);color:var(--tx1);font-family:'DM Sans','Segoe UI',sans
 // ═══════════════════════════════════════════════════════════════════════════════
 const CONFIG = {
 
-  lastUpdated: "2026-04-07",
+  lastUpdated: "2026-04-18",
 
   modules: [
     {
-      id: "spending", icon: "📊", name: "SpendingTracker", ver: "v1.8", status: "live",
+      id: "spending", icon: "📊", name: "SpendingTracker", ver: "v1.10", status: "live",
       url: "https://carterspot.github.io/financial-freedom-platform/spending/",
       piSection: "docs/project-instruction.md#module-5-spendingtracker",
       features: [
@@ -271,11 +271,13 @@ const CONFIG = {
         "Trends tab + 3-month rolling summary panel",
         "Recurrence tagging — sinking fund candidate handoff to Savings",
         "Baseline Monthly Expenses panel — 3-month rolling avg of essential categories",
-        "Essential vs. discretionary category tagging + AI Tag Helper",
         "Writes ffp_baseline_ shared key for Savings + Retirement",
-        "Defaults to latest month with data on load"
+        "Receipt scan — camera/library, multi-receipt per image, AI categorization (v1.9)",
+        "Duplicate detection on scan + entryMethod tracking (v1.9)",
+        "Transaction splits — isSplit, splits[], SPLIT_CATEGORY_ID, exact-to-penny validation (v1.10)",
+        "Reconcile tab — post-hoc cross-method dedup, sp_dedup_dismissed_ persistence (v1.10)"
       ],
-      notes: "v1.8 — baseline monthly expenses live. ffp_baseline_ pipeline active. Category + rules engine owner for platform."
+      notes: "v1.10 — splits + standalone Reconcile tab shipped 2026-04-18. Commits b217d13 + 3120017. Build 340.64 KB. Category + rules engine owner for platform."
     },
     {
       id: "income", icon: "💰", name: "IncomeTracker", ver: "v1.2", status: "live",
