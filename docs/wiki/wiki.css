@@ -112,7 +112,7 @@ a { color: var(--primary); }
 .sidebar-back { margin-bottom: 20px; }
 .sidebar-back-link {
   font-size: 12px;
-  color: var(--tx3);
+  color: var(--tx2);
   text-decoration: none;
   font-weight: 600;
   transition: color 0.15s;
@@ -163,19 +163,19 @@ a { color: var(--primary); }
 /* ==================== BREADCRUMB ==================== */
 .breadcrumb {
   font-size: 11px;
-  color: var(--tx3);
+  color: var(--tx2);
   margin-bottom: 24px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
 }
 .breadcrumb a {
-  color: var(--tx3);
+  color: var(--tx2);
   text-decoration: none;
   transition: color 0.15s;
 }
-.breadcrumb a:hover { color: var(--tx2); }
-.breadcrumb span { margin: 0 6px; color: var(--tx3); }
+.breadcrumb a:hover { color: var(--tx1); }
+.breadcrumb span { margin: 0 6px; color: var(--tx2); }
 
 /* ==================== ARTICLE TYPOGRAPHY ==================== */
 .wiki-main h1 {
@@ -216,7 +216,7 @@ a { color: var(--primary); }
 
 .meta {
   font-size: 11px;
-  color: var(--tx3);
+  color: var(--tx2);
   margin-top: 8px;
   margin-bottom: 40px;
   font-family: 'JetBrains Mono', monospace;
@@ -257,7 +257,7 @@ code {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--tx3);
+  color: var(--tx2);
   margin-bottom: 12px;
 }
 .see-also a {
