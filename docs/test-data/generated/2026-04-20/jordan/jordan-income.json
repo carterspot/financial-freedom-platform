@@ -1,0 +1,35 @@
+{
+  "version": "inc_1.0",
+  "exportedAt": "2026-04-20T07:00:00.000Z",
+  "profileId": "pin_jordan_williams",
+  "streams": [
+    {
+      "id": "inc_jordan_001",
+      "name": "TechBridge Solutions - Base Salary",
+      "type": "W2",
+      "amount": "2975",
+      "frequency": "Bi-Weekly",
+      "stabilityRating": "Stable",
+      "afterTax": true,
+      "startDate": "2023-04-01",
+      "endDate": "",
+      "notes": "Inside Sales Manager. Base $95K. Biweekly deposit.",
+      "categoryId": "inc_001",
+      "color": "#6366f1"
+    },
+    {
+      "id": "inc_jordan_002",
+      "name": "TechBridge Solutions - Sales Commission",
+      "type": "W2",
+      "amount": "1570",
+      "frequency": "Monthly",
+      "stabilityRating": "Variable",
+      "afterTax": true,
+      "startDate": "2023-04-01",
+      "endDate": "",
+      "notes": "Variable commission paid 20th of each month. Range $500-$3000.",
+      "categoryId": "inc_001",
+      "color": "#ec4899"
+    }
+  ]
+}

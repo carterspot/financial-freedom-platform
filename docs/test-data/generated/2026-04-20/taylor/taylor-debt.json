@@ -1,0 +1,57 @@
+{
+  "version": "dt_1.0",
+  "exportedAt": "2026-04-20T07:00:00.000Z",
+  "profileId": "pin_taylor_williams",
+  "cards": [
+    {
+      "id": "dt_taylor_card_001",
+      "name": "Citi Premier",
+      "last4": "3308",
+      "color": "#10b981",
+      "balance": "1280.00",
+      "limit": "10000",
+      "apr": "17.99",
+      "minPaymentMode": "auto",
+      "minPaymentFixed": "",
+      "monthlyPayment": "1100",
+      "payoffMode": "payment",
+      "dueDay": "12",
+      "statementDay": "4",
+      "expiration": "03/29",
+      "originalBalance": "1240.00"
+    }
+  ],
+  "loans": [
+    {
+      "id": "dt_taylor_loan_001",
+      "name": "Sommerset Hills Townhome",
+      "lender": "Bank of America",
+      "type": "mortgage",
+      "color": "#6366f1",
+      "originalBalance": "485000",
+      "currentBalance": "429705.12",
+      "interestRate": "6.100",
+      "monthlyPayment": "2940.00",
+      "termMonths": 360,
+      "remainingMonths": "299",
+      "nextPaymentDay": "1",
+      "notes": "Primary residence. 2BR townhome, Temecula CA. 5 years in. HOA $225/mo."
+    },
+    {
+      "id": "dt_taylor_loan_002",
+      "name": "SD Condo - Investment",
+      "lender": "Bank of America",
+      "type": "mortgage",
+      "color": "#06b6d4",
+      "originalBalance": "395000",
+      "currentBalance": "360020.15",
+      "interestRate": "5.750",
+      "monthlyPayment": "2305.00",
+      "termMonths": 360,
+      "remainingMonths": "323",
+      "nextPaymentDay": "3",
+      "notes": "Rental property - 1BR condo, San Diego CA. Tenant pays $2,650/mo. Positive cash flow ~$345."
+    }
+  ],
+  "logs": []
+}

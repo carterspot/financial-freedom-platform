@@ -1,0 +1,35 @@
+{
+  "version": "inc_1.0",
+  "exportedAt": "2026-04-20T07:00:00.000Z",
+  "profileId": "pin_taylor_williams",
+  "streams": [
+    {
+      "id": "inc_taylor_001",
+      "name": "Temecula Valley Hospital - RN",
+      "type": "W2",
+      "amount": "2550",
+      "frequency": "Bi-Weekly",
+      "stabilityRating": "Stable",
+      "afterTax": true,
+      "startDate": "2021-09-01",
+      "endDate": "",
+      "notes": "Base pay. Shift differentials add $200-$450 on some checks. 401k maxed via payroll.",
+      "categoryId": "inc_001",
+      "color": "#10b981"
+    },
+    {
+      "id": "inc_taylor_002",
+      "name": "SD Condo - Rental Income",
+      "type": "Rental",
+      "amount": "2650",
+      "frequency": "Monthly",
+      "stabilityRating": "Stable",
+      "afterTax": false,
+      "startDate": "2023-03-01",
+      "endDate": "",
+      "notes": "1BR condo, San Diego. Tenant since Mar 2023. Mortgage on property is $2,305/mo. Net cash flow ~$345.",
+      "categoryId": "inc_004",
+      "color": "#3b82f6"
+    }
+  ]
+}
