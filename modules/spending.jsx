@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// SpendingTracker v1.9
+// SpendingTracker v1.10
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MODULE_PREFIX = "sp_";
 const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
 const MODEL = "claude-sonnet-4-20250514";
+const SPLIT_CATEGORY_ID = "cat_split";
+const MAX_SPLIT_ITEMS = 8;
 const AVATAR_COLORS = ["#6366f1","#ec4899","#f97316","#10b981","#3b82f6","#8b5cf6","#f43f5e","#06b6d4"];
 const COLOR = {
   primary:  "#6366f1",
@@ -221,6 +223,33 @@ function getMonthLabel(ym) {
   return new Date(y,m-1,1).toLocaleString("en-US",{month:"long",year:"numeric"});
 }
 
+// Split-aware category accumulator. Hoisted so SummaryTab + TrendsTab share one rule:
+// a split parent contributes only through its children; the sentinel SPLIT_CATEGORY_ID
+// must never land in a bucket.
+function accumulateTx(tx, buckets) {
+  if (tx.isSplit && tx.splits && tx.splits.length) {
+    for (const s of tx.splits) {
+      const cid = s.categoryId || "exp_057";
+      if (cid === SPLIT_CATEGORY_ID) continue;
+      buckets[cid] = (buckets[cid] || 0) + Math.abs(parseFloat(s.amount) || 0);
+    }
+  } else {
+    const cid = tx.categoryId || "exp_057";
+    if (cid === SPLIT_CATEGORY_ID) return;
+    buckets[cid] = (buckets[cid] || 0) + Math.abs(tx.amount);
+  }
+}
+
+// Sum a split's children that match categoryId.
+function splitChildSum(tx, categoryId) {
+  if (!tx.isSplit || !tx.splits || !tx.splits.length) return 0;
+  let s = 0;
+  for (const item of tx.splits) {
+    if ((item.categoryId || "exp_057") === categoryId) s += Math.abs(parseFloat(item.amount) || 0);
+  }
+  return s;
+}
+
 function computeRollingAvg(transactions, categoryId, selectedMonth, months) {
   months = months || 3;
   let totals = [];
@@ -228,8 +257,15 @@ function computeRollingAvg(transactions, categoryId, selectedMonth, months) {
   for (let i = 0; i < months; i++) {
     cur = prevMonth(cur);
     const total = transactions
-      .filter(t => t.categoryId === categoryId && t.date && t.date.startsWith(cur) && t.amount < 0)
-      .reduce((s,t) => s + Math.abs(t.amount), 0);
+      .filter(t => {
+        if (!t.date || !t.date.startsWith(cur) || !(t.amount < 0)) return false;
+        if (t.isSplit && t.splits && t.splits.length) return t.splits.some(s => (s.categoryId || "exp_057") === categoryId);
+        return t.categoryId === categoryId;
+      })
+      .reduce((s, t) => {
+        if (t.isSplit && t.splits && t.splits.length) return s + splitChildSum(t, categoryId);
+        return s + Math.abs(t.amount);
+      }, 0);
     totals.push(total);
   }
   const sum = totals.reduce((a,b) => a+b, 0);
@@ -243,8 +279,15 @@ function computeRollingAvgIncome(transactions, categoryId, selectedMonth, months
   for (let i = 0; i < months; i++) {
     cur = prevMonth(cur);
     const total = transactions
-      .filter(t => t.categoryId === categoryId && t.date && t.date.startsWith(cur) && t.amount > 0)
-      .reduce((s, t) => s + t.amount, 0);
+      .filter(t => {
+        if (!t.date || !t.date.startsWith(cur) || !(t.amount > 0)) return false;
+        if (t.isSplit && t.splits && t.splits.length) return t.splits.some(s => (s.categoryId || "exp_057") === categoryId);
+        return t.categoryId === categoryId;
+      })
+      .reduce((s, t) => {
+        if (t.isSplit && t.splits && t.splits.length) return s + splitChildSum(t, categoryId);
+        return s + t.amount;
+      }, 0);
     totals.push(total);
   }
   return totals.reduce((a, b) => a + b, 0) / months;
@@ -562,9 +605,16 @@ function BackupModal({ t, transactions, accounts, categories, onClose, onImport,
     const catMap = Object.fromEntries((categories||[]).map(c => [c.id, c.name]));
     const accMap = Object.fromEntries((accounts||[]).map(a => [a.id, a.nickname]));
     const header = "date,description,amount,category,account,notes";
-    const rows = (transactions||[]).map(t2 =>
-      [t2.date, `"${(t2.description||"").replace(/"/g,'""')}"`, t2.amount, catMap[t2.categoryId]||"", accMap[t2.accountId]||"", `"${(t2.notes||"").replace(/"/g,'""')}"`].join(",")
-    );
+    const rows = (transactions||[]).map(t2 => {
+      const isSplit = t2.isSplit && Array.isArray(t2.splits) && t2.splits.length > 0;
+      const categoryCell = isSplit ? "Split" : (catMap[t2.categoryId] || "");
+      let notesVal = t2.notes || "";
+      if (isSplit) {
+        const parts = t2.splits.map(s => `${catMap[s.categoryId] || "Uncategorized"} $${(Math.abs(parseFloat(s.amount) || 0)).toFixed(2)}`).join(" / ");
+        notesVal = (notesVal ? notesVal + " " : "") + `[Split: ${parts}]`;
+      }
+      return [t2.date, `"${(t2.description||"").replace(/"/g,'""')}"`, t2.amount, categoryCell, accMap[t2.accountId]||"", `"${notesVal.replace(/"/g,'""')}"`].join(",");
+    });
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], {type:"text/csv"});
     const url = URL.createObjectURL(blob);
@@ -967,12 +1017,69 @@ function TransactionModal({ t, transaction, accounts, categories, rules, onSave,
   );
   const [showRuleForm, setShowRuleForm] = useState(false);
   const [showNewCat,   setShowNewCat]   = useState(false);
+  const [isSplit,      setIsSplit]      = useState(!!transaction?.isSplit);
+  const [splits,       setSplits]       = useState(transaction?.splits?.length ? transaction.splits.map(s => ({ id: s.id || generateId(), amount: String(s.amount ?? ""), categoryId: s.categoryId || "exp_057", notes: s.notes || "" })) : []);
+  const [splitError,   setSplitError]   = useState(null);
+
+  const splitCategories = categories.filter(c => c.id !== SPLIT_CATEGORY_ID);
+  const parsedTarget = parseAmount(amount);
+  const targetTotal = parsedTarget === null ? 0 : Math.abs(parsedTarget);
+  const splitTotal = splits.reduce((s, item) => s + (parseFloat(item.amount) || 0), 0);
+  const splitBalanced = isSplit && Math.round((targetTotal - splitTotal) * 100) === 0 && targetTotal > 0;
+
+  function updateSplit(idx, patch) {
+    setSplits(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s));
+    if (splitError) setSplitError(null);
+  }
+  function addSplit() {
+    setSplits(prev => prev.length >= MAX_SPLIT_ITEMS ? prev : [...prev, { id: generateId(), amount: "", categoryId: "exp_057", notes: "" }]);
+  }
+  function removeSplit(idx) {
+    setSplits(prev => prev.filter((_, i) => i !== idx));
+  }
+  function toggleSplit() {
+    if (isSplit) {
+      setIsSplit(false);
+      setSplits([]);
+      setSplitError(null);
+    } else {
+      setIsSplit(true);
+      setSplits([{ id: generateId(), amount: "", categoryId: "exp_057", notes: "" }]);
+    }
+  }
 
   function handleSave() {
     const amt = parseAmount(amount);
     if (!date || !description.trim() || amt === null) return;
+    if (isSplit) {
+      if (splits.length < 2) { setSplitError("Add at least 2 split items."); return; }
+      if (splits.some(s => !s.categoryId)) { setSplitError("Every split line needs a category."); return; }
+      const sum = splits.reduce((s, item) => s + (parseFloat(item.amount) || 0), 0);
+      if (Math.round((Math.abs(amt) - sum) * 100) !== 0) {
+        setSplitError(`Splits must total ${fmt$(Math.abs(amt))} (current: ${fmt$(sum)}).`);
+        return;
+      }
+    }
     const isSinkingFundCandidate = ["quarterly","biannual","annual","one-time"].includes(recurrenceType);
-    onSave({ ...(transaction||{}), id:transaction?.id||generateId(), date, description:description.trim(), amount:amt, accountId, categoryId, notes, recurrenceType: recurrenceType||null, recurrencePattern: (recurrenceType && recurrenceType !== "monthly") ? recurrencePattern.trim() : null, isSinkingFundCandidate, categoryLocked:true, needsReview:false, importedAt:transaction?.importedAt||new Date().toISOString(), entryMethod: transaction?.entryMethod || "manual" });
+    onSave({
+      ...(transaction||{}),
+      id: transaction?.id || generateId(),
+      date,
+      description: description.trim(),
+      amount: amt,
+      accountId,
+      categoryId: isSplit ? SPLIT_CATEGORY_ID : categoryId,
+      notes,
+      recurrenceType: recurrenceType || null,
+      recurrencePattern: (recurrenceType && recurrenceType !== "monthly") ? recurrencePattern.trim() : null,
+      isSinkingFundCandidate,
+      isSplit,
+      splits: isSplit ? splits.map(s => ({ id: s.id, amount: parseFloat(s.amount) || 0, categoryId: s.categoryId, notes: s.notes || "" })) : [],
+      categoryLocked: true,
+      needsReview: false,
+      importedAt: transaction?.importedAt || new Date().toISOString(),
+      entryMethod: transaction?.entryMethod || "manual",
+    });
   }
   function handleSaveRuleLocal(rule) { onSaveRule && onSaveRule(rule); setShowRuleForm(false); }
   function handleSaveNewCategory(newCat) { onSaveCategory && onSaveCategory(newCat); setCategoryId(newCat.id); setShowNewCat(false); }
@@ -1003,14 +1110,57 @@ function TransactionModal({ t, transaction, accounts, categories, rules, onSave,
         </select>
         <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:4 }}>
           <label style={{ ...lbl,marginBottom:0,flex:1 }}>CATEGORY</label>
-          <button onClick={() => setShowNewCat(true)} style={{ background:"transparent",border:"none",color:COLOR.primary,cursor:"pointer",fontSize:11,fontWeight:700,padding:"2px 4px" }}>+ New Category</button>
+          {!isSplit && (
+            <button onClick={() => setShowNewCat(true)} style={{ background:"transparent",border:"none",color:COLOR.primary,cursor:"pointer",fontSize:11,fontWeight:700,padding:"2px 4px" }}>+ New Category</button>
+          )}
         </div>
-        <select value={categoryId} onChange={e => setCategoryId(e.target.value)} style={{ ...inp,marginBottom:8 }}>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-        </select>
-        <button onClick={() => setShowRuleForm(true)} style={{ width:"100%",background:"transparent",border:`1px solid ${t.border}`,borderRadius:7,padding:"5px 10px",color:t.tx2,cursor:"pointer",fontSize:11,fontWeight:600,marginBottom:12 }}>
-          + Create Rule from This
+        {!isSplit && (
+          <select value={categoryId} onChange={e => setCategoryId(e.target.value)} style={{ ...inp,marginBottom:8 }}>
+            {categories.filter(c => c.id !== SPLIT_CATEGORY_ID).map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+          </select>
+        )}
+        {isSplit && (
+          <div style={{ background:t.surf,border:`1px solid ${t.border}`,borderRadius:8,padding:10,marginBottom:8 }}>
+            {splits.map((s, idx) => (
+              <div key={s.id} style={{ display:"grid",gridTemplateColumns:"88px 1fr 28px",gap:6,marginBottom:6,alignItems:"center" }}>
+                <input
+                  value={s.amount}
+                  onChange={e => updateSplit(idx, { amount: e.target.value })}
+                  placeholder="0.00"
+                  inputMode="decimal"
+                  style={{ ...inp,padding:"6px 8px",fontSize:12,fontFamily:"monospace" }} />
+                <select
+                  value={s.categoryId}
+                  onChange={e => updateSplit(idx, { categoryId: e.target.value })}
+                  style={{ ...inp,padding:"6px 8px",fontSize:12 }}>
+                  {splitCategories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                </select>
+                <button
+                  onClick={() => removeSplit(idx)}
+                  aria-label="Remove split"
+                  style={{ background:"transparent",border:`1px solid ${t.border}`,borderRadius:5,color:COLOR.danger,cursor:"pointer",fontSize:13,padding:"4px 0",fontWeight:700 }}>×</button>
+              </div>
+            ))}
+            <button
+              onClick={addSplit}
+              disabled={splits.length >= MAX_SPLIT_ITEMS}
+              style={{ width:"100%",background:"transparent",border:`1px dashed ${t.border2}`,borderRadius:6,padding:"6px 0",color: splits.length >= MAX_SPLIT_ITEMS ? t.tx3 : t.tx2,cursor: splits.length >= MAX_SPLIT_ITEMS ? "not-allowed" : "pointer",fontSize:11,fontWeight:600,marginTop:2 }}>
+              ＋ Add line item{splits.length >= MAX_SPLIT_ITEMS ? ` (max ${MAX_SPLIT_ITEMS})` : ""}
+            </button>
+            <div style={{ marginTop:8,fontSize:11,fontWeight:700,color: splitBalanced ? COLOR.success : COLOR.danger,fontFamily:"monospace" }}>
+              Allocated: {fmt$(splitTotal)} of {fmt$(targetTotal)}
+            </div>
+            {splitError && <div style={{ marginTop:4,fontSize:11,color:COLOR.danger }}>{splitError}</div>}
+          </div>
+        )}
+        <button onClick={toggleSplit} style={{ width:"100%",background:"transparent",border:`1px solid ${t.border}`,borderRadius:7,padding:"5px 10px",color: isSplit ? COLOR.danger : t.tx2,cursor:"pointer",fontSize:11,fontWeight:600,marginBottom:8 }}>
+          {isSplit ? "Remove split" : "Split transaction"}
         </button>
+        {!isSplit && (
+          <button onClick={() => setShowRuleForm(true)} style={{ width:"100%",background:"transparent",border:`1px solid ${t.border}`,borderRadius:7,padding:"5px 10px",color:t.tx2,cursor:"pointer",fontSize:11,fontWeight:600,marginBottom:12 }}>
+            + Create Rule from This
+          </button>
+        )}
         <label style={lbl}>NOTES</label>
         <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional note..." style={{ ...inp,marginBottom:12 }} />
         <label style={lbl}>RECURRENCE</label>
@@ -1756,7 +1906,15 @@ function TransactionRow({ t, transaction, account, category, selectMode, selecte
           {flagged && <span style={{ fontSize:9,fontWeight:700,color:COLOR.warning,background:COLOR.warning+"22",border:`1px solid ${COLOR.warning}55`,borderRadius:4,padding:"1px 5px",whiteSpace:"nowrap",flexShrink:0 }}>REVIEW</span>}
         </div>
         <div style={{ display:"flex",alignItems:"center",gap:5,flexWrap:"wrap" }}>
-          <CategoryPill category={category} />
+          {transaction.isSplit && Array.isArray(transaction.splits) && transaction.splits.length > 0 ? (
+            <span
+              title={`Split transaction — ${transaction.splits.length} items`}
+              style={{ display:"inline-flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,color:t.tx2,background:t.surf,border:`1px solid ${t.border2}`,borderRadius:10,padding:"2px 8px",whiteSpace:"nowrap" }}>
+              ⎇ Split ({transaction.splits.length})
+            </span>
+          ) : (
+            <CategoryPill category={category} />
+          )}
           {transaction.recurrenceType && (
             <span style={{ fontSize:10,color:t.tx2,background:t.surf,border:`1px solid ${t.border2}`,borderRadius:4,padding:"2px 6px",whiteSpace:"nowrap" }}>
               {{"monthly":"Monthly","quarterly":"Quarterly","biannual":"Semi-Annual","annual":"Annual","one-time":"One-Time"}[transaction.recurrenceType]}
@@ -2426,9 +2584,8 @@ function SummaryTab({ t, transactions, categories, range, onRangeChange, onNavig
   const incomeBycat = {};
   const expBycat = {};
   for (const tx of visibleTxns) {
-    const cid = tx.categoryId || "exp_057";
-    if (tx.amount > 0) incomeBycat[cid] = (incomeBycat[cid]||0) + tx.amount;
-    else if (tx.amount < 0) expBycat[cid] = (expBycat[cid]||0) + Math.abs(tx.amount);
+    if (tx.amount > 0) accumulateTx(tx, incomeBycat);
+    else if (tx.amount < 0) accumulateTx(tx, expBycat);
   }
 
   const totalMonthlyIncome  = Object.values(incomeBycat).reduce((s,v) => s+v, 0);
@@ -2675,8 +2832,7 @@ function TrendsTab({ t, transactions, categories, range, onNavigateToTxMonth }) 
     const totalIncome  = txs.filter(tx => tx.amount > 0).reduce((s,tx) => s+tx.amount, 0);
     const byCat = {};
     for (const tx of txs.filter(tx => tx.amount < 0)) {
-      const cid = tx.categoryId || "exp_057";
-      byCat[cid] = (byCat[cid]||0) + Math.abs(tx.amount);
+      accumulateTx(tx, byCat);
     }
     return { month: m, totalExpense, totalIncome, byCat };
   });
