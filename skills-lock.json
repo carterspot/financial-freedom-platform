@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "skills": {
+    "context-mode": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "computedHash": "f3870052f510d416984aa64e4675a2e2da437d6f0bfab73b439bfa57af0a754d"
+    },
+    "context-mode-ops": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "computedHash": "0d7c32d35adf4669b11acf6bc66d69ad419a0b7848f61a7472474019e1606447"
+    },
+    "ctx-doctor": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "computedHash": "ccdb54dde1ba540ce143a42cc90f9c363a49977c51b56fb2d8d2a20cfea66e54"
+    },
+    "ctx-insight": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "computedHash": "dcc3df5482c522a297bc43578fddaeddae8b22b190b54a68211bedcc467b9dfe"
+    },
+    "ctx-purge": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "computedHash": "b6d10f48787bbe8f1f58e039eedd0a808b0d962e10a035af5a6aecd3175cef07"
+    },
+    "ctx-stats": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "computedHash": "688761c1b6590738855da468c51acd855f19dd686fcd9f14c0e83cc89aaf6008"
+    },
+    "ctx-upgrade": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "computedHash": "2113c6b0d6dbf0efbac1a611a4bd142be7ca9b3f1431bd5d065806525bd9bcce"
+    }
+  }
+}

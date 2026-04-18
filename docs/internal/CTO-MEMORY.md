@@ -229,6 +229,7 @@ If anything in this memory file contradicts the PI, **the PI is authoritative.**
 
 - **Cross-module transfer reconciliation** — v1 answer is Transfer category (`trn_001`), excluded from budget totals. Full cross-module linking (checking → savings, checking → credit card, checking → brokerage) requires a shared relational transactions table. Deferred to Graduation / Supabase. Logged 2026-04-15.
 - **Money flow Sankey diagram** — Dashboard feature idea: visual map of income → spending categories → savings → investments. Low priority. Vet and spec before building. Logged 2026-04-15.
+- **Split rounding slack** — SpendingTracker v1.10 splits require exact-to-the-penny allocation (sum of splits === Math.abs(amount)). No rounding slack in v1. If Plaid integration post-Graduation surfaces ±$0.01 rounding issues on imported transactions, revisit then. Carter's call: don't overthink it now. Logged 2026-04-18.
 
 ---
 
