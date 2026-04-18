@@ -369,7 +369,7 @@ code {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: var(--tx3);
+  color: var(--tx2);
   margin-bottom: 16px;
 }
 .category-grid {
@@ -414,7 +414,7 @@ code {
 .popular-item:hover { background: var(--surf); }
 .popular-item-left { flex: 1; min-width: 0; }
 .popular-item-title { font-size: 14px; color: var(--tx1); font-weight: 500; }
-.popular-item-section { font-size: 11px; color: var(--tx3); margin-top: 2px; }
+.popular-item-section { font-size: 11px; color: var(--tx2); margin-top: 2px; }
 .popular-item-arrow { font-size: 16px; color: var(--tx3); flex-shrink: 0; margin-left: 12px; }
 
 .wiki-footer {
