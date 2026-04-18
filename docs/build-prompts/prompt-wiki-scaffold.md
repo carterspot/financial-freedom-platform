@@ -453,7 +453,7 @@ Before committing, verify:
 
 ```
 git add docs/wiki/
-git commit -m "docs: Help Wiki scaffold — 28 files, wiki.css, index with search, article stubs"
+git commit -m "docs: Help Wiki scaffold — 26 files, wiki.css, index with search, article stubs"
 git push
 ```
 
