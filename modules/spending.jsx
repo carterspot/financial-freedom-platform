@@ -510,6 +510,63 @@ function findDuplicate(receipt, transactions) {
   }) || null;
 }
 
+// ─── Post-hoc Reconciliation Helpers (v1.10-P2) ───────────────────────────────
+function pairKeyFor(idA, idB) {
+  return [idA, idB].sort().join(':');
+}
+
+function describeSimilarity(a, b) {
+  const tokA = new Set((a || '').toLowerCase().split(/\s+/).filter(Boolean));
+  const tokB = new Set((b || '').toLowerCase().split(/\s+/).filter(Boolean));
+  if (!tokA.size || !tokB.size) return 0;
+  let inter = 0;
+  tokA.forEach(tok => { if (tokB.has(tok)) inter++; });
+  return inter / (tokA.size + tokB.size - inter);
+}
+
+function findDuplicatePairs(transactions, dismissedPairs) {
+  const dismissedSet = new Set((dismissedPairs || []).map(d => d.pairKey));
+  const buckets = new Map();
+  for (const tx of transactions || []) {
+    if (!tx || !tx.id || tx.amount == null || !tx.date) continue;
+    const key = Math.abs(parseFloat(tx.amount) || 0).toFixed(2);
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(tx);
+  }
+  const pairs = [];
+  const seen = new Set();
+  for (const group of buckets.values()) {
+    if (group.length < 2) continue;
+    for (let i = 0; i < group.length; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        const a = group[i], b = group[j];
+        if (a.id === b.id) continue;
+        const pk = pairKeyFor(a.id, b.id);
+        if (seen.has(pk) || dismissedSet.has(pk)) continue;
+        if ((a.reconciled && a.reconciledWith === b.id) ||
+            (b.reconciled && b.reconciledWith === a.id)) continue;
+        const da = new Date(a.date).getTime();
+        const db = new Date(b.date).getTime();
+        if (!isFinite(da) || !isFinite(db)) continue;
+        const dayDelta = Math.round(Math.abs((da - db) / 86400000));
+        if (dayDelta > 3) continue;
+        const score = describeSimilarity(a.description, b.description);
+        const noDesc = !(a.description || '').trim() && !(b.description || '').trim();
+        if (score < 0.5 && !(noDesc && dayDelta === 0)) continue;
+        let reason;
+        if (noDesc && dayDelta === 0) reason = "Same amount, same day, no description";
+        else if (score >= 0.999) reason = "Same amount, identical description";
+        else if (dayDelta === 0 && score >= 0.7) reason = "Same amount, same day, similar description";
+        else if (dayDelta === 0) reason = "Same amount, same day";
+        else reason = `Same amount, ${dayDelta} day${dayDelta === 1 ? '' : 's'} apart`;
+        pairs.push({ a, b, score, reason, pairKey: pk });
+        seen.add(pk);
+      }
+    }
+  }
+  return pairs;
+}
+
 // ─── ProfileDropdown ──────────────────────────────────────────────────────────
 function ProfileDropdown({ t, profiles, activeProfile, onSwitch, onClose, onEditProfile }) {
   return (
@@ -3291,6 +3348,136 @@ function EditProfileModal({ t, profile, onSave, onClose }) {
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
+// ─── ReconciliationTab (v1.10-P2) ─────────────────────────────────────────────
+function ReconcilePairRow({ t, tx, accounts, categories, isMobile }) {
+  const acc = accounts.find(a => a.id === tx.accountId);
+  const isSplit = tx.isSplit && Array.isArray(tx.splits) && tx.splits.length > 0;
+  const cat = isSplit ? null : categories.find(c => c.id === tx.categoryId);
+  const amount = parseFloat(tx.amount) || 0;
+  const amountColor = amount < 0 ? COLOR.danger : COLOR.success;
+  const method = tx.entryMethod === 'scan' ? 'scanned'
+    : tx.entryMethod === 'csv_import' ? 'imported'
+    : 'manual';
+  return (
+    <div style={{ flex:1, minWidth:0, background:t.surf, border:`1px solid ${t.border}`, borderRadius:10, padding:"10px 12px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, marginBottom:6 }}>
+        <div style={{ fontSize:11, color:t.tx2, fontFamily:"monospace" }}>{tx.date}</div>
+        <div style={{ fontSize:14, fontWeight:700, fontFamily:"monospace", color:amountColor }}>
+          {amount < 0 ? "-" : ""}${Math.abs(amount).toFixed(2)}
+        </div>
+      </div>
+      <div style={{ fontSize:13, color:t.tx1, fontWeight:600, marginBottom:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+        {tx.description || <span style={{ color:t.tx3, fontStyle:"italic" }}>(no description)</span>}
+      </div>
+      <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+        {isSplit && (
+          <span style={{ fontSize:10, fontWeight:700, color:t.tx2, background:t.panelBg, border:`1px solid ${t.border2}`, borderRadius:5, padding:"2px 6px" }}>
+            🧩 Split
+          </span>
+        )}
+        {!isSplit && cat && (
+          <span style={{ fontSize:10, fontWeight:700, color:t.tx2, background:t.panelBg, border:`1px solid ${t.border2}`, borderRadius:5, padding:"2px 6px" }}>
+            {cat.icon} {cat.name}
+          </span>
+        )}
+        {acc && (
+          <span style={{ fontSize:10, color:t.tx2, background:t.panelBg, border:`1px solid ${t.border}`, borderRadius:5, padding:"2px 6px" }}>
+            🏦 {acc.nickname}
+          </span>
+        )}
+        <span style={{ fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:".5px", color:t.tx3, background:t.panelBg, border:`1px solid ${t.border}`, borderRadius:5, padding:"2px 6px" }}>
+          {method}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ReconciliationTab({ t, pairs, transactions, accounts, categories, dismissedPairs, onSaveDismissed, onUpdateTransactions, bp }) {
+  const [confirmKeep, setConfirmKeep] = useState(null); // { pair, keepId, deleteId }
+
+  function dismissPair(pair) {
+    const next = [...(dismissedPairs || []), { pairKey: pair.pairKey, dismissedAt: new Date().toISOString() }];
+    onSaveDismissed(next);
+  }
+
+  function keepOne(pair, keepId) {
+    const deleteId = keepId === pair.a.id ? pair.b.id : pair.a.id;
+    const next = transactions
+      .filter(tx => tx.id !== deleteId)
+      .map(tx => tx.id === keepId ? { ...tx, reconciled: true, reconciledWith: deleteId } : tx);
+    onUpdateTransactions(next);
+    setConfirmKeep(null);
+  }
+
+  function keepBoth(pair) {
+    const next = transactions.map(tx => {
+      if (tx.id === pair.a.id) return { ...tx, reconciled: true, reconciledWith: pair.b.id };
+      if (tx.id === pair.b.id) return { ...tx, reconciled: true, reconciledWith: pair.a.id };
+      return tx;
+    });
+    onUpdateTransactions(next);
+    dismissPair(pair);
+  }
+
+  const btnBase = { border:"none", borderRadius:8, padding:"7px 12px", cursor:"pointer", fontWeight:600, fontSize:12 };
+  const btnDanger   = { ...btnBase, background:COLOR.danger+"18",  color:COLOR.danger,  border:`1px solid ${COLOR.danger}55` };
+  const btnNeutral  = { ...btnBase, background:t.surf,              color:t.tx1,         border:`1px solid ${t.border2}` };
+  const btnSuccess  = { ...btnBase, background:COLOR.success+"18", color:COLOR.success, border:`1px solid ${COLOR.success}55` };
+
+  const stacked = bp && bp.isMobile;
+
+  return (
+    <div>
+      <div style={{ marginBottom:16 }}>
+        <div style={{ fontWeight:700, fontSize:15, color:t.tx1, marginBottom:4 }}>Duplicate review</div>
+        <div style={{ fontSize:12, color:t.tx2 }}>
+          {pairs.length} potential duplicate{pairs.length === 1 ? '' : 's'} found across {transactions.length} transaction{transactions.length === 1 ? '' : 's'}
+        </div>
+      </div>
+
+      {pairs.length === 0 && (
+        <div style={{ background:t.panelBg, border:`1px solid ${t.border}`, borderRadius:14, padding:"32px 20px", textAlign:"center" }}>
+          <div style={{ fontSize:32, marginBottom:8 }}>✨</div>
+          <div style={{ fontSize:14, color:t.tx2, marginBottom:4 }}>No duplicates detected.</div>
+          <div style={{ fontSize:12, color:t.tx3 }}>All transactions look unique.</div>
+        </div>
+      )}
+
+      {pairs.length > 0 && (
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {pairs.map(pair => (
+            <div key={pair.pairKey} style={{ background:t.panelBg, border:`1px solid ${t.border}`, borderRadius:14, padding:14 }}>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:".5px", color:COLOR.warning, marginBottom:10 }}>
+                ⚠ {pair.reason}
+              </div>
+              <div style={{ display:"flex", flexDirection:stacked?"column":"row", gap:10, alignItems:"stretch", marginBottom:12 }}>
+                <ReconcilePairRow t={t} tx={pair.a} accounts={accounts} categories={categories} isMobile={stacked} />
+                <ReconcilePairRow t={t} tx={pair.b} accounts={accounts} categories={categories} isMobile={stacked} />
+              </div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                <button style={btnDanger}  onClick={() => setConfirmKeep({ pair, keepId:pair.a.id, deleteId:pair.b.id })}>Keep A (delete B)</button>
+                <button style={btnDanger}  onClick={() => setConfirmKeep({ pair, keepId:pair.b.id, deleteId:pair.a.id })}>Keep B (delete A)</button>
+                <button style={btnNeutral} onClick={() => keepBoth(pair)}>Keep both</button>
+                <button style={btnSuccess} onClick={() => dismissPair(pair)}>Not a duplicate</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {confirmKeep && (
+        <ConfirmModal
+          t={t}
+          message={`Delete the other transaction? This cannot be undone. The kept transaction will be marked reconciled.`}
+          onConfirm={() => keepOne(confirmKeep.pair, confirmKeep.keepId)}
+          onCancel={() => setConfirmKeep(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [loading,      setLoading]      = useState(true);
   const [darkMode,     setDarkMode]     = useState(() => localStorage.getItem("sp_dark") !== "false");
@@ -3304,6 +3491,7 @@ export default function App() {
   const [tab,          setTab]          = useState("summary");
   const [txPresetCat,  setTxPresetCat]  = useState(null);
   const [range,        setRange]        = useState(defaultRange);
+  const [dismissedPairs, setDismissedPairs] = useState([]);
   const [showApiKey,       setShowApiKey]       = useState(false);
   const [showBackup,       setShowBackup]       = useState(false);
   const [showAccounts,     setShowAccounts]     = useState(false);
@@ -3364,6 +3552,9 @@ export default function App() {
         const rs = await storeGet(`ffp_cat_rules_${profile.id}`, true) || [];
         setRules(rs);
 
+        const dism = await storeGet(`${MODULE_PREFIX}dedup_dismissed_${profile.id}`) || [];
+        setDismissedPairs(dism);
+
         const savedRange = await storeGet(`sp_selected_range_${profile.id}`);
         if (savedRange && savedRange.mode) {
           setRange(savedRange);
@@ -3422,6 +3613,11 @@ export default function App() {
     if (activeProfile) await storeSet(`sp_selected_range_${activeProfile.id}`, next);
   }, [activeProfile]);
 
+  const saveDismissedPairs = useCallback(async (next) => {
+    setDismissedPairs(next);
+    if (activeProfile) await storeSet(`${MODULE_PREFIX}dedup_dismissed_${activeProfile.id}`, next);
+  }, [activeProfile]);
+
   async function handleSaveApiKey(key) {
     setApiKey(key);
     await storeSet("cc_apikey", key, true);
@@ -3478,6 +3674,7 @@ export default function App() {
     setRules([]);
     setAccounts([]);
     setTransactions([]);
+    setDismissedPairs([]);
   }
 
   async function handleSwitchProfile(profile) {
@@ -3508,6 +3705,8 @@ export default function App() {
     await storeSet(`ffp_baseline_${profile.id}`, baseline, true);
     const rs = await storeGet(`ffp_cat_rules_${profile.id}`, true) || [];
     setRules(rs);
+    const dism = await storeGet(`${MODULE_PREFIX}dedup_dismissed_${profile.id}`) || [];
+    setDismissedPairs(dism);
     const savedRange = await storeGet(`sp_selected_range_${profile.id}`);
     if (savedRange && savedRange.mode) {
       setRange(savedRange);
@@ -3566,6 +3765,8 @@ export default function App() {
   });
 
   const txCount = transactions.length;
+  const reconcilePairs = findDuplicatePairs(transactions, dismissedPairs);
+  const reconcileCount = reconcilePairs.length;
 
   return (
     <div style={{ minHeight:"100vh",background:t.bg,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:t.tx1 }}>
@@ -3609,6 +3810,14 @@ export default function App() {
           <button style={tabStyle(tab==="transactions")} onClick={() => { setTxPresetCat(null); setTab("transactions"); }}>Transactions</button>
           <button style={tabStyle(tab==="rules")} onClick={() => setTab("rules")}>Rules</button>
           <button style={tabStyle(tab==="trends")} onClick={() => setTab("trends")}>Trends</button>
+          <button style={tabStyle(tab==="reconcile")} onClick={() => setTab("reconcile")}>
+            Reconcile
+            {reconcileCount > 0 && (
+              <span style={{ marginLeft:7, background:COLOR.danger, color:"#fff", borderRadius:10, padding:"1px 7px", fontSize:11, fontWeight:700 }}>
+                {reconcileCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {tab === "summary" && (
@@ -3648,6 +3857,16 @@ export default function App() {
           <TrendsTab
             t={t} transactions={transactions} categories={categories}
             range={range} onNavigateToTxMonth={handleNavigateToTxMonth}
+          />
+        )}
+        {tab === "reconcile" && (
+          <ReconciliationTab
+            t={t} pairs={reconcilePairs}
+            transactions={transactions} accounts={accounts} categories={categories}
+            dismissedPairs={dismissedPairs}
+            onSaveDismissed={saveDismissedPairs}
+            onUpdateTransactions={saveTransactions}
+            bp={bp}
           />
         )}
       </div>
