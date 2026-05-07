@@ -2,45 +2,53 @@
 
 > An AI-powered personal finance platform for debt elimination, spending control, savings growth, and retirement readiness.
 
-Built as a collection of standalone Claude artifacts (React) that share a common design system, storage strategy, and AI integration. Each module is independently useful today and will be unified into a single dashboard over time.
+A modular suite of standalone React (`.jsx`) artifacts that share a common design system, storage strategy, and AI integration. Each module ships independently to GitHub Pages and is independently useful. The **Dashboard** unifies them into a single Freedom Rings view; the planned **AI Advisor** capstone will produce a holistic cross-module financial plan.
+
+**Live entry point:** [carterspot.github.io/financial-freedom-platform/dashboard/](https://carterspot.github.io/financial-freedom-platform/dashboard/)
 
 ---
 
 ## Modules
 
-| Module | Status | Description |
-|---|---|---|
-| 💳 CardTracker | ✅ Complete | Credit card debt tracker and payoff planner |
-| 🏦 DebtTracker | 🔲 Planned | Cards + loans unified debt elimination planner |
-| 💰 Income | 🔲 Planned | Income streams, stability tracking, cash flow |
-| 📊 Spending | 🔲 Planned | Budget categories, actuals, trends |
-| 🏦 Savings | 🔲 Planned | Emergency fund and savings goal tracker |
-| 📈 Retirement | 🔲 Planned | 401k, IRA, projections, contribution optimizer |
-| 🧠 AI Advisor | 🔲 Planned | Holistic cross-module financial planning |
+| Module | Status | URL | Description |
+|---|---|---|---|
+| 🏠 Dashboard | ✅ v2.0 | [/dashboard/](https://carterspot.github.io/financial-freedom-platform/dashboard/) | Freedom Rings, cross-module reads, AI Advisor panel |
+| ⚡ DebtTracker | ✅ v1.5 | [/debt/](https://carterspot.github.io/financial-freedom-platform/debt/) | Unified cards + loans payoff planner |
+| 💰 IncomeTracker | ✅ v1.2 | [/income/](https://carterspot.github.io/financial-freedom-platform/income/) | Streams, stability, cash flow |
+| 📊 SpendingTracker | ✅ v1.10 | [/spending/](https://carterspot.github.io/financial-freedom-platform/spending/) | Transactions, splits, reconcile, budgets |
+| 🏦 SavingsModule | ✅ v1.2 | [/savings/](https://carterspot.github.io/financial-freedom-platform/savings/) | Emergency fund + named goals |
+| 📈 RetirementModule | ✅ v1.1 | [/retirement/](https://carterspot.github.io/financial-freedom-platform/retirement/) | 401k/IRA projections + contribution optimizer |
+| 💹 InvestmentModule | ✅ v1.1 | [/investment/](https://carterspot.github.io/financial-freedom-platform/investment/) | Portfolio tracking, AI price update |
+| 🛡️ InsuranceTracker | ✅ v1.0 | [/insurance/](https://carterspot.github.io/financial-freedom-platform/insurance/) | Policies, Legacy Ring, PIN lock |
+| 🧠 AI Advisor | 📋 Planned | — | Capstone — holistic cross-module plan |
+
+**Deprecated** (artifact URLs preserved, removed from landing page; do not extend):
+- 💳 CardTracker v3.1 — superseded by DebtTracker
+- 🏦 LoanTracker v1.2 — superseded by DebtTracker
 
 ---
 
-## CardTracker — Feature Overview
+## Recent Releases
 
-- Multi-profile support with Recovery PIN (cross-device data recovery without a cloud account)
-- Credit card CRUD with color coding, utilization tracking, and due date calendar
-- Avalanche and snowball payoff schedule simulations with charts
-- AI Analysis, What-If chat, and Strategy Builder (powered by Anthropic API)
-- Payment progress tracker with monthly log
-- Export (JSON + CSV) and Import (JSON + CSV) — full backup and restore
-- Cloud storage sync (`window.storage`) with automatic localStorage fallback
-- Dark / light mode
+- **2026-04-18** — SpendingTracker v1.10 — transaction splits + standalone Reconcile tab (cross-method post-hoc dedup)
+- **2026-04-18** — Dashboard v2.0.1 — split-aware aggregation patch (ST v1.10 compat)
+- **2026-04** — Help Wiki scaffold (26 articles at `docs/wiki/`)
+- **2026-04** — Dashboard v2.0 — AI Advisor panel, staleness detection, Settings tab
+- **2026-04** — InsuranceTracker v1.0, InvestmentModule v1.1, SavingsModule v1.2
+
+See [`docs/whats-new.html`](docs/whats-new.html) for the full release log.
 
 ---
 
 ## Tech Stack
 
-- **Framework:** React (single-file `.jsx` artifacts, no build step)
-- **Styling:** Inline styles with shared `useTheme()` hook — no CSS files, no Tailwind
-- **Charts:** SVG — no external chart libraries
+- **Framework:** React (single-file `.jsx` artifacts)
+- **Build:** Vite → static output to `docs/{module}/` → GitHub Pages
+- **Styling:** Inline styles with shared `useTheme()` / design tokens — no CSS files, no Tailwind
+- **Charts:** SVG only — no external chart libraries
 - **Storage:** `window.storage` (Claude artifact cloud) with `localStorage` fallback
-- **AI:** Anthropic Messages API (`claude-sonnet-4-20250514`), non-streaming
-- **Dependencies:** Zero — no npm, no CDN libraries beyond React
+- **AI:** Anthropic Messages API (`claude-sonnet-4-20250514`), non-streaming, routed through a Cloudflare Worker proxy
+- **Dependencies:** Zero runtime deps beyond React; Vite is build-only
 
 ---
 
@@ -49,41 +57,90 @@ Built as a collection of standalone Claude artifacts (React) that share a common
 ```
 financial-freedom-platform/
 ├── README.md
+├── CLAUDE.md                       # Claude Code session context
 ├── docs/
-│   ├── project-instruction.md   # Full Claude project context and architecture
-│   └── design-system.md         # Theme, colors, component conventions
+│   ├── project-instruction.md      # Full architecture + module specs (authoritative)
+│   ├── design-system.md            # Theme tokens, component patterns
+│   ├── whats-new.html              # Release log
+│   ├── pm-dashboard.html           # PM status board
+│   ├── index.html                  # Landing page
+│   ├── internal/
+│   │   ├── CTO-MEMORY.md           # CTO session bootstrap
+│   │   └── ffp-cto-SKILL.md        # CTO role definition
+│   ├── wiki/                       # 26-article help wiki (Intercom-ready HTML)
+│   ├── build-prompts/              # Build prompts authored for Code Clones
+│   └── {module}/                   # Built static output served by GitHub Pages
 ├── modules/
-│   ├── card-tracker.jsx          # ✅ Complete
-│   ├── debt-tracker.jsx          # 🔲 Placeholder
-│   ├── income.jsx                # 🔲 Placeholder
-│   ├── spending.jsx              # 🔲 Placeholder
-│   ├── savings.jsx               # 🔲 Placeholder
-│   └── retirement.jsx            # 🔲 Placeholder
-└── shared/
-    └── design-system.md
+│   ├── dashboard.jsx               # ✅ v2.0
+│   ├── debt-tracker.jsx            # ✅ v1.5
+│   ├── income-tracker.jsx          # ✅ v1.2
+│   ├── spending.jsx                # ✅ v1.10  (no -tracker suffix)
+│   ├── savings.jsx                 # ✅ v1.2
+│   ├── retirement.jsx              # ✅ v1.1
+│   ├── investment.jsx              # ✅ v1.1
+│   ├── insurance.jsx               # ✅ v1.0
+│   ├── credit-card-tracker.jsx     # 🟡 deprecated
+│   ├── loan-tracker.jsx            # 🟡 deprecated
+│   └── income-stub.jsx             # 2-line stub (renamed from income.jsx)
+└── preview/                        # Vite host for builds
+    ├── src/App.jsx                 # Swap import to target module
+    └── vite.config.js              # base + outDir per module
 ```
 
 ---
 
-## Storage Key Convention
+## Deployment
 
-Each module uses a unique prefix to avoid collisions:
+```bash
+# 1. preview/src/App.jsx — import the target module
+# 2. preview/vite.config.js — set base + outDir to "../docs/{module}"
+cd preview && npm run build
+# 3. commit modules/{name}.jsx, docs/{module}/, vite.config.js, App.jsx
+# 4. push — GitHub Pages auto-deploys in ~60s
+```
 
-| Module | Prefix | Example key |
+`outDir` is always `"../docs/{module}"` (one level up from `preview/`), never `"../../docs/{module}"`.
+
+---
+
+## AI Integration
+
+All modules call Anthropic via a Cloudflare Worker proxy. Direct browser calls to `api.anthropic.com` are CORS-blocked from GitHub Pages, localhost, and artifact public URLs — the worker is the permanent solution.
+
+```javascript
+const API_URL = "https://ffp-api-proxy.carterspot.workers.dev/";
+const MODEL   = "claude-sonnet-4-20250514";
+```
+
+- **Headers required:** `Content-Type`, `anthropic-version: 2023-06-01`, and `x-api-key` (sourced from shared `cc_apikey` storage)
+- **Non-streaming only** — `await res.json()`. Streaming is unreliable in the artifact sandbox
+- **Timeout:** 30s `AbortController`
+- **Free tier:** 100k req/day on the worker; SPOF — if the worker is down, all AI features fail. Rollback: restore worker or recreate (~10 min — it's a ~15-line CORS proxy)
+
+---
+
+## Storage Keys
+
+Each module uses a unique prefix; cross-module keys use `ffp_`.
+
+| Prefix | Owner | Notes |
 |---|---|---|
-| CardTracker | `cc_` | `cc_cards_pin_smithfamily` |
-| DebtTracker | `dt_` | `dt_loans_pin_smithfamily` |
-| Income | `inc_` | `inc_streams_pin_smithfamily` |
-| Spending | `sp_` | `sp_budget_pin_smithfamily` |
-| Savings | `sav_` | `sav_goals_pin_smithfamily` |
-| Retirement | `ret_` | `ret_accounts_pin_smithfamily` |
-| Cross-module | `ffp_` | `ffp_advisor_context` |
+| `cc_` | shared platform | profiles, active profile, API key |
+| `dt_` | DebtTracker | debt records + `dt_summary_{profileId}` |
+| `inc_` | IncomeTracker | streams + `inc_summary_{profileId}` |
+| `sp_` | SpendingTracker | transactions, rules, dedup state |
+| `sav_` | SavingsModule | goals + `sav_summary_{profileId}` |
+| `ret_` | RetirementModule | accounts + `ret_summary_{profileId}` |
+| `ins_` | InsuranceTracker | policies + `ins_legacy_health_{profileId}` |
+| `ffp_` | shared / cross-module | `ffp_categories_`, `ffp_cat_rules_`, `ffp_baseline_`, `ffp_investments_` |
+
+The Dashboard and AI Advisor read the per-module `*_summary_{profileId}` keys to compose a unified picture without coupling to internal module schemas.
 
 ---
 
 ## Profile & Identity
 
-All modules share the same profile system. A profile has an optional **Recovery PIN** — a memorable word or phrase chosen by the user that becomes the stable storage key. This allows full data recovery on any device without requiring a cloud account.
+All modules share one profile system. A profile has an optional **Recovery PIN** — a memorable word or phrase that becomes the stable storage key, allowing full data recovery on any device without a cloud account.
 
 ```json
 {
@@ -95,36 +152,38 @@ All modules share the same profile system. A profile has an optional **Recovery 
 }
 ```
 
----
-
-## AI Integration
-
-All AI calls use the Anthropic Messages API directly from the artifact. The API key is stored once in shared cloud storage and automatically available to all users of the artifact URL.
-
-```javascript
-const API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL   = "claude-sonnet-4-20250514";
-```
-
-**Important:** All AI calls are non-streaming (`await res.json()`). Streaming is unreliable in the Claude artifact sandbox and causes freezing.
+`cc_apikey` is set once and works across every module.
 
 ---
 
-## Development Notes
+## Critical JSX Rules
 
-See [`docs/project-instruction.md`](docs/project-instruction.md) for the full Claude project context including schemas, critical JSX rules, design decisions, and session log.
+Violations crash the artifact renderer. See [`CLAUDE.md`](CLAUDE.md) for the full list.
 
-See [`docs/design-system.md`](docs/design-system.md) for the complete shared design system.
+1. Always `return (` or `return <` with a space — never `return<`
+2. Never define JSX-returning functions inside a component — hoist all to top level
+3. No `window.confirm()` / `window.alert()` — custom modal components only
+4. No streaming AI — `await res.json()` only
+5. No `<form>` tags — `onClick` / `onChange` only
+6. SVG charts only — no external chart libraries
+7. Always use the probe/fallback storage pattern
+8. Guard `window.innerWidth` with `typeof window !== 'undefined'`
+
+---
+
+## Documentation
+
+- [`CLAUDE.md`](CLAUDE.md) — Claude Code session context and module map
+- [`docs/project-instruction.md`](docs/project-instruction.md) — full architecture, schemas, and module specs (authoritative)
+- [`docs/design-system.md`](docs/design-system.md) — theme tokens, component patterns
+- [`docs/internal/CTO-MEMORY.md`](docs/internal/CTO-MEMORY.md) — CTO session bootstrap
+- [`docs/wiki/`](docs/wiki/) — end-user help articles
 
 ---
 
 ## Roadmap
 
-- [ ] CardTracker — minor UI polish and mobile review
-- [ ] DebtTracker — loan form, amortization engine, unified strategy planner
-- [ ] Income Module — stream tracking, stability rating, cash flow output
-- [ ] Spending Module — category budgets, actuals, available cash calculation
-- [ ] Savings Module — emergency fund goal, named savings goals
-- [ ] Retirement Module — projections, contribution optimizer
-- [ ] AI Advisor — holistic cross-module planning (capstone)
-- [ ] Platform unification — single dashboard linking all modules
+- [ ] Wiki content pass — 26 articles, ~4–6 CTO sessions
+- [ ] Test persona refresh — exercise SpendingTracker v1.10 splits + reconcilable duplicates
+- [ ] AI Advisor capstone — holistic cross-module plan with manual correction layer
+- [ ] Graduation — Next.js + Supabase migration (parked)
